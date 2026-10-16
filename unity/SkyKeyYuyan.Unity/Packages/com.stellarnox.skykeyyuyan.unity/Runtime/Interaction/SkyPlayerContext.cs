@@ -83,7 +83,7 @@ namespace SkyKeyYuyan.Unity
         public bool KeyboardEnabled
         {
             get => _keyboardEnabled;
-            set { if (_keyboardEnabled == value) return; _keyboardEnabled = value; _target?.SetKeyboardOwned(value); _draft?.SetKeyboardOwned(value); DevicePolicyChanged?.Invoke(); }
+            set { if (_keyboardEnabled == value) return; _keyboardEnabled = value; _target?.SetKeyboardOwned(value); _draft?.SetKeyboardOwned(value); UpdateNativePolicy(); DevicePolicyChanged?.Invoke(); }
         }
         /// <summary>
         /// 是否路由手柄；默认启用。
@@ -91,7 +91,7 @@ namespace SkyKeyYuyan.Unity
         public bool GamepadEnabled
         {
             get => _gamepadEnabled;
-            set { if (_gamepadEnabled == value) return; _gamepadEnabled = value; DevicePolicyChanged?.Invoke(); }
+            set { if (_gamepadEnabled == value) return; _gamepadEnabled = value; UpdateNativePolicy(); DevicePolicyChanged?.Invoke(); }
         }
         /// <summary>
         /// 成功打开会话及面板控制器。
@@ -122,6 +122,7 @@ namespace SkyKeyYuyan.Unity
                 Session = opened.Session; _target = target; Session.Completed += OnCompleted;
                 Panel = new SkyPanelController(Session);
                 _target.SetKeyboardOwned(KeyboardEnabled); _draft?.SetKeyboardOwned(KeyboardEnabled);
+                UpdateNativePolicy();
                 if (_pauses.Count != 0) Session.Process(InputOperation.Pause());
                 Notify(Opened, this);
                 return new ServiceResult(true, "session");
@@ -163,7 +164,9 @@ namespace SkyKeyYuyan.Unity
             if (session != null) { session.Completed -= OnCompleted; if (cancel) session.Dispose(); }
             Panel?.Dispose(); Panel = null;
             _target?.SetKeyboardOwned(false); _draft?.SetKeyboardOwned(false); _target = null; _draft = null;
+            UpdateNativePolicy();
         }
+        private void UpdateNativePolicy() => SkyNativeInputCoordination.Set(this, Session != null && KeyboardEnabled, Session != null && GamepadEnabled);
         private static void Notify<T>(Action<T> handlers, T value)
         {
             if (handlers == null) return;

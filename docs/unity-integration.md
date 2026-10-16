@@ -45,6 +45,8 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 表现层或宿主配置策略，平台适配执行实际事件路由。被 SKY 接管的输入同时与目标控件的原有输入路径协调，保证一次按键产生一次编辑。
 
+`SkyNativeInputCoordination` 合并活动玩家的接管状态，在原生 EventSystem 前排空已由 SKY 处理的键盘事件。UGUI 适配保存并暂时关闭 EventSystem 导航，最后一个使用手柄的会话结束后还原原值；Legacy 输入能力启用时同步协调 IME 模式。键盘接管仍由每位玩家的启用设置决定。
+
 ## 文本框发现和编辑态
 
 标准接入在指定玩家 UI 根节点内发现支持的文本框，覆盖运行期间创建的目标。特殊控件可通过显式注册文本目标接入。

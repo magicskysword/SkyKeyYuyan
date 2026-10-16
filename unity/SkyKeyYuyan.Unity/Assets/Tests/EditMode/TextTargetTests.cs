@@ -7,6 +7,7 @@ using SkyKeyYuyan.Unity.TMP;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class UnityTextTargetTests
 {
@@ -190,6 +191,24 @@ public class UnityTextTargetTests
             var before = target.ReadSnapshot();
             Assert.That(target.ApplyEdit(new TextEditRequest(new OperationId(Guid.NewGuid(), 1), before.Version, 2, 0, "x")).Status, Is.EqualTo(TextEditStatus.Rejected));
             Assert.That(target.ApplyEdit(new TextEditRequest(new OperationId(Guid.NewGuid(), 2), before.Version, 2, 0, "3")).Snapshot.Text, Is.EqualTo("123"));
+        }
+    }
+    [TestCase(false)]
+    [TestCase(true)]
+    public void NativeNavigationRestoresOnlyAfterAllPlayersFinish(bool originalNavigation)
+    {
+        var system = _root.AddComponent<EventSystem>(); system.sendNavigationEvents = originalNavigation;
+        using (var firstTarget = Target(false))
+        using (var secondTarget = Target(false))
+        using (var runtime = new SkyRuntime())
+        using (var first = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "first" }))
+        using (var second = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "second" }))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            first.Open(firstTarget, runtime); second.Open(secondTarget, runtime);
+            Assert.That(system.sendNavigationEvents, Is.False);
+            first.Dispose(); Assert.That(system.sendNavigationEvents, Is.False);
+            second.Dispose(); Assert.That(system.sendNavigationEvents, Is.EqualTo(originalNavigation));
         }
     }
 }

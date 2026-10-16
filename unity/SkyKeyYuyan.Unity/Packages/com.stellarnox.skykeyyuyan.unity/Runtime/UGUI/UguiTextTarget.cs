@@ -17,7 +17,7 @@ namespace SkyKeyYuyan.Unity.UGUI
         /// <summary>
         /// 绑定现有输入框，不改变其字体和验证配置。
         /// </summary>
-        public UguiTextTarget(InputField field) : base(field) { _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged); }
+        public UguiTextTarget(InputField field) : base(field) { _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged); UguiNavigationCoordination.EnsureRegistered(); }
         /// <inheritdoc>
         /// </inheritdoc>
         protected override bool NativeAlive => _field != null;
