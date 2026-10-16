@@ -7,13 +7,13 @@
 /scripts/** text eol=lf
 
 # Unity YAML 资源
-*.unity text eol=lf
-*.prefab text eol=lf
-*.asset text eol=lf
+*.unity text eol=lf whitespace=-blank-at-eol
+*.prefab text eol=lf whitespace=-blank-at-eol
+*.asset text eol=lf whitespace=-blank-at-eol
 *.meta text eol=lf whitespace=-blank-at-eol
-*.mat text eol=lf
-*.anim text eol=lf
-*.controller text eol=lf
+*.mat text eol=lf whitespace=-blank-at-eol
+*.anim text eol=lf whitespace=-blank-at-eol
+*.controller text eol=lf whitespace=-blank-at-eol
 
 # 二进制文件
 *.png binary

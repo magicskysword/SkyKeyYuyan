@@ -1,0 +1,6 @@
+{
+  "name": "SkyKeyYuyan.Unity.Legacy.Editor",
+  "references": ["SkyKeyYuyan.Unity.Legacy"],
+  "includePlatforms": ["Editor"],
+  "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER"]
+}

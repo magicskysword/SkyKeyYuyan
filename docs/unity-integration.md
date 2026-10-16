@@ -87,6 +87,8 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 扩展选区，Enter 完成，Escape 取消，Tab 切换语言，Ctrl+A 全选。键盘默认仍需显式启用。
 
+启用 Legacy Input 时，`SkyLegacyInputDriver` 按一到八号手柄槽位绑定玩家。`LegacyGamepadProfile` 指定摇杆、方向键、扳机的轴名称和按钮索引，`ILegacyInputSource` 可替换平台采样。开发工程包含 `SkyPad1` 至 `SkyPad8` 的默认轴；其他工程可通过 `Tools/SkyKeyYuyan/添加 Legacy 默认输入轴` 补齐。默认轴采用 Windows 手柄配置，宿主可以在 Input Manager 中调整实际轴映射。菜单保留已有的同名轴设置。键盘由系统文本帧提供字符，同一帧重复采样保持一次输入。
+
 默认界面支持双手柄、双面板和独立草稿。两套 UI 的验证都包含此场景。原框模式依赖对应目标适配的选区与焦点处理，并按控件逐项验证。
 
 目标编辑权由运行时统一管理。第二个会话打开同一目标时收到目标占用结果，宿主可先结束原会话再转交编辑权。

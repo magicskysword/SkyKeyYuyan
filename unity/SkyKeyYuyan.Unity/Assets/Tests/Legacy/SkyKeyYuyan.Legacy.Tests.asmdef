@@ -1,0 +1,9 @@
+{
+  "name": "SkyKeyYuyan.Legacy.Tests",
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.Legacy", "SkyKeyYuyan.Unity.Legacy.Editor"],
+  "includePlatforms": ["Editor"],
+  "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER"],
+  "overrideReferences": true,
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "nunit.framework.dll"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
