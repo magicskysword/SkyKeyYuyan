@@ -7,7 +7,7 @@ namespace SkyKeyYuyan.Core
     /// <summary>
     /// 核心内置的英语直接输入模块。
     /// </summary>
-    public sealed class BasicEnglishModule : ILanguageModule
+    public sealed class BasicEnglishModule : ILanguageModule, IKeyboardLayoutSource
     {
         private sealed class Engine : HistoryLanguageEngine
         {
@@ -26,6 +26,9 @@ namespace SkyKeyYuyan.Core
         /// <inheritdoc>
         /// </inheritdoc>
         public LanguageCapabilities Capabilities => LanguageCapabilities.None;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public KeyboardLayout LoadKeyboard(IResourceProvider resources) => KeyboardLayout.BasicEnglish;
         /// <inheritdoc>
         /// </inheritdoc>
         public event Action DataChanged { add { } remove { } }

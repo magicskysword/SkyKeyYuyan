@@ -26,6 +26,10 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public IReadOnlyDictionary<string, string> LanguageEngines { get; set; } = new Dictionary<string, string>();
         /// <summary>
+        /// 按语言替换默认键盘布局。
+        /// </summary>
+        public IReadOnlyDictionary<string, KeyboardLayout> Keyboards { get; set; } = new Dictionary<string, KeyboardLayout>();
+        /// <summary>
         /// 初始化成功后是否取代进程默认实例。
         /// </summary>
         public bool ReplaceDefault { get; set; } = true;
@@ -182,6 +186,7 @@ namespace SkyKeyYuyan.Core
         private readonly object _gate = new object();
         private readonly Dictionary<string, ILanguageModule> _modules = new Dictionary<string, ILanguageModule>(StringComparer.Ordinal);
         private readonly Dictionary<string, ILanguageModule> _selected = new Dictionary<string, ILanguageModule>(StringComparer.Ordinal);
+        private readonly Dictionary<string, KeyboardLayout> _keyboards = new Dictionary<string, KeyboardLayout>(StringComparer.Ordinal);
         private readonly HashSet<string> _ready = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<SkySession> _sessions = new HashSet<SkySession>();
         private readonly HashSet<ILanguageModule> _releasedModules = new HashSet<ILanguageModule>();
@@ -270,10 +275,13 @@ namespace SkyKeyYuyan.Core
                 foreach (var group in _modules.Values.GroupBy(module => module.LanguageId))
                     if (group.Count() > 1 && !options.LanguageEngines.ContainsKey(group.Key)) return new ServiceResult(false, "configuration", "同语言多个实现需要显式选择");
                 if (options.PreloadUsers.Any(string.IsNullOrWhiteSpace)) return new ServiceResult(false, "configuration", "预加载用户标识不能为空");
+                if (options.Keyboards.Any(pair => pair.Value == null || pair.Key != pair.Value.LanguageId)) return new ServiceResult(false, "configuration", "替换布局的语言身份不匹配");
                 if (options.FrequencyStore != null) FrequencyService.ConfigureStore(options.FrequencyStore);
                 _frequency = FrequencyService.Shared;
                 _options = new RuntimeOptions { ExecutionContext = options.ExecutionContext, Resources = options.Resources, DefaultUserId = options.DefaultUserId, ReplaceDefault = options.ReplaceDefault, DiagnosticSink = options.DiagnosticSink, LanguageEngines = options.LanguageEngines.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal), FrequencyStore = options.FrequencyStore, PreloadUsers = options.PreloadUsers.ToArray(), AutoSaveFrequencies = options.AutoSaveFrequencies };
                 _preloadResults = Array.Empty<FrequencyStoreResult>();
+                _keyboards.Clear();
+                foreach (var keyboard in options.Keyboards) _keyboards.Add(keyboard.Key, keyboard.Value);
                 _initializing = true;
                 modules = _modules.Values.ToArray();
                 return new ServiceResult(true, "initialize");
@@ -433,6 +441,18 @@ namespace SkyKeyYuyan.Core
             }
         }
         private static string? RecentLanguage(string playerId) { lock (GlobalGate) return RecentLanguages.TryGetValue(playerId, out var language) ? language : null; }
+        internal KeyboardLayout GetKeyboard(ILanguageModule module)
+        {
+            lock (_gate)
+            {
+                if (_keyboards.TryGetValue(module.LanguageId, out var keyboard)) return keyboard;
+                if (_resourcesReleased) throw new ObjectDisposedException(nameof(SkyRuntime));
+                if (!(module is IKeyboardLayoutSource source)) throw new NotSupportedException("当前语言没有默认键盘布局");
+                keyboard = source.LoadKeyboard(_options.Resources);
+                if (keyboard.LanguageId != module.LanguageId) throw new InvalidDataException("键盘布局与模块语言不一致");
+                _keyboards.Add(module.LanguageId, keyboard); return keyboard;
+            }
+        }
         private static bool AcquireTarget(object identity, Guid sessionId)
         {
             lock (GlobalGate)

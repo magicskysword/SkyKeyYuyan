@@ -369,6 +369,14 @@ namespace SkyKeyYuyan.Core
     public interface ISkySession : IDisposable
     {
         /// <summary>
+        /// 本会话固定的语言菜单。
+        /// </summary>
+        IReadOnlyList<LanguageInfo> Languages { get; }
+        /// <summary>
+        /// 取得当前语言的默认键盘布局。
+        /// </summary>
+        KeyboardLayout GetKeyboard();
+        /// <summary>
         /// 当前完整快照。
         /// </summary>
         SessionSnapshot Snapshot { get; }

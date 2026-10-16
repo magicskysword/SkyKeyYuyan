@@ -8,7 +8,7 @@ namespace SkyKeyYuyan.Languages.Korean
     /// <summary>
     /// 现代韩语两套式输入模块。
     /// </summary>
-    public sealed class KoreanModule : ILanguageModule
+    public sealed class KoreanModule : ILanguageModule, IKeyboardLayoutSource
     {
         private sealed class Engine : TokenLanguageEngine
         {
@@ -28,6 +28,9 @@ namespace SkyKeyYuyan.Languages.Korean
         /// <inheritdoc>
         /// </inheritdoc>
         public LanguageCapabilities Capabilities => LanguageCapabilities.None;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public KeyboardLayout LoadKeyboard(IResourceProvider resources) => KeyboardLayout.Parse(resources.Read("korean/keyboard.bytes"), LanguageId);
         /// <inheritdoc>
         /// </inheritdoc>
         public event Action DataChanged { add { } remove { } }

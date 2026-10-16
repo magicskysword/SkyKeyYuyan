@@ -20,6 +20,19 @@ public class UnityServicesTests
         Assert.That(Encoding.UTF8.GetString(bytes, 0, 40), Does.StartWith("SKY\t1\tzh-Hans\t"));
     }
 
+    [TestCase("chinese", "zh-Hans")]
+    [TestCase("english", "en")]
+    [TestCase("korean", "ko")]
+    public void PackagedKeyboardResourcesHaveNavigationAndLanguageOutputs(string directory, string language)
+    {
+        var layout = KeyboardLayout.Parse(SkyUnityServices.Shared.Resources.Read(directory + "/keyboard.bytes"), language);
+        Assert.That(layout.Keys.Count, Is.GreaterThan(50));
+        Assert.That(layout["space"].Output, Is.EqualTo(" "));
+        Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("key-2-8"));
+        Assert.That(layout["key-1-0"].Output, Is.EqualTo(language == "ko" ? "ㅂ" : "q"));
+        Assert.That(layout["key-1-0"].Alternate, Is.EqualTo(language == "ko" ? "ㅃ" : "Q"));
+    }
+
     [UnityTest]
     public IEnumerator AsynchronousLanguageInitializationKeepsUnityResourceCallsOnMainThread()
     {

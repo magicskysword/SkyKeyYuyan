@@ -11,7 +11,7 @@ namespace SkyKeyYuyan.Languages.English
     /// <summary>
     /// 根据离线词表补全当前英语词首。
     /// </summary>
-    public sealed class EnglishCompletionModule : LexiconModule
+    public sealed class EnglishCompletionModule : LexiconModule, IKeyboardLayoutSource
     {
         /// <summary>
         /// 从 Provider 资源或显式词条准备补全词典。
@@ -29,6 +29,9 @@ namespace SkyKeyYuyan.Languages.English
         /// <inheritdoc>
         /// </inheritdoc>
         public override LanguageCapabilities Capabilities => LanguageCapabilities.Candidates | LanguageCapabilities.CompletionSwitch;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public KeyboardLayout LoadKeyboard(IResourceProvider resources) => KeyboardLayout.Parse(resources.Read("english/keyboard.bytes"), LanguageId);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override string NormalizeSpelling(string spelling)

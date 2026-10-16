@@ -11,7 +11,7 @@ namespace SkyKeyYuyan.Languages.Chinese
     /// <summary>
     /// 简体中文连续全拼、分段选择及基本整句转换模块。
     /// </summary>
-    public sealed class ChinesePinyinModule : LexiconModule
+    public sealed class ChinesePinyinModule : LexiconModule, IKeyboardLayoutSource
     {
         /// <summary>
         /// 从 Provider 资源或显式词条准备中文词典。
@@ -29,6 +29,9 @@ namespace SkyKeyYuyan.Languages.Chinese
         /// <inheritdoc>
         /// </inheritdoc>
         public override LanguageCapabilities Capabilities => LanguageCapabilities.Candidates | LanguageCapabilities.ConvertOnCommit;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public KeyboardLayout LoadKeyboard(IResourceProvider resources) => KeyboardLayout.Parse(resources.Read("chinese/keyboard.bytes"), LanguageId);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override string NormalizeSpelling(string spelling) => PinyinSpelling.Normalize(spelling);

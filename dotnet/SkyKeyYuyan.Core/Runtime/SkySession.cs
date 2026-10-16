@@ -65,6 +65,7 @@ namespace SkyKeyYuyan.Core
         internal SkySession(SkyRuntime runtime, Guid id, ITextTarget target, ITextTarget editing, SessionOptions options, Dictionary<string, ILanguageModule> languages, string initial)
         {
             _runtime = runtime; _id = id; _target = target; _playerId = options.PlayerId; _languages = languages; _mode = options.EditingMode;
+            Languages = Array.AsReadOnly(languages.Values.Select(module => new LanguageInfo(module)).ToArray());
             _userId = options.UserId ?? runtime.DefaultUserId;
             if (string.IsNullOrWhiteSpace(_userId)) throw new ArgumentException("用户标识不能为空");
             _editing = editing;
@@ -86,6 +87,8 @@ namespace SkyKeyYuyan.Core
         }
 
         public SessionSnapshot Snapshot { get; private set; }
+        public IReadOnlyList<LanguageInfo> Languages { get; }
+        public KeyboardLayout GetKeyboard() => _runtime.GetKeyboard(_module);
         public event Action<SessionSnapshot>? StateChanged;
         public event Action<OperationResult>? OperationCompleted;
         public event Action<SessionResult>? Completed;
