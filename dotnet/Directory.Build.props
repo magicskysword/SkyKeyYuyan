@@ -9,7 +9,7 @@
     <SkyUnityPackagesDir>$(SkyRepoRoot)unity/SkyKeyYuyan.Unity/Packages/</SkyUnityPackagesDir>
 
     <Version>0.1.0</Version>
-    <Authors>StellarNox</Authors>
+    <Authors>MagicSkySword</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageOutputPath>$(SkyRepoRoot)artifacts/NuGet/</PackageOutputPath>
 
