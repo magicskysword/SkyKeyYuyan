@@ -153,9 +153,9 @@ namespace SkyKeyYuyan.Unity
     public sealed class SkyPanelController : IDisposable
     {
         private readonly ISkySession _session;
-        private KeyboardLayout _layout;
+        private KeyboardLayout _layout, _normalLayout;
         private string _language, _focus = "", _problem;
-        private bool _shift, _disposed;
+        private bool _shift, _disposed, _resolving;
         private OperationResult _lastResult;
         /// <summary>
         /// 绑定已打开的会话。
@@ -181,7 +181,7 @@ namespace SkyKeyYuyan.Unity
         {
             var snapshot = _session.Snapshot;
             if (_disposed || snapshot.Lifecycle != SessionLifecycle.Active) return false;
-            if (snapshot.NeedsResolution) return key.Action == "cancel";
+            if (snapshot.NeedsResolution) return key.Action == "cancel" || key.Action == "accept-current" || key.Action == "retry-write";
             if (key.Action == "completion") return _session.Languages.Any(language => language.LanguageId == snapshot.LanguageId && (language.Capabilities & LanguageCapabilities.CompletionSwitch) != 0);
             if (key.Action == "retry") return snapshot.Literal;
             if (key.Action == "language") return _session.Languages.Count > 1;
@@ -192,8 +192,20 @@ namespace SkyKeyYuyan.Unity
             if (_language != snapshot.LanguageId)
             {
                 _language = snapshot.LanguageId; _shift = false; _problem = null;
-                try { _layout = _session.GetKeyboard(); _focus = _layout.Keys[0].Id; }
-                catch (Exception ex) { _layout = null; _focus = ""; _problem = ex.Message; }
+                try { _normalLayout = _session.GetKeyboard(); _focus = _normalLayout.Keys[0].Id; }
+                catch (Exception ex) { _normalLayout = null; _focus = ""; _problem = ex.Message; }
+                _layout = _normalLayout;
+            }
+            if (_resolving != snapshot.NeedsResolution)
+            {
+                _resolving = snapshot.NeedsResolution;
+                _layout = _resolving ? new KeyboardLayout(snapshot.LanguageId, "resolution.1", new[]
+                {
+                    new KeyboardKey("cancel", "取消", "", "", 0, 0, "cancel"),
+                    new KeyboardKey("accept-current", "当前正文", "", "", 0, 1, "accept-current"),
+                    new KeyboardKey("retry-write", "再次提交", "", "", 0, 2, "retry-write")
+                }) : _normalLayout;
+                _focus = _resolving ? "cancel" : _layout?.Keys[0].Id ?? "";
             }
             Publish(snapshot);
         }
@@ -233,6 +245,8 @@ namespace SkyKeyYuyan.Unity
                 case "clear": return Handle(SkyControl.Clear);
                 case "completion": return Handle(SkyControl.Completion);
                 case "retry": return Handle(SkyControl.Retry);
+                case "accept-current": return Handle(SkyControl.AcceptCurrentText);
+                case "retry-write": return Handle(SkyControl.RetryWrite);
                 default: return false;
             }
         }

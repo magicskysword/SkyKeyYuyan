@@ -11,6 +11,8 @@ public class PlayerRoutingTests
         private int _anchor, _caret, _limit;
         public bool Owned;
         public bool Editing = true;
+        public bool FailBeforeWrite, FailAfterWrite;
+        public int Writes;
         public Target(string text = "", int caret = 0, int limit = 0) : base(new object()) { _text = text; _anchor = _caret = caret; _limit = limit; }
         protected override bool NativeAlive => true;
         public override bool IsEditing => Editing;
@@ -18,7 +20,13 @@ public class PlayerRoutingTests
         protected override bool SingleLine => false;
         protected override string ReadText() => _text;
         protected override void ReadSelection(out int anchor, out int caret) { anchor = _anchor; caret = _caret; }
-        protected override void WriteText(string text, int anchor, int caret) { _text = text; WriteSelection(anchor, caret); }
+        protected override void WriteText(string text, int anchor, int caret)
+        {
+            Writes++;
+            if (FailBeforeWrite) { FailBeforeWrite = false; throw new InvalidOperationException("write interrupted"); }
+            _text = text; WriteSelection(anchor, caret);
+            if (FailAfterWrite) { FailAfterWrite = false; throw new InvalidOperationException("receipt interrupted"); }
+        }
         protected override void WriteSelection(int anchor, int caret) { _anchor = anchor; _caret = caret; }
         protected override void NotifyTextChanged(string text) { }
         public override void SetKeyboardOwned(bool owned) { Owned = owned; }
@@ -30,6 +38,26 @@ public class PlayerRoutingTests
         var runtime = new SkyRuntime(); runtime.RegisterLanguage(new BasicEnglishModule());
         Assert.That(runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false }).Succeeded, Is.True);
         return runtime;
+    }
+    [TestCase(true)]
+    [TestCase(false)]
+    public void UnknownWriteCanBeResolvedWithOnlyGamepadNavigation(bool alreadyWritten)
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { EditingMode = EditingMode.Direct }))
+        using (var target = new Target { FailBeforeWrite = !alreadyWritten, FailAfterWrite = alreadyWritten })
+        {
+            player.Open(target, runtime); player.Handle(SkyControl.Text, text: "A");
+            Assert.That(player.Session.Snapshot.NeedsResolution, Is.True); Assert.That(target.Writes, Is.EqualTo(1));
+            Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("cancel"));
+            player.Handle(SkyControl.KeyRight);
+            if (!alreadyWritten) player.Handle(SkyControl.KeyRight);
+            player.Handle(SkyControl.Activate);
+            Assert.That(player.Session.Snapshot.NeedsResolution, Is.False); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A"));
+            Assert.That(target.Writes, Is.EqualTo(alreadyWritten ? 1 : 2));
+            Assert.That(player.Panel.State.Layout, Is.SameAs(KeyboardLayout.BasicEnglish));
+            player.Handle(SkyControl.Text, text: "B"); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB"));
+        }
     }
     [Test]
     public void TwoPlayersReceiveOnlyTheirDeviceAndSelectedBackendOnce()
