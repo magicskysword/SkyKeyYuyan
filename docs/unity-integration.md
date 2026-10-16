@@ -134,6 +134,10 @@ SKY 自己的写入带有操作归属，适配器用它区分宿主外部修改�
 
 UGUI 草稿控件为每位玩家保留独立编辑态，虚拟按钮不会改变 EventSystem 的文本选择。候选按钮可直接确认，前后候选按钮支持跨页浏览。保存被宿主验证拒绝时保持面板打开；写入结果需要人工确认时显示对应处理入口。
 
+`FairySkyPanel.Create(parent, player, mixedFont)` 从包内 Resources 加载默认界面，为每位玩家绑定独立的 GComponent 父节点。`View` 和 `DraftField` 暴露原生组件，`SetLanguageFont` 使用 FairyGUI 字体名称配置语言展示区。释放宿主时调用面板的 `Dispose`。非全局焦点草稿仍按自身 TextField 排版绘制光标和双向选区。
+
+FairyGUI 原生源工程位于 `ui/FairyGUI/SkyKeyYuyan.fairy`，包含 Panel、Keyboard、Candidates 和 Key 四个组件。导出的 `SkyKeyYuyan_fui.bytes` 位于表现包的 `Runtime/Resources/SkyKeyYuyan/UI/FairyGUI/`。调整源工程后将发布目录指向此位置，保持资源与原生组件同步。
+
 ## 字体
 
 组字区、候选区和虚拟键盘文字允许按语言指定字体。原正文和草稿正文沿用宿主配置的混合语言字体及回退方案。

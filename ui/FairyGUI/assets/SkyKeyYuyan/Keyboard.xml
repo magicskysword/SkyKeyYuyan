@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component size="852,350" idnum="62">
+  <displayList>
+    <component id="n0" name="key-0-0" src="167ta" xy="0,0" size="78,42" pkg="7b0bbb69">
+      <Button title="1"/>
+    </component>
+    <component id="n1" name="key-0-1" src="167ta" xy="86,0" size="78,42" pkg="7b0bbb69">
+      <Button title="2"/>
+    </component>
+    <component id="n2" name="key-0-2" src="167ta" xy="172,0" size="78,42" pkg="7b0bbb69">
+      <Button title="3"/>
+    </component>
+    <component id="n3" name="key-0-3" src="167ta" xy="258,0" size="78,42" pkg="7b0bbb69">
+      <Button title="4"/>
+    </component>
+    <component id="n4" name="key-0-4" src="167ta" xy="344,0" size="78,42" pkg="7b0bbb69">
+      <Button title="5"/>
+    </component>
+    <component id="n5" name="key-0-5" src="167ta" xy="430,0" size="78,42" pkg="7b0bbb69">
+      <Button title="6"/>
+    </component>
+    <component id="n6" name="key-0-6" src="167ta" xy="516,0" size="78,42" pkg="7b0bbb69">
+      <Button title="7"/>
+    </component>
+    <component id="n7" name="key-0-7" src="167ta" xy="602,0" size="78,42" pkg="7b0bbb69">
+      <Button title="8"/>
+    </component>
+    <component id="n8" name="key-0-8" src="167ta" xy="688,0" size="78,42" pkg="7b0bbb69">
+      <Button title="9"/>
+    </component>
+    <component id="n9" name="key-0-9" src="167ta" xy="774,0" size="78,42" pkg="7b0bbb69">
+      <Button title="0"/>
+    </component>
+    <component id="n10" name="key-1-0" src="167ta" xy="0,49" size="78,42" pkg="7b0bbb69">
+      <Button title="q"/>
+    </component>
+    <component id="n11" name="key-1-1" src="167ta" xy="86,49" size="78,42" pkg="7b0bbb69">
+      <Button title="w"/>
+    </component>
+    <component id="n12" name="key-1-2" src="167ta" xy="172,49" size="78,42" pkg="7b0bbb69">
+      <Button title="e"/>
+    </component>
+    <component id="n13" name="key-1-3" src="167ta" xy="258,49" size="78,42" pkg="7b0bbb69">
+      <Button title="r"/>
+    </component>
+    <component id="n14" name="key-1-4" src="167ta" xy="344,49" size="78,42" pkg="7b0bbb69">
+      <Button title="t"/>
+    </component>
+    <component id="n15" name="key-1-5" src="167ta" xy="430,49" size="78,42" pkg="7b0bbb69">
+      <Button title="y"/>
+    </component>
+    <component id="n16" name="key-1-6" src="167ta" xy="516,49" size="78,42" pkg="7b0bbb69">
+      <Button title="u"/>
+    </component>
+    <component id="n17" name="key-1-7" src="167ta" xy="602,49" size="78,42" pkg="7b0bbb69">
+      <Button title="i"/>
+    </component>
+    <component id="n18" name="key-1-8" src="167ta" xy="688,49" size="78,42" pkg="7b0bbb69">
+      <Button title="o"/>
+    </component>
+    <component id="n19" name="key-1-9" src="167ta" xy="774,49" size="78,42" pkg="7b0bbb69">
+      <Button title="p"/>
+    </component>
+    <component id="n20" name="key-2-0" src="167ta" xy="0,98" size="78,42" pkg="7b0bbb69">
+      <Button title="a"/>
+    </component>
+    <component id="n21" name="key-2-1" src="167ta" xy="86,98" size="78,42" pkg="7b0bbb69">
+      <Button title="s"/>
+    </component>
+    <component id="n22" name="key-2-2" src="167ta" xy="172,98" size="78,42" pkg="7b0bbb69">
+      <Button title="d"/>
+    </component>
+    <component id="n23" name="key-2-3" src="167ta" xy="258,98" size="78,42" pkg="7b0bbb69">
+      <Button title="f"/>
+    </component>
+    <component id="n24" name="key-2-4" src="167ta" xy="344,98" size="78,42" pkg="7b0bbb69">
+      <Button title="g"/>
+    </component>
+    <component id="n25" name="key-2-5" src="167ta" xy="430,98" size="78,42" pkg="7b0bbb69">
+      <Button title="h"/>
+    </component>
+    <component id="n26" name="key-2-6" src="167ta" xy="516,98" size="78,42" pkg="7b0bbb69">
+      <Button title="j"/>
+    </component>
+    <component id="n27" name="key-2-7" src="167ta" xy="602,98" size="78,42" pkg="7b0bbb69">
+      <Button title="k"/>
+    </component>
+    <component id="n28" name="key-2-8" src="167ta" xy="688,98" size="78,42" pkg="7b0bbb69">
+      <Button title="l"/>
+    </component>
+    <component id="n29" name="key-3-0" src="167ta" xy="0,147" size="78,42" pkg="7b0bbb69">
+      <Button title="z"/>
+    </component>
+    <component id="n30" name="key-3-1" src="167ta" xy="86,147" size="78,42" pkg="7b0bbb69">
+      <Button title="x"/>
+    </component>
+    <component id="n31" name="key-3-2" src="167ta" xy="172,147" size="78,42" pkg="7b0bbb69">
+      <Button title="c"/>
+    </component>
+    <component id="n32" name="key-3-3" src="167ta" xy="258,147" size="78,42" pkg="7b0bbb69">
+      <Button title="v"/>
+    </component>
+    <component id="n33" name="key-3-4" src="167ta" xy="344,147" size="78,42" pkg="7b0bbb69">
+      <Button title="b"/>
+    </component>
+    <component id="n34" name="key-3-5" src="167ta" xy="430,147" size="78,42" pkg="7b0bbb69">
+      <Button title="n"/>
+    </component>
+    <component id="n35" name="key-3-6" src="167ta" xy="516,147" size="78,42" pkg="7b0bbb69">
+      <Button title="m"/>
+    </component>
+    <component id="n36" name="key-4-0" src="167ta" xy="0,196" size="78,42" pkg="7b0bbb69">
+      <Button title=","/>
+    </component>
+    <component id="n37" name="key-4-1" src="167ta" xy="86,196" size="78,42" pkg="7b0bbb69">
+      <Button title="."/>
+    </component>
+    <component id="n38" name="key-4-2" src="167ta" xy="172,196" size="78,42" pkg="7b0bbb69">
+      <Button title="?"/>
+    </component>
+    <component id="n39" name="key-4-3" src="167ta" xy="258,196" size="78,42" pkg="7b0bbb69">
+      <Button title="!"/>
+    </component>
+    <component id="n40" name="key-4-4" src="167ta" xy="344,196" size="78,42" pkg="7b0bbb69">
+      <Button title=":"/>
+    </component>
+    <component id="n41" name="key-4-5" src="167ta" xy="430,196" size="78,42" pkg="7b0bbb69">
+      <Button title=";"/>
+    </component>
+    <component id="n42" name="key-4-6" src="167ta" xy="516,196" size="78,42" pkg="7b0bbb69">
+      <Button title="("/>
+    </component>
+    <component id="n43" name="key-4-7" src="167ta" xy="602,196" size="78,42" pkg="7b0bbb69">
+      <Button title=")"/>
+    </component>
+    <component id="n44" name="key-4-8" src="167ta" xy="688,196" size="78,42" pkg="7b0bbb69">
+      <Button title="-"/>
+    </component>
+    <component id="n45" name="key-4-9" src="167ta" xy="774,196" size="78,42" pkg="7b0bbb69">
+      <Button title="&apos;"/>
+    </component>
+    <component id="n46" name="key-5-0" src="167ta" xy="0,245" size="78,42" pkg="7b0bbb69">
+      <Button title="空格"/>
+    </component>
+    <component id="n47" name="key-5-1" src="167ta" xy="86,245" size="78,42" pkg="7b0bbb69">
+      <Button title="Shift"/>
+    </component>
+    <component id="n48" name="key-5-2" src="167ta" xy="172,245" size="78,42" pkg="7b0bbb69">
+      <Button title="退格"/>
+    </component>
+    <component id="n49" name="key-5-3" src="167ta" xy="258,245" size="78,42" pkg="7b0bbb69">
+      <Button title="换行"/>
+    </component>
+    <component id="n50" name="key-5-4" src="167ta" xy="344,245" size="78,42" pkg="7b0bbb69">
+      <Button title="语言"/>
+    </component>
+    <component id="n51" name="key-5-5" src="167ta" xy="430,245" size="78,42" pkg="7b0bbb69">
+      <Button title="完成"/>
+    </component>
+    <component id="n52" name="key-5-6" src="167ta" xy="516,245" size="78,42" pkg="7b0bbb69">
+      <Button title="取消"/>
+    </component>
+    <component id="n53" name="key-6-0" src="167ta" xy="0,294" size="78,42" pkg="7b0bbb69">
+      <Button title="左移"/>
+    </component>
+    <component id="n54" name="key-6-1" src="167ta" xy="86,294" size="78,42" pkg="7b0bbb69">
+      <Button title="右移"/>
+    </component>
+    <component id="n55" name="key-6-2" src="167ta" xy="172,294" size="78,42" pkg="7b0bbb69">
+      <Button title="上移"/>
+    </component>
+    <component id="n56" name="key-6-3" src="167ta" xy="258,294" size="78,42" pkg="7b0bbb69">
+      <Button title="下移"/>
+    </component>
+    <component id="n57" name="key-6-4" src="167ta" xy="344,294" size="78,42" pkg="7b0bbb69">
+      <Button title="删除"/>
+    </component>
+    <component id="n58" name="key-6-5" src="167ta" xy="430,294" size="78,42" pkg="7b0bbb69">
+      <Button title="全选"/>
+    </component>
+    <component id="n59" name="key-6-6" src="167ta" xy="516,294" size="78,42" pkg="7b0bbb69">
+      <Button title="清空"/>
+    </component>
+    <component id="n60" name="key-6-7" src="167ta" xy="602,294" size="78,42" pkg="7b0bbb69">
+      <Button title="补全"/>
+    </component>
+    <component id="n61" name="key-6-8" src="167ta" xy="688,294" size="78,42" pkg="7b0bbb69">
+      <Button title="重试转换"/>
+    </component>
+  </displayList>
+</component>

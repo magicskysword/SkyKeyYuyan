@@ -30,6 +30,10 @@ namespace SkyKeyYuyan.FairyGUI
             _field.onChanged.Add(OnChanged);
             _field.inputTextField.onKeyDown.AddCapture(OnNativeKey);
         }
+        /// <summary>
+        /// 绑定控件并以 UTF-16 偏移恢复初始选区，保持已有全局焦点。
+        /// </summary>
+        public FairyTextTarget(GTextInput field, int anchor, int caret) : this(field) => WriteSelection(anchor, caret);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override bool NativeAlive => !_field.isDisposed && !_field.inputTextField.isDisposed;

@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <packageDescription id="7b0bbb69">
-  <resources/>
+  <resources>
+    <component id="167ta" name="Key.xml" path="" exported="true"/>
+    <component id="e9lp1" name="Keyboard.xml" path="" exported="true"/>
+    <component id="nfsnd" name="Panel.xml" path="" exported="true"/>
+    <component id="yepuf" name="Candidates.xml" path="" exported="true"/>
+  </resources>
+  <publish name="SkyKeyYuyan"/>
 </packageDescription>

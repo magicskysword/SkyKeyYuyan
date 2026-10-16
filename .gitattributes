@@ -27,3 +27,4 @@
 *.pdb binary
 *.tgz binary
 *.nupkg binary
+*.bytes filter=lfs diff=lfs merge=lfs -text

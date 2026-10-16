@@ -2,7 +2,9 @@
     "name": "SkyKeyYuyan.UI.FairyGUI",
     "rootNamespace": "SkyKeyYuyan.UI.FairyGUI",
     "references": [
-        "SkyKeyYuyan.FairyGUI"
+        "SkyKeyYuyan.FairyGUI",
+        "SkyKeyYuyan.Unity",
+        "FairyGUI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
