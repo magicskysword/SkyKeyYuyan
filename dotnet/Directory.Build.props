@@ -10,7 +10,9 @@
 
     <Version>0.1.0</Version>
     <Authors>MagicSkySword</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>纯托管多语言输入、文本编辑与独立会话框架</Description>
     <PackageOutputPath>$(SkyRepoRoot)artifacts/NuGet/</PackageOutputPath>
 
     <LangVersion>latest</LangVersion>

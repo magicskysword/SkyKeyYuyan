@@ -1,0 +1,34 @@
+# text	spelling	weight
+啊	a	10000
+您	nin	10000
+吨	dun	1000
+很	hen	100000
+你好	ni hao	30000
+您好	nin hao	10000
+世界	shi jie	50000
+中国	zhong guo	100000
+中文	zhong wen	20000
+输入	shu ru	30000
+输入法	shu ru fa	10000
+银行	yin hang	20000
+行为	xing wei	20000
+重庆	chong qing	10000
+音乐	yin yue	20000
+快乐	kuai le	20000
+绿色	lv se	10000
+女	nv	30000
+吕	lv	1000
+西安	xi an	10000
+游戏	you xi	30000
+手柄	shou bing	5000
+键盘	jian pan	5000
+朋友	peng you	30000
+谢谢	xie xie	30000
+再见	zai jian	20000
+欢迎	huan ying	20000
+学习	xue xi	30000
+今天	jin tian	40000
+天气	tian qi	20000
+我们	wo men	100000
+一起	yi qi	40000
+出发	chu fa	20000

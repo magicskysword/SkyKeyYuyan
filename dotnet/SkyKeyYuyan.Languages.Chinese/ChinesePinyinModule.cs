@@ -16,7 +16,7 @@ namespace SkyKeyYuyan.Languages.Chinese
         /// <summary>
         /// 从 Provider 资源或显式词条准备中文词典。
         /// </summary>
-        public ChinesePinyinModule(IEnumerable<LexiconWord>? words = null, string resourceId = "chinese/lexicon.tsv") : base(resourceId, words) { }
+        public ChinesePinyinModule(IEnumerable<LexiconWord>? words = null, string resourceId = "chinese/lexicon.bytes") : base(resourceId, words) { }
         /// <inheritdoc />
         public override string LanguageId => "zh-Hans";
         /// <inheritdoc />

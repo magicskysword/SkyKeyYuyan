@@ -3,12 +3,14 @@
 # 脚本与配置
 *.cs text diff=csharp
 *.sh text eol=lf
+/data/** text eol=lf
+/scripts/** text eol=lf
 
 # Unity YAML 资源
 *.unity text eol=lf
 *.prefab text eol=lf
 *.asset text eol=lf
-*.meta text eol=lf
+*.meta text eol=lf whitespace=-blank-at-eol
 *.mat text eol=lf
 *.anim text eol=lf
 *.controller text eol=lf

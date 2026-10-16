@@ -40,4 +40,26 @@ namespace SkyKeyYuyan.Core
         /// <inheritdoc />
         public Task<byte[]> ReadAsync(string resourceId, CancellationToken cancellationToken) => Task.Run(() => { cancellationToken.ThrowIfCancellationRequested(); return Read(resourceId); }, cancellationToken);
     }
+
+    /// <summary>
+    /// 从固定根目录读取相对资源标识。
+    /// </summary>
+    public sealed class DirectoryResourceProvider : IResourceProvider
+    {
+        private readonly string _root;
+        /// <summary>
+        /// 设置语言资源的宿主根目录。
+        /// </summary>
+        public DirectoryResourceProvider(string root) { _root = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar; }
+        /// <inheritdoc />
+        public byte[] Read(string resourceId)
+        {
+            if (Path.IsPathRooted(resourceId)) throw new ArgumentException("资源标识必须是相对路径", nameof(resourceId));
+            string path = Path.GetFullPath(Path.Combine(_root, resourceId));
+            if (!path.StartsWith(_root, Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) throw new ArgumentException("资源标识超出资源根目录", nameof(resourceId));
+            return File.ReadAllBytes(path);
+        }
+        /// <inheritdoc />
+        public Task<byte[]> ReadAsync(string resourceId, CancellationToken cancellationToken) => Task.Run(() => { cancellationToken.ThrowIfCancellationRequested(); return Read(resourceId); }, cancellationToken);
+    }
 }

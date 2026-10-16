@@ -27,7 +27,9 @@ NuGet 包标识与对应的 C# 项目名一致，例如 SkyKeyYuyan.Core。
 
 `dotnet build` 完成后，由 MSBuild 目标把程序集及 `data/generated/` 中的语言资源复制到 Unity 工程中对应的 UPM 嵌入包。因此修改 C# 代码后重新构建，Unity 工程即可使用新的程序集。复制得到的文件不提交到 git；对应的 `.meta` 文件需要提交，以固定 GUID 和导入设置。
 
-复制规则定义在 `dotnet/Directory.Build.targets`：库项目用 `SkyUpmPackage` 指定目标包，语言库再用 `SkyLanguageData` 指定 `data/generated/` 下的资源目录。程序集（DLL、PDB、XML）复制到包内 `Plugins/`，语言资源复制到包内 `Data/`。
+复制规则定义在 `dotnet/Directory.Build.targets`：库项目用 `SkyUpmPackage` 指定目标包，语言库再用 `SkyLanguageData` 指定 `data/generated/` 下的资源目录。程序集（DLL、PDB、XML）复制到包内 `Plugins/`，语言资源复制到包内 `Data/Resources/SkyKeyYuyan/语言目录/`，由 Unity 随 Player 提供。
+
+NuGet 语言包以 contentFiles 携带 `sky-data/语言目录/`，随引用项目复制到输出目录。默认 DirectoryResourceProvider 从应用输出目录的 `sky-data/` 读取资源。资源文件 `lexicon.bytes` 是带版本头的 UTF-8 制表文本，`keyboard.bytes` 提供平台无关键盘布局。
 
 测试项目使用 NUnit，目标框架为 net10.0，与 Unity Test Framework 采用同一测试框架。
 
@@ -134,7 +136,7 @@ FairyGUI 工程维护默认界面源资源，导出内容进入对应表现包�
 | NuGet 打包 | 根目录 `dotnet pack` | 生成 NuGet 包到 `artifacts/NuGet/` |
 | UPM 打包 | `scripts/` 中的 Node 脚本 | 把嵌入包打成 `.tgz`，输出到 `artifacts/UPM/` |
 
-克隆仓库后，先运行数据生成，再运行 `dotnet build`。
+克隆仓库后，先运行 `node scripts/generate-data.mjs`，再运行 `dotnet build`。`npm --prefix scripts test` 验证数据转换规则，`node scripts/sync-unity-meta.mjs` 为新增 Unity 资源创建导入元数据。`npm --prefix scripts run fetch-data` 按来源清单重新取得上游数据；常规构建使用仓库内的数据文件。
 
 完整发布流程：
 

@@ -28,10 +28,28 @@
           DestinationFolder="$(_SkyUpmPackageDir)Plugins/"
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_SkyUpmDataFile)"
-          DestinationFiles="@(_SkyUpmDataFile->'$(_SkyUpmPackageDir)Data/%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(_SkyUpmDataFile->'$(_SkyUpmPackageDir)Data/Resources/SkyKeyYuyan/$(SkyLanguageData)/%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
 
     <Warning Condition="'$(SkyLanguageData)' != '' And !Exists('$(_SkyLanguageDataDir)')"
              Text="语言资源尚未生成：$(_SkyLanguageDataDir)。请先运行 scripts/ 中的数据生成。" />
   </Target>
+
+  <ItemGroup Condition="'$(SkyLanguageData)' != ''">
+    <Content Include="$(SkyRepoRoot)data/generated/$(SkyLanguageData)/**/*"
+             Link="sky-data/$(SkyLanguageData)/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             Pack="true"
+             PackagePath="contentFiles/any/any/sky-data/$(SkyLanguageData)/%(RecursiveDir)%(Filename)%(Extension)"
+             PackageCopyToOutput="true" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <SkyLicenseGroup Condition="'$(SkyLanguageData)' == ''">core</SkyLicenseGroup>
+    <SkyLicenseGroup Condition="'$(SkyLanguageData)' != ''">$(SkyLanguageData)</SkyLicenseGroup>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(SkyRepoRoot)data/generated/licenses/$(SkyLicenseGroup)/LICENSE" Pack="true" PackagePath="" Visible="false" />
+    <None Include="$(SkyRepoRoot)docs/*.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 </Project>

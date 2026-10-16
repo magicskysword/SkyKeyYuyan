@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace SkyKeyYuyan.Core
         /// <summary>
         /// 由宿主持有的资源 Provider。
         /// </summary>
-        public IResourceProvider Resources { get; set; } = new MemoryResourceProvider();
+        public IResourceProvider Resources { get; set; } = new DirectoryResourceProvider(Path.Combine(AppContext.BaseDirectory, "sky-data"));
         /// <summary>
         /// 每种语言使用的显式引擎标识。
         /// </summary>

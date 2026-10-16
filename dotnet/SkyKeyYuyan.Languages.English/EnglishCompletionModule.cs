@@ -16,7 +16,7 @@ namespace SkyKeyYuyan.Languages.English
         /// <summary>
         /// 从 Provider 资源或显式词条准备补全词典。
         /// </summary>
-        public EnglishCompletionModule(IEnumerable<LexiconWord>? words = null, string resourceId = "english/lexicon.tsv") : base(resourceId, words) { }
+        public EnglishCompletionModule(IEnumerable<LexiconWord>? words = null, string resourceId = "english/lexicon.bytes") : base(resourceId, words) { }
         /// <inheritdoc />
         public override string LanguageId => "en";
         /// <inheritdoc />
