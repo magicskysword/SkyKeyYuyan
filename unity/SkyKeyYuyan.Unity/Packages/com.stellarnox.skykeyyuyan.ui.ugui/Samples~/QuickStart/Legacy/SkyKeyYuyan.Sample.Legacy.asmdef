@@ -1,0 +1,5 @@
+{
+  "name": "SkyKeyYuyan.Sample.Legacy",
+  "references": ["SkyKeyYuyan.Sample.UGUI", "SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.Legacy", "UnityEngine.UI"],
+  "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER", "!SKY_DISABLE_LEGACY", "!SKY_DISABLE_UGUI", "!SKY_DISABLE_UGUI_UI"]
+}

@@ -6,6 +6,8 @@ Thumbs.db
 desktop.ini
 *.swp
 *~
+!/unity/SkyKeyYuyan.Unity/Packages/com.stellarnox.skykeyyuyan.ui.ugui/Samples~/
+!/unity/SkyKeyYuyan.Unity/Packages/com.stellarnox.skykeyyuyan.ui.ugui/Samples~/**
 
 # IDE
 .vs/
@@ -53,6 +55,9 @@ npm-debug.log*
 /unity/SkyKeyYuyan.Unity/[Mm]emory[Cc]aptures/
 /unity/SkyKeyYuyan.Unity/[Rr]ecordings/
 /unity/SkyKeyYuyan.Unity/Assets/Plugins/Editor/JetBrains*
+/unity/SkyKeyYuyan.Unity/Assets/SkyKeyYuyanSamples/
+/unity/SkyKeyYuyan.Unity/Assets/SkyKeyYuyanSamples.meta
+/unity/SkyKeyYuyan.Unity/ProjectSettings/SceneTemplateSettings.json
 
 # Unity 生成的 IDE 工程文件（不影响根目录 SkyKeyYuyan.sln）
 /unity/SkyKeyYuyan.Unity/*.csproj

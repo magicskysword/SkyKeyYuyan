@@ -34,7 +34,11 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 手柄。
         /// </summary>
-        Gamepad
+        Gamepad,
+        /// <summary>
+        /// 宿主界面的鼠标或触摸指针；通过解除绑定关闭。
+        /// </summary>
+        Pointer
     }
     /// <summary>
     /// 将一个后端的设备事件唯一分配到玩家，协调断线与应用暂停。
@@ -144,7 +148,7 @@ namespace SkyKeyYuyan.Unity
         /// 应用失焦保留所有会话；重新获得焦点后仍需满足设备条件。
         /// </summary>
         public void SetApplicationFocused(bool focused) { _focused = focused; foreach (var player in _players.Values) player.SetPaused("application-focus", !focused); }
-        private static bool Enabled(Binding binding) => binding.Kind == SkyDeviceKind.Keyboard ? binding.Player.KeyboardEnabled : binding.Player.GamepadEnabled;
+        private static bool Enabled(Binding binding) => binding.Kind == SkyDeviceKind.Pointer || (binding.Kind == SkyDeviceKind.Keyboard ? binding.Player.KeyboardEnabled : binding.Player.GamepadEnabled);
         private void UpdateAvailability(SkyPlayerContext player) => player.SetPaused("devices", !_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding)));
         /// <inheritdoc>
         /// </inheritdoc>

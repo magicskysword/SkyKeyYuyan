@@ -1,0 +1,6 @@
+{
+  "name": "SkyKeyYuyan.Sample.Editor",
+  "references": ["SkyKeyYuyan.Sample.UGUI"],
+  "includePlatforms": ["Editor"],
+  "defineConstraints": ["!SKY_DISABLE_UGUI", "!SKY_DISABLE_UGUI_UI"]
+}

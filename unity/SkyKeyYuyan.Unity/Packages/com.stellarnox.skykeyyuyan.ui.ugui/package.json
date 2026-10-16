@@ -8,6 +8,7 @@
   "author": {
     "name": "MagicSkySword"
   },
+  "samples": [{ "displayName": "UGUI Quick Start", "description": "单人与双玩家完整输入示例，分别接入 Legacy Input 和 Input System。", "path": "Samples~/QuickStart" }],
   "dependencies": {
     "com.stellarnox.skykeyyuyan.unity": "0.1.0",
     "com.unity.ugui": "1.0.0"

@@ -1,0 +1,11 @@
+{
+  "name": "SkyKeyYuyan.Sample.UGUI",
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.UGUI", "SkyKeyYuyan.UI.UGUI", "UnityEngine.UI"],
+  "defineConstraints": ["SKY_UGUI_AVAILABLE", "!SKY_DISABLE_UGUI", "!SKY_DISABLE_UGUI_UI"],
+  "versionDefines": [
+    {"name":"com.unity.ugui","expression":"1.0.0","define":"SKY_UGUI_AVAILABLE"},
+    {"name":"com.stellarnox.skykeyyuyan.chinese","expression":"0.1.0","define":"SKY_SAMPLE_CHINESE"},
+    {"name":"com.stellarnox.skykeyyuyan.english","expression":"0.1.0","define":"SKY_SAMPLE_ENGLISH"},
+    {"name":"com.stellarnox.skykeyyuyan.korean","expression":"0.1.0","define":"SKY_SAMPLE_KOREAN"}
+  ]
+}

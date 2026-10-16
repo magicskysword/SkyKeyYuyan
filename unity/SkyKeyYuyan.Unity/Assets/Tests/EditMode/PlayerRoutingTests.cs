@@ -39,6 +39,20 @@ public class PlayerRoutingTests
         Assert.That(runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false }).Succeeded, Is.True);
         return runtime;
     }
+    [Test]
+    public void PointerBindingKeepsThePanelAvailableWhenHardwareInputIsDisabled()
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { EditingMode = EditingMode.Direct }) { GamepadEnabled = false })
+        using (var router = new SkyInputRouter(SkyInputBackend.Custom))
+        using (var target = new Target())
+        {
+            router.Register(player); router.Bind("pointer", SkyDeviceKind.Pointer, "player"); player.Open(target, runtime);
+            Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+            router.Route(SkyInputBackend.Custom, "pointer", SkyControl.Text, text: "A"); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A"));
+            router.Unbind("pointer"); Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Paused));
+        }
+    }
     [TestCase(true)]
     [TestCase(false)]
     public void UnknownWriteCanBeResolvedWithOnlyGamepadNavigation(bool alreadyWritten)
