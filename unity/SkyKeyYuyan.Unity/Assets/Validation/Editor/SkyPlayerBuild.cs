@@ -19,7 +19,10 @@ namespace SkyKeyYuyan.Validation.Editor
             var arguments = Environment.GetCommandLineArgs(); int index = Array.IndexOf(arguments, "--sky-backend");
             bool il2cpp = index >= 0 && index + 1 < arguments.Length && arguments[index + 1] == "IL2CPP";
             string root = Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
-            string directory = Path.Combine(root, "artifacts/Player", il2cpp ? "IL2CPP" : "Mono"); Directory.CreateDirectory(directory);
+            index = Array.IndexOf(arguments, "--sky-output");
+            string directory = index >= 0 && index + 1 < arguments.Length ? Path.GetFullPath(arguments[index + 1])
+                : Path.Combine(root, "artifacts/Player", il2cpp ? "IL2CPP" : "Mono");
+            Directory.CreateDirectory(directory);
             var previous = PlayerSettings.GetScriptingBackend(BuildTargetGroup.Standalone);
             var stripping = PlayerSettings.GetManagedStrippingLevel(BuildTargetGroup.Standalone);
             bool background = PlayerSettings.runInBackground;

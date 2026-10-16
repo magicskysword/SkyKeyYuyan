@@ -29,6 +29,8 @@ desktop.ini
 # ---------------------------------------------------------------
 /dotnet/**/bin/
 /dotnet/**/obj/
+/scripts/**/bin/
+/scripts/**/obj/
 TestResults/
 *.trx
 coverage*.xml

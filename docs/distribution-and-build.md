@@ -131,10 +131,13 @@ FairyGUI 工程维护默认界面源资源，导出内容进入对应表现包�
 
 | 入口 | 位置 | 作用 |
 | --- | --- | --- |
+| 完整本地构建 | `node scripts/build.mjs` | 生成数据、构建和测试托管库、验证 NuGet 消费、同步 Unity 资源、安装示例并打包 UPM |
 | 数据生成 | `scripts/` 中的 Node 脚本 | 读取 `data/` 中的清单、上游数据和补充数据，生成语言资源到 `data/generated/`，并输出质量报告 |
 | 构建与测试 | 根目录 `dotnet build` / `dotnet test` | 构建 netstandard2.0 程序集并运行测试；构建后把程序集和语言资源复制到 UPM 嵌入包 |
 | NuGet 打包 | 根目录 `dotnet pack` | 生成 NuGet 包到 `artifacts/NuGet/` |
 | UPM 打包 | `scripts/` 中的 Node 脚本 | 把嵌入包打成 `.tgz`，输出到 `artifacts/UPM/` |
+| NuGet 安装验证 | `node scripts/smoke-nuget.mjs` | 使用独立缓存安装本次四个包，检查资源与完整语言输入流程 |
+| UPM 安装验证 | `node scripts/smoke-unity-packages.mjs --unity <Unity.exe路径>` | 从八个 `.tgz` 创建干净工程、导入包内示例、构建并运行 Windows Player；可用 `--fairygui <SDK仓库路径>` 加入 FairyGUI 检查 |
 
 克隆仓库后，先运行 `node scripts/generate-data.mjs`，再运行 `dotnet build`。`npm --prefix scripts test` 验证数据转换规则，`node scripts/sync-unity-meta.mjs` 为新增 Unity 资源创建导入元数据。`npm --prefix scripts run fetch-data` 按来源清单重新取得上游数据；常规构建使用仓库内的数据文件。
 
@@ -147,7 +150,11 @@ FairyGUI 工程维护默认界面源资源，导出内容进入对应表现包�
 5. 生成 NuGet 包。
 6. 运行 Unity 编译、交互和 Windows 构建验证。
 7. 整理整合 MIT 声明、接口文档、版本矩阵及验证记录。
-8. 打包 UPM `.tgz`，打统一版本标签；由 CI 上传 NuGet，并创建附带全部 `.tgz` 的 GitHub Release，供 OpenUPM 收录。
+8. 打包 UPM `.tgz`，打统一版本标签；CI 归档 NuGet，并创建附带全部 `.tgz` 和 OpenUPM 元数据的草稿 GitHub Release。发布后供 OpenUPM 收录。
+
+`scripts/pack-upm.mjs --repository owner/repository` 以实际 GitHub 仓库地址生成 OpenUPM 登记文件，输出到 `artifacts/OpenUPM/`。CI 使用 `GITHUB_REPOSITORY` 自动提供地址，并检查标签是否与包版本一致。八个包均包含整合许可和 `Documentation~`，打包报告记录版本与压缩体积。
+
+UPM 安装验证使用本次归档中的清单及示例，包依赖均指向 `.tgz`，验证工程不含 SKY 嵌入包。工具检查 Package Manager 的解析来源，结果保存到 `artifacts/Reports/unity-package-install.json`。NuGet 消费项目只有 PackageReference，结果保存到同目录的 `nuget-consumer.json`。
 
 运行时读取转换后的资源，构建工具只在开发和发布流程中执行。
 

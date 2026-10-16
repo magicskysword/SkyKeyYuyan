@@ -9,6 +9,10 @@
     "node": ">=24.5"
   },
   "scripts": {
+    "build": "node build.mjs",
+    "pack-upm": "node pack-upm.mjs",
+    "smoke-nuget": "node smoke-nuget.mjs",
+    "smoke-unity-packages": "node smoke-unity-packages.mjs",
     "fetch-data": "node --use-env-proxy fetch-data.mjs",
     "generate-data": "node generate-data.mjs",
     "sync-unity-meta": "node sync-unity-meta.mjs",
