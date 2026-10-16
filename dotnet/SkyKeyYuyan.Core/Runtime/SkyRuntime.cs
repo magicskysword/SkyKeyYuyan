@@ -435,7 +435,7 @@ namespace SkyKeyYuyan.Core
                 if ((!_disposed && !_retired) || _resourcesReleased || _initializing || _sessions.Count != 0 || _workCount != 0) return;
                 _resourcesReleased = true; modules = _modules.Values.Reverse().ToArray();
             }
-            if (_options.AutoSaveFrequencies && _frequency != null) _frequency.SaveAll();
+            if (_options.AutoSaveFrequencies && _frequency != null) _ = SaveOnReleaseAsync();
             foreach (var module in modules) DisposeModule(module);
             if (_frequencySubscribed) { Frequency.Diagnostic -= Report; _frequencySubscribed = false; }
         }
@@ -443,6 +443,12 @@ namespace SkyKeyYuyan.Core
         {
             lock (_gate) if (!_releasedModules.Add(module)) return;
             try { module.Dispose(); } catch (Exception ex) { Report(new SkyDiagnostic("dispose", ex.Message)); }
+        }
+        private async Task SaveOnReleaseAsync()
+        {
+            var results = await Frequency.SaveAllAsync(CancellationToken.None).ConfigureAwait(false);
+            foreach (var result in results)
+                if (!result.Result.Succeeded) Report(new SkyDiagnostic("frequency-save", result.Result.Reason ?? "运行时结束后的词频保存失败"));
         }
         internal void Report(SkyDiagnostic diagnostic)
         {
