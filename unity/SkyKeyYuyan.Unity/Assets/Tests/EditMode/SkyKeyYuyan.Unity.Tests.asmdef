@@ -1,0 +1,8 @@
+{
+  "name": "SkyKeyYuyan.Unity.Tests",
+  "references": ["SkyKeyYuyan.Unity"],
+  "overrideReferences": true,
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "SkyKeyYuyan.Languages.Chinese.dll", "SkyKeyYuyan.Languages.English.dll", "SkyKeyYuyan.Languages.Korean.dll", "nunit.framework.dll"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

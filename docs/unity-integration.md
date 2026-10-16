@@ -28,6 +28,10 @@ Unity 主适配包包含 UGUI、TMP、Legacy Input 和 Input System 接入代码
 
 Unity 转换核心以宿主身份创建和释放默认的 PlayerPrefs 存档 Provider 和资源加载器。更换语言数据或实现配置时，初始化新的运行时实例，见[系统架构](architecture.md#运行时实例)。
 
+SkyUnityServices.Shared 提供进程共享的 PumpExecutionContext。宿主在 Unity 主线程调用 CreateOptions，将返回的配置用于运行时初始化。常驻 SkyUnityDispatcher 在主循环排空队列，编辑器中也可显式调用 Context.Drain。
+
+UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset。异步读取将 Unity API 调用投递到主线程，词典解析和索引准备在后台进行。PlayerPrefsFrequencyStore 在主线程读写版本化词频，将大快照拆为完整字符分块，最后更新存档头并集中调用 PlayerPrefs.Save。
+
 同一设备事件选择一个接入来源。Unity 同时启用多个输入后端时，SKY 仍按宿主配置路由一次输入操作。
 
 ## 设备启用策略

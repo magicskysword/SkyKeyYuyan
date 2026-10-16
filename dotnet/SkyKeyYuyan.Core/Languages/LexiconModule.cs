@@ -72,9 +72,14 @@ namespace SkyKeyYuyan.Core
         {
             try
             {
-                var words = _seed ?? Parse(await resources.ReadAsync(ResourceId, cancellationToken).ConfigureAwait(false));
-                cancellationToken.ThrowIfCancellationRequested();
-                return Prepare(words);
+                byte[]? bytes = _seed == null ? await resources.ReadAsync(ResourceId, cancellationToken).ConfigureAwait(false) : null;
+                return await Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var words = _seed ?? Parse(bytes!);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return Prepare(words);
+                }, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { return new ServiceResult(false, "resource:" + EngineId, "资源读取已取消", true); }
             catch (Exception ex) { return new ServiceResult(false, "resource:" + EngineId, ex.Message); }
