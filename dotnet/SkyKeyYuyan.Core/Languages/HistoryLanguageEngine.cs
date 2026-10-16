@@ -81,7 +81,7 @@ namespace SkyKeyYuyan.Core
                 case "commit": return new EngineStep(Snapshot, Snapshot.IsEmpty ? null : Snapshot.DisplayText);
                 case "clear": _state = new Node("", "", null); _version++; return new EngineStep(Snapshot);
                 case "completion": CompletionEnabled = command.Enabled; _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates && !Snapshot.IsEmpty);
-                case "restore": _state = new Node(command.Text, "", null); _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates);
+                case "restore": _state = new Node(command.Text, command.SelectedText, null); _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates);
                 default: throw new ArgumentException("无法识别语言命令", nameof(command));
             }
         }

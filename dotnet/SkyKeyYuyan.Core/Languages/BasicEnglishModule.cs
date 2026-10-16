@@ -21,6 +21,8 @@ namespace SkyKeyYuyan.Core
         /// <inheritdoc />
         public string DisplayName => "English";
         /// <inheritdoc />
+        public LanguageCapabilities Capabilities => LanguageCapabilities.None;
+        /// <inheritdoc />
         public event Action DataChanged { add { } remove { } }
         /// <inheritdoc />
         public ServiceResult Initialize(IResourceProvider resources) => new ServiceResult(true, "language");

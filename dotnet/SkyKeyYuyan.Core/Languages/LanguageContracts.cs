@@ -8,6 +8,29 @@ using System.Threading.Tasks;
 namespace SkyKeyYuyan.Core
 {
     /// <summary>
+    /// 语言模块向运行时声明的输入行为。
+    /// </summary>
+    [Flags]
+    public enum LanguageCapabilities
+    {
+        /// <summary>
+        /// 直接输入或仅组合字符。
+        /// </summary>
+        None = 0,
+        /// <summary>
+        /// 可以生成候选。
+        /// </summary>
+        Candidates = 1,
+        /// <summary>
+        /// 完成组字时可以自动接受当前转换。
+        /// </summary>
+        ConvertOnCommit = 2,
+        /// <summary>
+        /// 支持会话内补全开关。
+        /// </summary>
+        CompletionSwitch = 4
+    }
+    /// <summary>
     /// 含阶段信息的可识别服务结果。
     /// </summary>
     public sealed class ServiceResult
@@ -275,7 +298,7 @@ namespace SkyKeyYuyan.Core
     /// </summary>
     public sealed class CompositionCommand
     {
-        private CompositionCommand(string kind, string text = "", Candidate? candidate = null, bool enabled = false) { Kind = kind; Text = text; Candidate = candidate; Enabled = enabled; }
+        private CompositionCommand(string kind, string text = "", Candidate? candidate = null, bool enabled = false, string selectedText = "") { Kind = kind; Text = text; Candidate = candidate; Enabled = enabled; SelectedText = selectedText; }
         /// <summary>
         /// 命令种类。
         /// </summary>
@@ -292,6 +315,10 @@ namespace SkyKeyYuyan.Core
         /// 功能开关值。
         /// </summary>
         public bool Enabled { get; }
+        /// <summary>
+        /// 恢复时保留的已选片段。
+        /// </summary>
+        public string SelectedText { get; }
         /// <summary>
         /// 输入原始文本。
         /// </summary>
@@ -320,6 +347,10 @@ namespace SkyKeyYuyan.Core
         /// 从当前保留内容重新开始转换。
         /// </summary>
         public static CompositionCommand RestoreText(string text) => new CompositionCommand("restore", text);
+        /// <summary>
+        /// 根据当前原始拼写和已选片段重建转换。
+        /// </summary>
+        public static CompositionCommand RestoreComposition(CompositionSnapshot snapshot) => new CompositionCommand("restore", snapshot.RawText, selectedText: snapshot.SelectedText);
     }
 
     /// <summary>
@@ -409,6 +440,10 @@ namespace SkyKeyYuyan.Core
         /// 用于语言菜单的名称。
         /// </summary>
         string DisplayName { get; }
+        /// <summary>
+        /// 候选、自动转换和可调整设置的能力。
+        /// </summary>
+        LanguageCapabilities Capabilities { get; }
         /// <summary>
         /// 共享数据变更通知。
         /// </summary>

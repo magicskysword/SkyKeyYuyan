@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 /// </summary>
 public interface ISkyRuntime : IDisposable
 {
-    RegistrationResult RegisterLanguage(ILanguageModule module);
+    ServiceResult RegisterLanguage(ILanguageModule module);
 
     InitializationResult Initialize(RuntimeOptions options);
 
@@ -39,7 +39,7 @@ public interface ISkyRuntime : IDisposable
 | 类型 | 必需内容与语义 |
 | --- | --- |
 | RuntimeOptions | 执行上下文、资源 Provider、词频存储 Provider、语言实现配置、是否取代全局默认实例（默认取代）、默认用户标识、预加载用户列表及服务选项 |
-| RegistrationResult | 是否接纳、语言标识、引擎标识、模块状态及标识冲突等诊断 |
+| ServiceResult | 是否成功、执行阶段、失败原因及取消状态；用于注册、模块准备和检查点恢复 |
 | InitializationResult | 成功、失败或取消，初始化阶段，受影响模块，各模块就绪状态，用户词频预加载状态和诊断 |
 | SessionOpenResult | 打开结果、成功时的会话、目标占用或语言未就绪等原因 |
 | SessionOptions | 玩家标识、用户标识（可省略，省略时使用默认用户）、会话语言列表、初始语言、编辑模式和会话设置 |
@@ -93,6 +93,10 @@ public interface ISkySession : IDisposable
 ```
 
 Process 在会话执行上下文中接收操作，返回已处理、等待处理或拒绝接纳的回执。每次接纳的操作取得会话内单调递增的标识。异步完成后通过 OperationCompleted 返回最终结果。
+
+SerialExecutionContext 串行处理投递工作，适合独立托管宿主。PumpExecutionContext 固定创建线程，由宿主主循环调用 Drain；创建线程上的投递立即排空，回调中的新操作在当前工作结束后执行。
+
+InputOperation 的工厂方法创建字符输入、组字回退、候选确认、导航、完成、取消、暂停和恢复等操作。候选确认显式提供查询标识与候选标识。写入结果未知时，NeedsResolution 状态保留输入；ResolveWrite 允许宿主明确再次提交或接受目标现状。
 
 StateChanged 发布完整、不可变的当前快照。Completed 在会话结束时发布一次。事件通知发生在对应状态更新之后；通知接收者的异常单独报告，已完成的输入操作保持其结果。
 
