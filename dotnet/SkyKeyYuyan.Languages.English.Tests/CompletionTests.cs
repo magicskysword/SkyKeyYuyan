@@ -22,6 +22,33 @@ namespace SkyKeyYuyan.Languages.English.Tests
             engine.Process(CompositionCommand.Clear()); engine.Process(CompositionCommand.Insert(text));
             return await engine.QueryCandidatesAsync(new CandidateQuery(1, 1, engine.Snapshot, module.CaptureData(), frequencies: counts), CancellationToken.None);
         }
+        [TestCase(1)]
+        [TestCase(7)]
+        [TestCase(20)]
+        public async Task PrefixPagesPreserveTiesAndPersonalFrequencyAcrossBoundaries(int pageSize)
+        {
+            var entries = Enumerable.Range(0, 100).Select(index =>
+            {
+                string word = "qa" + (char)('a' + index / 26) + (char)('a' + index % 26);
+                return new LexiconWord("word-" + index, word, word);
+            }).ToList();
+            entries.Add(new LexiconWord("first-reading", "same", "qzaa"));
+            entries.Add(new LexiconWord("second-reading", "same", "qzab"));
+            using var module = new EnglishCompletionModule(entries); module.Initialize(new MemoryResourceProvider());
+            using var engine = module.CreateEngine(); engine.Process(CompositionCommand.Insert("q"));
+            var counts = new Dictionary<string, long> { ["word-99"] = 100000 };
+            var actual = new List<string>();
+            for (int offset = 0; ; offset += pageSize)
+            {
+                var page = await engine.QueryCandidatesAsync(new CandidateQuery(offset + 1, 1, engine.Snapshot, module.CaptureData(), frequencies: counts, offset: offset, pageSize: pageSize), CancellationToken.None);
+                actual.AddRange(page.Candidates.Select(candidate => candidate.Words.Single().WordId));
+                if (!page.HasMore) break;
+                Assert.That(page.Candidates.Count, Is.EqualTo(pageSize));
+            }
+            Assert.That(actual, Is.EqualTo(new[] { "word-99" }.Concat(Enumerable.Range(0, 99).Select(index => "word-" + index)).Concat(new[] { "first-reading", "second-reading" })));
+            var beyond = await engine.QueryCandidatesAsync(new CandidateQuery(1000, 1, engine.Snapshot, module.CaptureData(), offset: int.MaxValue, pageSize: 20), CancellationToken.None);
+            Assert.That(beyond.Candidates, Is.Empty); Assert.That(beyond.HasMore, Is.False);
+        }
         [TestCase("hel", "hello")]
         [TestCase("Hel", "Hello")]
         [TestCase("H", "Hello")]

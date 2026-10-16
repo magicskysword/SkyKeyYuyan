@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Internal;
 
 namespace SkyKeyYuyan.Languages.English
 {
@@ -49,6 +50,12 @@ namespace SkyKeyYuyan.Languages.English
 
         private sealed class Engine : TokenLanguageEngine
         {
+            private readonly struct RankedWord
+            {
+                internal readonly LexiconWord Word;
+                internal readonly double Score;
+                internal RankedWord(LexiconWord word, double score) { Word = word; Score = score; }
+            }
             internal Engine() : base("en.completion") { }
             protected override bool UsesCandidates => CompletionEnabled;
             protected override bool DirectInput => !CompletionEnabled;
@@ -59,17 +66,20 @@ namespace SkyKeyYuyan.Languages.English
                 string raw = query.Composition.RawText;
                 if (raw.Length == 0) return new CandidatePage(query, Array.Empty<Candidate>());
                 var index = query.Data.Index as SpellingIndex ?? new SpellingIndex(query.Data.Words, word => word.ToLowerInvariant());
-                var matches = new List<KeyValuePair<LexiconWord, double>>();
+                var matches = new RankedWindow<RankedWord>((long)query.Offset + query.PageSize + 1, (left, right) =>
+                {
+                    int score = right.Score.CompareTo(left.Score);
+                    return score != 0 ? score : StringComparer.Ordinal.Compare(left.Word.Text, right.Word.Text);
+                });
                 foreach (var word in index.Prefix(raw.ToLowerInvariant()))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     query.Frequencies.TryGetValue(word.Id, out long count);
                     double score = Math.Log(1 + word.Weight) + 4 * Math.Log(1d + count) - 0.02 * word.Text.Length;
-                    matches.Add(new KeyValuePair<LexiconWord, double>(word, score));
+                    matches.Add(new RankedWord(word, score));
                 }
-                var ordered = matches.OrderByDescending(pair => pair.Value).ThenBy(pair => pair.Key.Text, StringComparer.Ordinal).ToArray();
-                var candidates = ordered.Skip(query.Offset).Take(query.PageSize).Select((pair, rank) => new Candidate((query.Offset + rank).ToString(CultureInfo.InvariantCulture), ApplyCase(pair.Key.Text, raw), raw.Length, new[] { new WordUsage(pair.Key.Id) }, pair.Value));
-                return new CandidatePage(query, candidates, query.Offset + query.PageSize < ordered.Length);
+                var candidates = matches.GetPage(query.Offset, query.PageSize).Select((pair, rank) => new Candidate((query.Offset + rank).ToString(CultureInfo.InvariantCulture), ApplyCase(pair.Word.Text, raw), raw.Length, new[] { new WordUsage(pair.Word.Id) }, pair.Score));
+                return new CandidatePage(query, candidates, (long)query.Offset + query.PageSize < matches.Seen);
             }
             private static string ApplyCase(string text, string raw)
             {

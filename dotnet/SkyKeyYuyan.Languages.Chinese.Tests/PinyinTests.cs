@@ -24,6 +24,32 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
             return module;
         }
         private static Task<CandidatePage> Query(ILanguageEngine engine, ILanguageModule module, IReadOnlyDictionary<string, long>? frequencies = null) => engine.QueryCandidatesAsync(new CandidateQuery(1, 1, engine.Snapshot, module.CaptureData(), frequencies: frequencies), CancellationToken.None);
+        [TestCase(1)]
+        [TestCase(7)]
+        [TestCase(20)]
+        public async Task PrefixPagesKeepFrequencyOrderAndMergeReadingIdentities(int pageSize)
+        {
+            var entries = Enumerable.Range(0, 100).Select(index => new LexiconWord("word-" + index, "候选" + index.ToString("D3"), "na" + (char)('a' + index / 26) + (char)('a' + index % 26))).ToList();
+            entries.Add(new LexiconWord("root", "单字", "n"));
+            entries.Add(new LexiconWord("reading-low", "重读", "na a"));
+            entries.Add(new LexiconWord("reading-high", "重读", "na i", 9));
+            using var module = new ChinesePinyinModule(entries); module.Initialize(new MemoryResourceProvider());
+            using var engine = module.CreateEngine(); engine.Process(CompositionCommand.Insert("n"));
+            var counts = new Dictionary<string, long> { ["word-99"] = 100000 };
+            var expected = new[] { "word-99", "root", "reading-high" }.Concat(Enumerable.Range(0, 99).Select(index => "word-" + index)).ToArray();
+            var actual = new List<string>();
+            for (int offset = 0; ; offset += pageSize)
+            {
+                var page = await engine.QueryCandidatesAsync(new CandidateQuery(offset + 1, 1, engine.Snapshot, module.CaptureData(), frequencies: counts, offset: offset, pageSize: pageSize), CancellationToken.None);
+                Assert.That(page.Candidates.Select(candidate => candidate.Id), Is.EqualTo(Enumerable.Range(offset, page.Candidates.Count).Select(index => index.ToString())));
+                actual.AddRange(page.Candidates.Select(candidate => candidate.Words.Single().WordId));
+                if (!page.HasMore) break;
+                Assert.That(page.Candidates.Count, Is.EqualTo(pageSize));
+            }
+            Assert.That(actual, Is.EqualTo(expected));
+            var beyond = await engine.QueryCandidatesAsync(new CandidateQuery(1000, 1, engine.Snapshot, module.CaptureData(), offset: int.MaxValue, pageSize: 20), CancellationToken.None);
+            Assert.That(beyond.Candidates, Is.Empty); Assert.That(beyond.HasMore, Is.False);
+        }
         [Test]
         public async Task ContinuousPinyinProvidesWholeSentenceAndPartialWordCandidates()
         {
