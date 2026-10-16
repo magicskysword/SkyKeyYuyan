@@ -137,7 +137,7 @@ namespace SkyKeyYuyan.UI.UGUI
                 view.Text.text = SkyKeyboardStyle.KeyLabel(view.Key, state.Shift, snapshot.CompletionEnabled);
                 if (view.Key.Action == "completion" && (language == null || (language.Capabilities & LanguageCapabilities.CompletionSwitch) == 0)) view.Text.text = view.Key.Label;
                 ((SkyPanelGraphic)view.Button.targetGraphic).Configure(SkyKeyboardStyle.KeyColor(view.Key, focused, active), focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, focused ? 3 : 1, 8, focused);
-                view.Text.color = !enabled ? new Color(.6f, .66f, .72f, .45f) : focused || view.Key.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
+                view.Text.color = !enabled ? new Color(.6f, .66f, .72f, .45f) : (Color)(focused || view.Key.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text);
                 view.Badge.SetActive(focused && enabled);
                 view.Button.interactable = enabled;
             }
