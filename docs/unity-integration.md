@@ -150,6 +150,8 @@ FairyGUI 原生源工程位于 `ui/FairyGUI/SkyKeyYuyan.fairy`，包含 Panel、
 
 编辑器面板显示依赖检测结果、配置开关和模块可用状态。模块启用同时满足依赖可用、平台能力可用及用户开关条件。
 
+通过 `Tools/SkyKeyYuyan/模块控制面板` 检测已安装语言、UI 依赖和输入能力，并为当前构建平台应用开关。面板保留项目其他编译符号；UGUI、TMP、两个输入后端和两套表现可分别关闭。FairyGUI 适配在 SDK 可用后显式启用。
+
 可选接入代码按程序集隔离，通过编译条件及包版本信息启用。Unity 的 Version Defines 和 Define Constraints 提供相应能力；具体条件需覆盖目标版本与依赖组合。[Unity 程序集定义文档](https://docs.unity3d.com/2020.3/Documentation/Manual/ScriptCompilationAssemblyDefinitionFiles.html)
 
 FairyGUI SDK 的安装和自身依赖由宿主管理。SKY FairyGUI 包提供与所验证 SDK 版本对应的适配。

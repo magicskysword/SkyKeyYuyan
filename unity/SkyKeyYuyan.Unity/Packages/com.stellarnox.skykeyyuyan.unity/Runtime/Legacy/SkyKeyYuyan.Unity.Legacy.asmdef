@@ -1,5 +1,5 @@
 {
   "name": "SkyKeyYuyan.Unity.Legacy",
   "references": ["SkyKeyYuyan.Unity"],
-  "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER"]
+  "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER", "!SKY_DISABLE_LEGACY"]
 }

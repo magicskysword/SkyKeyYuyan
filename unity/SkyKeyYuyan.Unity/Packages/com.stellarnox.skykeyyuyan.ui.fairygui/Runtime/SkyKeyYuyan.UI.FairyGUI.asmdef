@@ -12,7 +12,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": ["SKY_FAIRYGUI"],
+    "defineConstraints": ["SKY_FAIRYGUI", "!SKY_DISABLE_FAIRYGUI_UI"],
     "versionDefines": [],
     "noEngineReferences": false
 }

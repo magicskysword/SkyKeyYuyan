@@ -134,6 +134,8 @@
 
 Provider 验证同时覆盖同步和异步路径、PlayerPrefs 默认实现以及自定义存档实现。
 
+`prepare-unity-validation.mjs --profile core|ugui|tmp|input-system|modules-off` 创建不同依赖组合的编译验证工程，并移除该工程中的测试资产。`core` 不安装三个可选 Unity 依赖，`ugui` 仅安装 UGUI，`tmp` 安装 TMP 及其 UGUI 依赖，`input-system` 仅安装并启用 Input System，`modules-off` 安装依赖并关闭全部 SKY 可选模块。默认 `full` 保留完整开发配置及测试。
+
 ## 恢复与执行结果
 
 | 编号 | 故障注入 | 预期 |

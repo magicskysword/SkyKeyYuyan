@@ -1,6 +1,6 @@
 {
   "name": "SkyKeyYuyan.Unity.InputSystem",
   "references": ["SkyKeyYuyan.Unity", "Unity.InputSystem"],
-  "defineConstraints": ["SKY_INPUT_SYSTEM_AVAILABLE", "ENABLE_INPUT_SYSTEM"],
+  "defineConstraints": ["SKY_INPUT_SYSTEM_AVAILABLE", "ENABLE_INPUT_SYSTEM", "!SKY_DISABLE_INPUT_SYSTEM"],
   "versionDefines": [{"name":"com.unity.inputsystem","expression":"1.0.0","define":"SKY_INPUT_SYSTEM_AVAILABLE"}]
 }
