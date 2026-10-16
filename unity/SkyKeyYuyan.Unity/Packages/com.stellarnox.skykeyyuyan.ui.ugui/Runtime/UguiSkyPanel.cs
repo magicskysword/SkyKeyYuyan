@@ -148,7 +148,7 @@ namespace SkyKeyYuyan.UI.UGUI
         }
         private void BuildKeys()
         {
-            foreach (var key in _keys) DestroyObject(key.Button.gameObject); _keys.Clear();
+            foreach (var key in _keys) DestroyView(key.Button.gameObject); _keys.Clear();
             if (_layout == null) return;
             foreach (var key in _layout.Keys)
             {
@@ -219,7 +219,7 @@ namespace SkyKeyYuyan.UI.UGUI
             if (ReferenceEquals(_player.DraftTargetFactory, _factory)) _player.DraftTargetFactory = _previousFactory;
             _draftTarget?.Dispose(); _draftTarget = null; _player = null; _controller = null;
         }
-        private static void DestroyObject(UnityEngine.Object value) { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
+        private static void DestroyView(UnityEngine.Object value) { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
         private void OnDestroy() => Unbind();
     }
 }

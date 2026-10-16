@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = resolve(root, 'unity/SkyKeyYuyan.Unity');
-const output = resolve(root, 'artifacts/UnityValidation');
+const versionIndex = process.argv.indexOf('--unity-version');
+const unityVersion = versionIndex >= 0 ? process.argv[versionIndex + 1] : null;
+if (versionIndex >= 0 && !/^\d+\.\d+\.\d+[abfp]\d+$/.test(unityVersion ?? '')) throw new Error('--unity-version requires an exact editor version');
+const output = resolve(root, 'artifacts', unityVersion ? `UnityValidation-${unityVersion}` : 'UnityValidation');
+const symbolGroup = unityVersion?.startsWith('2020.') ? '1' : 'Standalone';
 const sdkIndex = process.argv.indexOf('--fairygui');
 const sdk = sdkIndex >= 0 ? resolve(process.argv[sdkIndex + 1] ?? '') : null;
 if (sdkIndex >= 0 && !process.argv[sdkIndex + 1]) throw new Error('--fairygui requires the SDK repository path');
@@ -26,6 +30,17 @@ for (const folder of ['Assets', 'Packages', 'ProjectSettings']) {
   await removeOutput(target);
   await cp(resolve(source, folder), target, { recursive: true });
 }
+if (unityVersion) {
+  const manifestFile = resolve(output, 'Packages/manifest.json');
+  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
+  if (unityVersion.startsWith('2020.')) manifest.dependencies['com.unity.inputsystem'] = '1.0.2';
+  if (Number(unityVersion.split('.')[0]) >= 6000) {
+    manifest.dependencies['com.unity.ugui'] = '2.0.0';
+    delete manifest.dependencies['com.unity.textmeshpro'];
+  }
+  await writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
+  await writeFile(resolve(output, 'ProjectSettings/ProjectVersion.txt'), `m_EditorVersion: ${unityVersion}\n`);
+}
 if (profile !== 'full') {
   await removeOutput(resolve(output, 'Assets'));
   await mkdir(resolve(output, 'Assets'), { recursive: true });
@@ -46,7 +61,7 @@ if (profile !== 'full') {
   settings = settings.replace(/  activeInputHandler: \d+/, `  activeInputHandler: ${profile === 'input-system' ? 1 : 0}`);
   if (profile === 'modules-off') {
     const disabled = ['UGUI', 'TMP', 'LEGACY', 'INPUT_SYSTEM', 'UGUI_UI', 'FAIRYGUI_UI'].map(name => `SKY_DISABLE_${name}`).join(';');
-    settings = settings.replace('  scriptingDefineSymbols: {}', `  scriptingDefineSymbols:\n    Standalone: ${disabled}`);
+    settings = settings.replace('  scriptingDefineSymbols: {}', `  scriptingDefineSymbols:\n    ${symbolGroup}: ${disabled}`);
   }
   await writeFile(settingsFile, settings);
 }
@@ -59,6 +74,6 @@ if (sdk) {
   const settingsFile = resolve(output, 'ProjectSettings/ProjectSettings.asset');
   const settings = await readFile(settingsFile, 'utf8');
   if (!settings.includes('  scriptingDefineSymbols: {}')) throw new Error('Expected an unconfigured scripting define map');
-  await writeFile(settingsFile, settings.replace('  scriptingDefineSymbols: {}', '  scriptingDefineSymbols:\n    Standalone: SKY_FAIRYGUI'));
+  await writeFile(settingsFile, settings.replace('  scriptingDefineSymbols: {}', `  scriptingDefineSymbols:\n    ${symbolGroup}: SKY_FAIRYGUI`));
 }
 process.stdout.write(`Unity validation project: ${output} (${profile})\n`);

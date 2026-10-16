@@ -16,6 +16,9 @@ namespace SkyKeyYuyan.Unity.Editor
         private HashSet<string> _symbols;
         private Dictionary<string, string> _packages;
         private Vector2 _scroll;
+#if !UNITY_2022_1_OR_NEWER
+        private UnityEditor.PackageManager.Requests.ListRequest _request;
+#endif
         [MenuItem("Tools/SkyKeyYuyan/模块控制面板")]
         private static void Open() => GetWindow<SkyModuleWindow>("SkyKeyYuyan 模块");
         private void OnEnable() => Refresh();
@@ -24,8 +27,22 @@ namespace SkyKeyYuyan.Unity.Editor
             _group = EditorUserBuildSettings.selectedBuildTargetGroup;
             if (_group == BuildTargetGroup.Unknown) _group = BuildTargetGroup.Standalone;
             _symbols = new HashSet<string>(PlayerSettings.GetScriptingDefineSymbolsForGroup(_group).Split(';').Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.Ordinal);
+#if UNITY_2022_1_OR_NEWER
             _packages = PackageInfo.GetAllRegisteredPackages().GroupBy(value => value.name).ToDictionary(group => group.Key, group => group.First().version, StringComparer.Ordinal);
+#else
+            _packages = new Dictionary<string, string>(StringComparer.Ordinal);
+            _request = UnityEditor.PackageManager.Client.List(true, true);
+#endif
         }
+#if !UNITY_2022_1_OR_NEWER
+        private void Update()
+        {
+            if (_request == null || !_request.IsCompleted) return;
+            if (_request.Status == UnityEditor.PackageManager.StatusCode.Success)
+                _packages = _request.Result.GroupBy(value => value.name).ToDictionary(group => group.Key, group => group.First().version, StringComparer.Ordinal);
+            _request = null; Repaint();
+        }
+#endif
         private void OnGUI()
         {
             if (_symbols == null || _packages == null) Refresh();
