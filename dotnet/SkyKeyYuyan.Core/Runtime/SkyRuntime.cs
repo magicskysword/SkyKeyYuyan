@@ -400,27 +400,55 @@ namespace SkyKeyYuyan.Core
                 string initial = options.InitialLanguage ?? RecentLanguage(options.PlayerId) ?? languages[0];
                 if (!languages.Contains(initial, StringComparer.Ordinal)) initial = languages[0];
                 object identity = target.Identity ?? throw new ArgumentException("目标身份不能为空", nameof(target));
-                lock (GlobalGate)
-                {
-                    if (TargetOwners.ContainsKey(identity)) return new SessionOpenResult(null, "文本目标正在使用");
-                    TargetOwners.Add(identity, sessionId);
-                }
+                if (!AcquireTarget(identity, sessionId)) return new SessionOpenResult(null, "文本目标正在使用");
+                object? draftIdentity = null;
                 try
                 {
-                    var session = new SkySession(this, sessionId, target, options, languages.ToDictionary(language => language, language => _selected[language], StringComparer.Ordinal), initial);
+                    var original = target.ReadSnapshot();
+                    ITextTarget editing = target;
+                    if (options.EditingMode == EditingMode.Draft)
+                    {
+                        editing = options.DraftTargetFactory == null ? new MemoryTextTarget(original.Text, original.Anchor, original.Caret)
+                            : options.DraftTargetFactory(original) ?? throw new InvalidOperationException("草稿工厂没有返回目标");
+                        object identityToAcquire = editing.Identity ?? throw new ArgumentException("草稿目标身份不能为空");
+                        if (!AcquireTarget(identityToAcquire, sessionId)) throw new InvalidOperationException("草稿文本目标正在使用");
+                        draftIdentity = identityToAcquire;
+                        var draft = editing.ReadSnapshot();
+                        if (draft.Text != original.Text || draft.Anchor != original.Anchor || draft.Caret != original.Caret) throw new InvalidOperationException("草稿初始正文和选区与原文不一致");
+                        var current = target.ReadSnapshot();
+                        if (current.Version != original.Version) throw new InvalidOperationException("创建草稿期间原目标已经改变");
+                    }
+                    var session = new SkySession(this, sessionId, target, editing, options, languages.ToDictionary(language => language, language => _selected[language], StringComparer.Ordinal), initial);
                     _sessions.Add(session);
                     session.PrepareUser();
                     RememberLanguage(options.PlayerId, initial);
                     return new SessionOpenResult(session);
                 }
-                catch (Exception ex) { lock (GlobalGate) TargetOwners.Remove(identity); return new SessionOpenResult(null, ex.Message); }
+                catch (Exception ex)
+                {
+                    ReleaseTarget(identity, sessionId);
+                    if (draftIdentity != null) ReleaseTarget(draftIdentity, sessionId);
+                    return new SessionOpenResult(null, ex.Message);
+                }
             }
         }
         private static string? RecentLanguage(string playerId) { lock (GlobalGate) return RecentLanguages.TryGetValue(playerId, out var language) ? language : null; }
+        private static bool AcquireTarget(object identity, Guid sessionId)
+        {
+            lock (GlobalGate)
+            {
+                if (TargetOwners.ContainsKey(identity)) return false;
+                TargetOwners.Add(identity, sessionId); return true;
+            }
+        }
+        internal static void ReleaseTarget(object identity, Guid sessionId)
+        {
+            lock (GlobalGate) if (TargetOwners.TryGetValue(identity, out var owner) && owner == sessionId) TargetOwners.Remove(identity);
+        }
         internal static void RememberLanguage(string playerId, string languageId) { lock (GlobalGate) RecentLanguages[playerId] = languageId; }
         internal void SessionEnded(SkySession session, object identity, Guid sessionId)
         {
-            lock (GlobalGate) if (TargetOwners.TryGetValue(identity, out var owner) && owner == sessionId) TargetOwners.Remove(identity);
+            ReleaseTarget(identity, sessionId);
             lock (_gate) _sessions.Remove(session);
             TryReleaseResources();
         }

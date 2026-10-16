@@ -62,13 +62,12 @@ namespace SkyKeyYuyan.Core
         private TextEditResult? _lastEdit;
         private string? _diagnostic;
 
-        internal SkySession(SkyRuntime runtime, Guid id, ITextTarget target, SessionOptions options, Dictionary<string, ILanguageModule> languages, string initial)
+        internal SkySession(SkyRuntime runtime, Guid id, ITextTarget target, ITextTarget editing, SessionOptions options, Dictionary<string, ILanguageModule> languages, string initial)
         {
             _runtime = runtime; _id = id; _target = target; _playerId = options.PlayerId; _languages = languages; _mode = options.EditingMode;
             _userId = options.UserId ?? runtime.DefaultUserId;
             if (string.IsNullOrWhiteSpace(_userId)) throw new ArgumentException("用户标识不能为空");
-            _text = target.ReadSnapshot();
-            _editing = _mode == EditingMode.Draft ? new MemoryTextTarget(_text.Text, _text.Anchor, _text.Caret) : target;
+            _editing = editing;
             _text = _editing.ReadSnapshot();
             _module = languages[initial];
             _completionEnabled = options.CompletionEnabled;
@@ -79,6 +78,7 @@ namespace SkyKeyYuyan.Core
                 _composition = _slot.Engine.Snapshot;
                 Snapshot = BuildSnapshot();
                 _target.Changed += OnTargetChanged;
+                if (!ReferenceEquals(_editing, _target)) _editing.Changed += OnDraftChanged;
                 _module.DataChanged += OnDataChanged;
                 _runtime.Frequency.Changed += OnFrequencyChanged;
             }
@@ -454,6 +454,13 @@ namespace SkyKeyYuyan.Core
             if (_mode == EditingMode.Direct) _text = change.Snapshot;
             CancelPending(); End(change.Invalidated ? SessionEndReason.TargetInvalidated : SessionEndReason.ExternalChange);
         });
+        private void OnDraftChanged(TextTargetChange change) => _runtime.Context.Post(() =>
+        {
+            if (_lifecycle == SessionLifecycle.Ended) return;
+            _text = change.Snapshot;
+            if (change.Invalidated) { CancelPending(); End(SessionEndReason.TargetInvalidated); }
+            else Publish();
+        });
         private SessionSnapshot BuildSnapshot() => new SessionSnapshot(_id, _module.LanguageId, _module.EngineId, _lifecycle, _composition, _text, _page, _selectedCandidate, _querying, _literal, _completionEnabled, _pending?.Id, _diagnostic, _needsResolution);
         private void Publish() { Snapshot = BuildSnapshot(); Notify(StateChanged, Snapshot); }
         private void Complete(Request request, OperationStatus status, string? reason = null)
@@ -470,6 +477,7 @@ namespace SkyKeyYuyan.Core
             _lifecycle = SessionLifecycle.Ended; CancelQuery();
             _pending = null;
             _target.Changed -= OnTargetChanged; _module.DataChanged -= OnDataChanged;
+            if (!ReferenceEquals(_editing, _target)) _editing.Changed -= OnDraftChanged;
             _runtime.Frequency.Changed -= OnFrequencyChanged;
             if (reason == SessionEndReason.Finished) foreach (var record in _draftChoices) _runtime.Frequency.Record(record);
             _draftChoices.Clear();
@@ -484,6 +492,7 @@ namespace SkyKeyYuyan.Core
                 if (!ReferenceEquals(_editing, _target)) (_editing as ITextOperationCache)?.ReleaseSession(_id);
             }
             catch (Exception ex) { Report("text-cache", ex.Message); }
+            if (!ReferenceEquals(_editing, _target)) SkyRuntime.ReleaseTarget(_editing.Identity, _id);
             _runtime.SessionEnded(this, _target.Identity, _id);
             Publish(); Notify(Completed, new SessionResult(reason, final, fill, _diagnostics, storageResults));
         }

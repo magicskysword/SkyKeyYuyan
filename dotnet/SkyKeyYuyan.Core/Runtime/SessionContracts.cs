@@ -114,6 +114,10 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public EditingMode EditingMode { get; set; } = EditingMode.Draft;
         /// <summary>
+        /// 根据原文快照创建独立草稿目标；为空时使用内存草稿。目标及其原生资源由宿主持有。
+        /// </summary>
+        public Func<TextSnapshot, ITextTarget>? DraftTargetFactory { get; set; }
+        /// <summary>
         /// 英语补全的初始开关。
         /// </summary>
         public bool CompletionEnabled { get; set; } = true;

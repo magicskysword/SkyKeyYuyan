@@ -34,6 +34,68 @@ namespace SkyKeyYuyan.Core.Tests
             Assert.That(draftTarget.ReadSnapshot().Text, Is.EqualTo("ABXYZ"));
         }
 
+        [Test]
+        public void CustomDraftRetainsFullTextAndUsesItsOwnNavigation()
+        {
+            using var runtime = English();
+            var target = new MemoryTextTarget("ABCD", 2, 2, 5);
+            MemoryTextTarget? draft = null;
+            using var session = runtime.OpenSession(new SessionOptions
+            {
+                DraftTargetFactory = original => draft = new MemoryTextTarget(original.Text, original.Anchor, original.Caret)
+            }, target).Session!;
+            session.Process(InputOperation.Insert("XYZ"));
+            Assert.That(draft!.ReadSnapshot().Text, Is.EqualTo("ABXYZCD"));
+            Assert.That(target.ReadSnapshot().Text, Is.EqualTo("ABCD"));
+            draft.SetExternalText("ABXYZCD", 0, 0);
+            session.Process(InputOperation.Insert("Q"));
+            Assert.That(session.Snapshot.Text.Text, Is.EqualTo("QABXYZCD"));
+            session.Process(InputOperation.Finish());
+            Assert.That(target.ReadSnapshot().Text, Is.EqualTo("QABXY"));
+        }
+
+        [Test]
+        public void DraftCannotAliasHostOrAnotherSessionsTarget()
+        {
+            using var first = English(); using var second = English();
+            var target = new MemoryTextTarget("A");
+            Assert.That(first.OpenSession(new SessionOptions { DraftTargetFactory = _ => target }, target).Succeeded, Is.False);
+            var sharedDraft = new MemoryTextTarget("A");
+            var options = new SessionOptions { DraftTargetFactory = _ => sharedDraft };
+            using var session = first.OpenSession(options, target).Session!;
+            var other = new MemoryTextTarget("A");
+            Assert.That(second.OpenSession(options, other).Succeeded, Is.False);
+            session.Dispose();
+            using var next = second.OpenSession(options, other).Session;
+            Assert.That(next, Is.Not.Null);
+        }
+
+        [Test]
+        public void FailedDraftFactoryReleasesBothTargetLeases()
+        {
+            using var runtime = English();
+            var target = new MemoryTextTarget("A");
+            var mismatched = new MemoryTextTarget("different");
+            Assert.That(runtime.OpenSession(new SessionOptions { DraftTargetFactory = _ => mismatched }, target).Succeeded, Is.False);
+            using var first = runtime.OpenSession(new SessionOptions(), target).Session;
+            using var second = runtime.OpenSession(new SessionOptions { EditingMode = EditingMode.Direct }, mismatched).Session;
+            Assert.That(first, Is.Not.Null); Assert.That(second, Is.Not.Null);
+        }
+
+        [Test]
+        public void DraftInvalidationEndsOnceAndReleasesTheHost()
+        {
+            using var runtime = English();
+            var target = new MemoryTextTarget("A"); var draft = new MemoryTextTarget("A");
+            using var session = runtime.OpenSession(new SessionOptions { DraftTargetFactory = _ => draft }, target).Session!;
+            int completed = 0;
+            session.Completed += result => { completed++; Assert.That(result.Reason, Is.EqualTo(SessionEndReason.TargetInvalidated)); };
+            draft.Invalidate(); draft.Invalidate();
+            Assert.That(completed, Is.EqualTo(1));
+            using var next = runtime.OpenSession(new SessionOptions(), target).Session;
+            Assert.That(next, Is.Not.Null);
+        }
+
         [TestCase(EditingMode.Direct, "originalnew")]
         [TestCase(EditingMode.Draft, "original")]
         public void CancelRespectsEditingModeAndCompletesOnce(EditingMode mode, string expected)
