@@ -24,7 +24,8 @@ namespace SkyKeyYuyan.Core
             MaxLength = maxLength; SingleLine = singleLine; Validator = validator; Identity = identity ?? this;
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public object Identity { get; }
         /// <summary>
         /// 正文长度上限，零表示不限长度。
@@ -38,12 +39,15 @@ namespace SkyKeyYuyan.Core
         /// 对最终正文执行的内容验证。
         /// </summary>
         public Func<string, bool>? Validator { get; set; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public event Action<TextTargetChange>? Changed;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public TextSnapshot ReadSnapshot() => _snapshot;
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public TextEditResult ApplyEdit(TextEditRequest request)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
@@ -68,7 +72,8 @@ namespace SkyKeyYuyan.Core
             return editResult;
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public TextNavigationResult Navigate(TextNavigationRequest request)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
@@ -97,7 +102,8 @@ namespace SkyKeyYuyan.Core
             return result;
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void ReleaseSession(Guid sessionId)
         {
             foreach (var operation in _edits.Keys.Where(key => key.SessionId == sessionId).ToArray()) _edits.Remove(operation);

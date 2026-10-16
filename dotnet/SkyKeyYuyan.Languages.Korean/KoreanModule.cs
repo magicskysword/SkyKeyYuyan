@@ -16,30 +16,42 @@ namespace SkyKeyYuyan.Languages.Korean
             protected override string Render(string raw) => HangulComposer.Compose(raw);
             protected override bool IsCompositionCharacter(char value) => HangulComposer.IsInput(value);
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string LanguageId => "ko";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string EngineId => "ko.two-set";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string DisplayName => "한국어";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public LanguageCapabilities Capabilities => LanguageCapabilities.None;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public event Action DataChanged { add { } remove { } }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult Initialize(IResourceProvider resources) => new ServiceResult(true, "language");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<ServiceResult> InitializeAsync(IResourceProvider resources, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Initialize(resources)); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ILanguageEngine CreateEngine() => new Engine();
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public LanguageDataSnapshot CaptureData() => new LanguageDataSnapshot(0);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult UpsertWord(LexiconWord word) => new ServiceResult(false, "dictionary", "韩语组合使用字母规则");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult RemoveWord(string wordId) => new ServiceResult(false, "dictionary", "韩语组合使用字母规则");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void Dispose() { }
     }
 }

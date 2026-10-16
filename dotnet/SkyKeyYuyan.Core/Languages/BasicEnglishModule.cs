@@ -14,30 +14,42 @@ namespace SkyKeyYuyan.Core
             internal Engine() : base("en.direct") { }
             protected override bool DirectInput => true;
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string LanguageId => "en";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string EngineId => "en.direct";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public string DisplayName => "English";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public LanguageCapabilities Capabilities => LanguageCapabilities.None;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public event Action DataChanged { add { } remove { } }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult Initialize(IResourceProvider resources) => new ServiceResult(true, "language");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<ServiceResult> InitializeAsync(IResourceProvider resources, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Initialize(resources)); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ILanguageEngine CreateEngine() => new Engine();
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public LanguageDataSnapshot CaptureData() => new LanguageDataSnapshot(0);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult UpsertWord(LexiconWord word) => new ServiceResult(false, "dictionary", "直接输入引擎没有词典");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult RemoveWord(string wordId) => new ServiceResult(false, "dictionary", "直接输入引擎没有词典");
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void Dispose() { }
     }
 }

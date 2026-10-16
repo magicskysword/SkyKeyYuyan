@@ -22,13 +22,17 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public long Sequence { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public bool Equals(OperationId other) => SessionId == other.SessionId && Sequence == other.Sequence;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override bool Equals(object? obj) => obj is OperationId other && Equals(other);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override int GetHashCode() => SessionId.GetHashCode() ^ Sequence.GetHashCode();
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string ToString() => SessionId.ToString("N") + ":" + Sequence;
     }
 

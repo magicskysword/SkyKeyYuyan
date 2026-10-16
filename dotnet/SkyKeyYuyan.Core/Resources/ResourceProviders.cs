@@ -18,9 +18,11 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public MemoryResourceProvider(IReadOnlyDictionary<string, byte[]>? resources = null)
         { _resources = resources?.ToDictionary(pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.Ordinal) ?? new Dictionary<string, byte[]>(); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public byte[] Read(string resourceId) => _resources.TryGetValue(resourceId, out var bytes) ? (byte[])bytes.Clone() : throw new FileNotFoundException("语言资源不存在", resourceId);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<byte[]> ReadAsync(string resourceId, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Read(resourceId)); }
     }
@@ -35,9 +37,11 @@ namespace SkyKeyYuyan.Core
         /// 创建资源标识到文件路径的映射。
         /// </summary>
         public FileResourceProvider(IReadOnlyDictionary<string, string> paths) { _paths = paths.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public byte[] Read(string resourceId) => File.ReadAllBytes(_paths.TryGetValue(resourceId, out var path) ? path : throw new FileNotFoundException("资源标识没有文件映射", resourceId));
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<byte[]> ReadAsync(string resourceId, CancellationToken cancellationToken) => Task.Run(() => { cancellationToken.ThrowIfCancellationRequested(); return Read(resourceId); }, cancellationToken);
     }
 
@@ -51,7 +55,8 @@ namespace SkyKeyYuyan.Core
         /// 设置语言资源的宿主根目录。
         /// </summary>
         public DirectoryResourceProvider(string root) { _root = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public byte[] Read(string resourceId)
         {
             if (Path.IsPathRooted(resourceId)) throw new ArgumentException("资源标识必须是相对路径", nameof(resourceId));
@@ -59,7 +64,8 @@ namespace SkyKeyYuyan.Core
             if (!path.StartsWith(_root, Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) throw new ArgumentException("资源标识超出资源根目录", nameof(resourceId));
             return File.ReadAllBytes(path);
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<byte[]> ReadAsync(string resourceId, CancellationToken cancellationToken) => Task.Run(() => { cancellationToken.ThrowIfCancellationRequested(); return Read(resourceId); }, cancellationToken);
     }
 }

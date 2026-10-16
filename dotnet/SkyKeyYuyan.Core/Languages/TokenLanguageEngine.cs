@@ -13,7 +13,8 @@ namespace SkyKeyYuyan.Core
         /// 判断字符是否属于当前语言的词内拼写。
         /// </summary>
         protected abstract bool IsCompositionCharacter(char value);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override EngineStep Process(CompositionCommand command)
         {
             if (command.Kind != "input" || command.Text.Length == 0) return base.Process(command);

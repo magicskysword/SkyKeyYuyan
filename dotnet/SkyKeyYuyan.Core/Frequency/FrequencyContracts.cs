@@ -148,7 +148,8 @@ namespace SkyKeyYuyan.Core
     {
         private readonly object _gate = new object();
         private readonly Dictionary<string, Dictionary<string, FrequencySnapshot>> _users = new Dictionary<string, Dictionary<string, FrequencySnapshot>>(StringComparer.Ordinal);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public FrequencyStoreResult Load(string userId, string languageId)
         {
             lock (_gate)
@@ -158,10 +159,12 @@ namespace SkyKeyYuyan.Core
                 return new FrequencyStoreResult(userId, languageId, new ServiceResult(true, "frequency-load"), snapshot);
             }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<FrequencyStoreResult> LoadAsync(string userId, string languageId, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Load(userId, languageId)); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public FrequencyStoreResult Save(FrequencySnapshot snapshot)
         {
             lock (_gate)
@@ -171,7 +174,8 @@ namespace SkyKeyYuyan.Core
                 return new FrequencyStoreResult(snapshot.UserId, snapshot.LanguageId, new ServiceResult(true, "frequency-save"), snapshot);
             }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public Task<FrequencyStoreResult> SaveAsync(FrequencySnapshot snapshot, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Save(snapshot)); }
     }

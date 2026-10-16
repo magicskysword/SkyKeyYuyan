@@ -23,7 +23,8 @@ namespace SkyKeyYuyan.Core
         private readonly object _gate = new object();
         private readonly Queue<Action> _queue = new Queue<Action>();
         private bool _draining;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void Post(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
@@ -50,7 +51,8 @@ namespace SkyKeyYuyan.Core
         private readonly object _gate = new object();
         private readonly Queue<Action> _queue = new Queue<Action>();
         private bool _draining;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void Post(Action action)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));

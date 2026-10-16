@@ -32,15 +32,20 @@ namespace SkyKeyYuyan.Core
         /// Provider 中的资源标识。
         /// </summary>
         public string ResourceId { get; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public abstract string LanguageId { get; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public abstract string EngineId { get; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public abstract string DisplayName { get; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public abstract LanguageCapabilities Capabilities { get; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public event Action? DataChanged;
         /// <summary>
         /// 规范化词条匹配拼写。
@@ -54,13 +59,15 @@ namespace SkyKeyYuyan.Core
         /// 创建具体语言的可变组合状态。
         /// </summary>
         protected abstract ILanguageEngine CreateLanguageEngine();
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult Initialize(IResourceProvider resources)
         {
             try { return Prepare(_seed ?? Parse(resources.Read(ResourceId))); }
             catch (Exception ex) { return new ServiceResult(false, "resource:" + EngineId, ex.Message); }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public async Task<ServiceResult> InitializeAsync(IResourceProvider resources, CancellationToken cancellationToken)
         {
             try
@@ -102,14 +109,17 @@ namespace SkyKeyYuyan.Core
                 return new ServiceResult(true, "language");
             }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ILanguageEngine CreateEngine()
         {
             lock (_gate) { if (!_initialized) throw new InvalidOperationException("语言模块尚未初始化"); return CreateLanguageEngine(); }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public LanguageDataSnapshot CaptureData() { lock (_gate) return _data; }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult UpsertWord(LexiconWord word)
         {
             if (word == null) throw new ArgumentNullException(nameof(word));
@@ -126,7 +136,8 @@ namespace SkyKeyYuyan.Core
             }
             catch (Exception ex) { return new ServiceResult(false, "dictionary", ex.Message); }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult RemoveWord(string wordId)
         {
             lock (_gate)
@@ -156,7 +167,8 @@ namespace SkyKeyYuyan.Core
             if (DataChanged == null) return;
             foreach (Action handler in DataChanged.GetInvocationList()) try { handler(); } catch { /* 新数据视图已经完整发布。 */ }
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public void Dispose() { lock (_gate) { _initialized = false; _base = Array.Empty<LexiconWord>(); _data = new LanguageDataSnapshot(++_version); } }
     }
 }

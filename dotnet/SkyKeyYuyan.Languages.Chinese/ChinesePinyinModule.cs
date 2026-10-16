@@ -17,19 +17,26 @@ namespace SkyKeyYuyan.Languages.Chinese
         /// 从 Provider 资源或显式词条准备中文词典。
         /// </summary>
         public ChinesePinyinModule(IEnumerable<LexiconWord>? words = null, string resourceId = "chinese/lexicon.bytes") : base(resourceId, words) { }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string LanguageId => "zh-Hans";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string EngineId => "zh.full-pinyin";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string DisplayName => "简体中文";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override LanguageCapabilities Capabilities => LanguageCapabilities.Candidates | LanguageCapabilities.ConvertOnCommit;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override string NormalizeSpelling(string spelling) => PinyinSpelling.Normalize(spelling);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override object BuildIndex(IReadOnlyList<LexiconWord> words) => new Index(words);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override ILanguageEngine CreateLanguageEngine() => new Engine();
 
         private sealed class Index

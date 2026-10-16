@@ -17,24 +17,31 @@ namespace SkyKeyYuyan.Languages.English
         /// 从 Provider 资源或显式词条准备补全词典。
         /// </summary>
         public EnglishCompletionModule(IEnumerable<LexiconWord>? words = null, string resourceId = "english/lexicon.bytes") : base(resourceId, words) { }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string LanguageId => "en";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string EngineId => "en.completion";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override string DisplayName => "English";
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public override LanguageCapabilities Capabilities => LanguageCapabilities.Candidates | LanguageCapabilities.CompletionSwitch;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override string NormalizeSpelling(string spelling)
         {
             string normalized = spelling.Trim().ToLowerInvariant();
             if (normalized.Length == 0 || normalized.Any(value => value < 'a' || value > 'z')) throw new ArgumentException("英语匹配拼写须使用拉丁字母");
             return normalized;
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override object BuildIndex(IReadOnlyList<LexiconWord> words) => new SpellingIndex(words, spelling => spelling);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         protected override ILanguageEngine CreateLanguageEngine() => new Engine();
 
         private sealed class Engine : TokenLanguageEngine

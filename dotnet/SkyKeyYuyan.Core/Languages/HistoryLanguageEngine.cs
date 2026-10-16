@@ -68,7 +68,8 @@ namespace SkyKeyYuyan.Core
         /// 是否每次输入都提出正文提交。
         /// </summary>
         protected virtual bool DirectInput => false;
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public CompositionSnapshot Snapshot
         {
             get
@@ -88,7 +89,8 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         protected virtual bool IsTerminator(char value) => char.IsWhiteSpace(value) || char.IsPunctuation(value);
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public virtual EngineStep Process(CompositionCommand command)
         {
             if (_disposed) throw new ObjectDisposedException(EngineId);
@@ -122,19 +124,23 @@ namespace SkyKeyYuyan.Core
 
         private void Push(TextChain raw, TextChain selected) { _state = new Node(raw, selected, _state); _version++; }
 
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public virtual Task<CandidatePage> QueryCandidatesAsync(CandidateQuery query, CancellationToken cancellationToken)
         { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(new CandidatePage(query, Array.Empty<Candidate>())); }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ICompositionCheckpoint CaptureCheckpoint() => new Checkpoint(EngineId, _state, CompletionEnabled);
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public ServiceResult RestoreCheckpoint(ICompositionCheckpoint checkpoint)
         {
             if (!(checkpoint is Checkpoint state) || state.EngineId != EngineId || checkpoint.FormatVersion != 1) return new ServiceResult(false, "restore", "检查点与引擎不兼容");
             _state = state.State; CompletionEnabled = state.Completion; _version++;
             return new ServiceResult(true, "restore");
         }
-        /// <inheritdoc />
+        /// <inheritdoc>
+        /// </inheritdoc>
         public virtual void Dispose() { _disposed = true; }
     }
 }
