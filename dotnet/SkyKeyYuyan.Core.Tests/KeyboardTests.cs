@@ -53,5 +53,30 @@ namespace SkyKeyYuyan.Core.Tests
             Assert.That(second.GetKeyboard(), Is.SameAs(layout));
             Assert.That(first.Languages[0].DisplayName, Is.EqualTo("English"));
         }
+        [Test]
+        public void WideKeyNavigationUsesCentersAndEveryKeyRemainsReachable()
+        {
+            var layout = KeyboardLayout.Parse(Encoding.UTF8.GetBytes("SKYKEYS\t2\ten\t2\nleft\tL\tl\tL\t0\t0\tinput\t2\nmid\tM\tm\tM\t0\t2\tinput\t2\nright\tR\tr\tR\t0\t4\tinput\t2\nspace\t空格\t \t \t1\t0\tinput\t6\n"), "en");
+            Assert.That(layout["space"].ColumnSpan, Is.EqualTo(6));
+            Assert.That(layout.ColumnCount, Is.EqualTo(6)); Assert.That(layout.RowCount, Is.EqualTo(2));
+            Assert.That(layout.Navigate("space", TextNavigation.Up), Is.EqualTo("mid"));
+            Assert.That(layout.Navigate("right", TextNavigation.Right), Is.EqualTo("left"));
+            var visited = new HashSet<string>(); var pending = new Queue<string>(); pending.Enqueue("space");
+            while (pending.Count > 0)
+            {
+                string key = pending.Dequeue(); if (!visited.Add(key)) continue;
+                foreach (var direction in new[] { TextNavigation.Left, TextNavigation.Right, TextNavigation.Up, TextNavigation.Down }) pending.Enqueue(layout.Navigate(key, direction));
+            }
+            Assert.That(visited.Count, Is.EqualTo(layout.Keys.Count));
+        }
+        [Test]
+        public void OverlappingSpansCannotCreateAmbiguousHitRegions()
+        {
+            Assert.Throws<ArgumentException>(() => new KeyboardLayout("en", "2", new[]
+            {
+                new KeyboardKey("space", "空格", " ", " ", 0, 0, "input", 6),
+                new KeyboardKey("right", "R", "r", "R", 0, 5)
+            }));
+        }
     }
 }
