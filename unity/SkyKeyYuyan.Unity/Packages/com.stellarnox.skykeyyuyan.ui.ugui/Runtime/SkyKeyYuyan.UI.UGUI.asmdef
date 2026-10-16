@@ -1,0 +1,17 @@
+{
+    "name": "SkyKeyYuyan.UI.UGUI",
+    "rootNamespace": "SkyKeyYuyan.UI.UGUI",
+    "references": [
+        "SkyKeyYuyan.Unity",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

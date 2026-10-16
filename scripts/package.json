@@ -1,0 +1,12 @@
+{
+  "name": "skykeyyuyan-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SkyKeyYuyan 数据转换、UPM 打包与发布辅助脚本",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {}
+}

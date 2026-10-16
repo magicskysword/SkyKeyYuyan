@@ -1,0 +1,35 @@
+<Project>
+  <!--
+    dotnet/ 下所有 C# 项目的公共设置。
+    该文件刻意不放在仓库根目录：MSBuild 会逐级向上查找 Directory.Build.props，
+    放在根目录时 Unity 生成的 csproj 在 IDE 中构建也会导入它。
+  -->
+  <PropertyGroup>
+    <SkyRepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</SkyRepoRoot>
+    <SkyUnityPackagesDir>$(SkyRepoRoot)unity/SkyKeyYuyan.Unity/Packages/</SkyUnityPackagesDir>
+
+    <Version>0.1.0</Version>
+    <Authors>StellarNox</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageOutputPath>$(SkyRepoRoot)artifacts/NuGet/</PackageOutputPath>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- 发布到 NuGet 和 UPM 的库项目 -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <!-- 测试项目 -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+</Project>

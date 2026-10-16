@@ -1,0 +1,83 @@
+# ---------------------------------------------------------------
+# 通用
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# IDE
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+*.userprefs
+
+# ---------------------------------------------------------------
+# 构建产物与生成数据
+# ---------------------------------------------------------------
+/artifacts/
+/data/generated/
+
+# ---------------------------------------------------------------
+# .NET（dotnet/）
+# ---------------------------------------------------------------
+/dotnet/**/bin/
+/dotnet/**/obj/
+TestResults/
+*.trx
+coverage*.xml
+*.nupkg
+*.snupkg
+
+# ---------------------------------------------------------------
+# Node 工具脚本（scripts/）
+# ---------------------------------------------------------------
+node_modules/
+npm-debug.log*
+.npm/
+
+# ---------------------------------------------------------------
+# Unity 开发工程（unity/SkyKeyYuyan.Unity/）
+# ---------------------------------------------------------------
+/unity/SkyKeyYuyan.Unity/[Ll]ibrary/
+/unity/SkyKeyYuyan.Unity/[Tt]emp/
+/unity/SkyKeyYuyan.Unity/[Oo]bj/
+/unity/SkyKeyYuyan.Unity/[Bb]uild/
+/unity/SkyKeyYuyan.Unity/[Bb]uilds/
+/unity/SkyKeyYuyan.Unity/[Ll]ogs/
+/unity/SkyKeyYuyan.Unity/[Uu]ser[Ss]ettings/
+/unity/SkyKeyYuyan.Unity/[Mm]emory[Cc]aptures/
+/unity/SkyKeyYuyan.Unity/[Rr]ecordings/
+/unity/SkyKeyYuyan.Unity/Assets/Plugins/Editor/JetBrains*
+
+# Unity 生成的 IDE 工程文件（不影响根目录 SkyKeyYuyan.sln）
+/unity/SkyKeyYuyan.Unity/*.csproj
+/unity/SkyKeyYuyan.Unity/*.sln
+/unity/SkyKeyYuyan.Unity/*.slnx
+/unity/SkyKeyYuyan.Unity/*.pidb
+/unity/SkyKeyYuyan.Unity/*.booproj
+/unity/SkyKeyYuyan.Unity/*.unityproj
+/unity/SkyKeyYuyan.Unity/*.tmp
+/unity/SkyKeyYuyan.Unity/.vsconfig
+/unity/SkyKeyYuyan.Unity/*.pdb.meta
+/unity/SkyKeyYuyan.Unity/*.mdb.meta
+/unity/SkyKeyYuyan.Unity/sysinfo.txt
+/unity/SkyKeyYuyan.Unity/crashlytics-build.properties
+
+# dotnet build 复制进 UPM 嵌入包的程序集与语言资源：
+# 文件本身不提交，对应的 .meta 需要提交以固定 GUID 和导入设置。
+/unity/SkyKeyYuyan.Unity/Packages/*/Plugins/*.dll
+/unity/SkyKeyYuyan.Unity/Packages/*/Plugins/*.pdb
+/unity/SkyKeyYuyan.Unity/Packages/*/Plugins/*.xml
+/unity/SkyKeyYuyan.Unity/Packages/*/Data/**
+!/unity/SkyKeyYuyan.Unity/Packages/*/Data/**/
+!/unity/SkyKeyYuyan.Unity/Packages/*/Data/**/*.meta
+
+# ---------------------------------------------------------------
+# FairyGUI 编辑器工程（ui/FairyGUI/）
+# ---------------------------------------------------------------
+/ui/FairyGUI/.objs/

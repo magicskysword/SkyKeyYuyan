@@ -1,0 +1,16 @@
+{
+    "name": "SkyKeyYuyan.FairyGUI",
+    "rootNamespace": "SkyKeyYuyan.FairyGUI",
+    "references": [
+        "SkyKeyYuyan.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <SkyUpmPackage>com.stellarnox.skykeyyuyan.chinese</SkyUpmPackage>
+    <SkyLanguageData>chinese</SkyLanguageData>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../SkyKeyYuyan.Core/SkyKeyYuyan.Core.csproj" />
+  </ItemGroup>
+
+</Project>

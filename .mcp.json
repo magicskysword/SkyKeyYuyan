@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "fairygui-headless": {
+      "type": "stdio",
+      "command": "fairygui-mcp-headless",
+      "args": [],
+      "env": {}
+    }
+  }
+}

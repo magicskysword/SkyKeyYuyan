@@ -1,0 +1,37 @@
+<Project>
+  <!--
+    构建后把库程序集及语言资源复制到 Unity 工程中对应的 UPM 嵌入包。
+    项目通过以下属性启用：
+      SkyUpmPackage   目标 UPM 包名，例如 com.stellarnox.skykeyyuyan.core
+      SkyLanguageData data/generated/ 下的语言资源目录名（仅语言库需要）
+    程序集复制到包内 Plugins/，语言资源复制到包内 Data/。这些文件不提交到 git。
+  -->
+  <Target Name="SkyCopyToUpmPackage"
+          AfterTargets="Build"
+          Condition="'$(SkyUpmPackage)' != '' And '$(TargetFramework)' == 'netstandard2.0'">
+    <PropertyGroup>
+      <_SkyUpmPackageDir>$(SkyUnityPackagesDir)$(SkyUpmPackage)/</_SkyUpmPackageDir>
+      <_SkyLanguageDataDir>$(SkyRepoRoot)data/generated/$(SkyLanguageData)/</_SkyLanguageDataDir>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_SkyUpmPackageDir)package.json')"
+           Text="未找到 UPM 包 $(SkyUpmPackage)：$(_SkyUpmPackageDir)package.json" />
+
+    <ItemGroup>
+      <_SkyUpmAssemblyFile Include="$(TargetDir)$(TargetName).dll" />
+      <_SkyUpmAssemblyFile Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+      <_SkyUpmAssemblyFile Include="$(TargetDir)$(TargetName).xml" Condition="Exists('$(TargetDir)$(TargetName).xml')" />
+      <_SkyUpmDataFile Include="$(_SkyLanguageDataDir)**/*" Condition="'$(SkyLanguageData)' != '' And Exists('$(_SkyLanguageDataDir)')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_SkyUpmAssemblyFile)"
+          DestinationFolder="$(_SkyUpmPackageDir)Plugins/"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_SkyUpmDataFile)"
+          DestinationFiles="@(_SkyUpmDataFile->'$(_SkyUpmPackageDir)Data/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+
+    <Warning Condition="'$(SkyLanguageData)' != '' And !Exists('$(_SkyLanguageDataDir)')"
+             Text="语言资源尚未生成：$(_SkyLanguageDataDir)。请先运行 scripts/ 中的数据生成。" />
+  </Target>
+</Project>
