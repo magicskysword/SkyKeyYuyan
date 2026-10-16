@@ -1,0 +1,7 @@
+<linker>
+  <assembly fullname="Unity.TextMeshPro" ignoreIfMissing="1">
+    <type fullname="TMPro.TMP_InputField">
+      <field name="m_RegexValue" />
+    </type>
+  </assembly>
+</linker>

@@ -118,7 +118,13 @@ namespace SkyKeyYuyan.Core
             if (_lifecycle == SessionLifecycle.Paused || _pending != null) { Complete(request, OperationStatus.Rejected, "会话暂停或正在等待转换"); return; }
             if (_needsResolution && kind != "resolve") { Complete(request, OperationStatus.Rejected, "需要先处理未知写入结果"); return; }
             _lastEdit = null;
-            try { Execute(request); }
+            try
+            {
+                var latest = _editing.ReadSnapshot();
+                if (_mode == EditingMode.Direct && latest.Text != _text.Text) { _text = latest; End(SessionEndReason.ExternalChange); Complete(request, OperationStatus.Rejected, "宿主正文已经改变"); return; }
+                _text = latest;
+                Execute(request);
+            }
             catch (Exception ex) { Report("operation", ex.Message, request.Id); Complete(request, OperationStatus.Rejected, ex.Message); }
         }
         private void Execute(Request request)

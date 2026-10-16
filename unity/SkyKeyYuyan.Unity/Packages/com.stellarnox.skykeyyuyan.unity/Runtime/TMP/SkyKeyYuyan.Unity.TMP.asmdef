@@ -1,0 +1,9 @@
+{
+  "name": "SkyKeyYuyan.Unity.TMP",
+  "references": ["SkyKeyYuyan.Unity", "Unity.TextMeshPro", "UnityEngine.UI"],
+  "defineConstraints": ["SKY_TMP_PACKAGE || SKY_TMP_UGUI"],
+  "versionDefines": [
+    { "name": "com.unity.textmeshpro", "expression": "2.0.0", "define": "SKY_TMP_PACKAGE" },
+    { "name": "com.unity.ugui", "expression": "2.0.0", "define": "SKY_TMP_UGUI" }
+  ]
+}
