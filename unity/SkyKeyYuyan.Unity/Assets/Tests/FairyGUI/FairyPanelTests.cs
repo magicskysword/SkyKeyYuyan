@@ -59,7 +59,7 @@ public class FairyPanelTests
                 Assert.That(firstPanel.DraftField.inputTextField.numChildren, Is.GreaterThanOrEqualTo(3));
                 first.Handle(SkyControl.TextLeft, true); first.Handle(SkyControl.TextLeft, true); yield return null;
                 Assert.That(first.Session.Snapshot.Text.Anchor, Is.GreaterThan(first.Session.Snapshot.Text.Caret));
-                CapturePanels();
+                yield return CapturePanels();
                 first.Handle(SkyControl.Finish); Assert.That(firstTarget.ReadSnapshot().Text, Is.EqualTo("ABqwCD"));
                 Assert.That(firstPanel.View.visible, Is.False); Assert.That(secondPanel.View.visible, Is.True);
                 second.Handle(SkyControl.Cancel); Assert.That(secondTarget.ReadSnapshot().Text, Is.EqualTo("WXYZ"));
@@ -91,18 +91,18 @@ public class FairyPanelTests
             }
         }
     }
-    private void CapturePanels()
+    private IEnumerator CapturePanels()
     {
         var camera = StageCamera.main; var previousTarget = camera.targetTexture;
         var previousPosition = camera.transform.localPosition; float previousSize = camera.orthographicSize;
         float units = camera.GetComponent<StageCamera>().unitsPerPixel;
         camera.orthographicSize = 540 * units; camera.transform.localPosition = new Vector3(960 * units, -540 * units, previousPosition.z);
         var texture = new RenderTexture(1920, 1080, 24); texture.Create(); camera.targetTexture = texture;
-        Stage.inst.ForceUpdate(); camera.Render();
+        Stage.inst.ForceUpdate(); yield return null; camera.Render();
         var previous = RenderTexture.active; RenderTexture.active = texture;
         var pixels = new Texture2D(1920, 1080, TextureFormat.RGB24, false); pixels.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); pixels.Apply();
         string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../Reports")); Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, "fairygui-default-panels.png"), pixels.EncodeToPNG());
+        File.WriteAllBytes(Path.Combine(directory, "fairygui-default-panels-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
         RenderTexture.active = previous; camera.targetTexture = previousTarget; camera.orthographicSize = previousSize; camera.transform.localPosition = previousPosition;
         texture.Release(); UnityEngine.Object.Destroy(texture); UnityEngine.Object.Destroy(pixels);
     }

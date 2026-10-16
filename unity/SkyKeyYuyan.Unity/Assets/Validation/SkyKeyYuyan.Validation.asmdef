@@ -1,0 +1,5 @@
+{
+  "name": "SkyKeyYuyan.Validation",
+  "references": ["SkyKeyYuyan.Unity"],
+  "overrideReferences": false
+}

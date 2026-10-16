@@ -1,0 +1,5 @@
+{
+  "name": "SkyKeyYuyan.Validation.FairyGUI",
+  "references": ["SkyKeyYuyan.Validation", "SkyKeyYuyan.Unity", "SkyKeyYuyan.FairyGUI", "SkyKeyYuyan.UI.FairyGUI", "FairyGUI"],
+  "defineConstraints": ["SKY_FAIRYGUI", "!SKY_DISABLE_FAIRYGUI_UI"]
+}

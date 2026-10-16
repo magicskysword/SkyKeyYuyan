@@ -96,6 +96,10 @@
 
 仓库的 Unity 测试位于开发工程的 `Assets/Tests`。`node scripts/prepare-unity-validation.mjs --fairygui <SDK仓库路径>` 将开发工程和指定 SDK 复制到 `artifacts/UnityValidation`，保留该验证工程的 Library 缓存，并为 Windows 平台启用 FairyGUI 适配。FairyGUI 测试在 PlayMode 运行，使用真实 Stage、焦点和文本排版；基础服务及 UGUI/TMP 契约测试在 EditMode 运行。
 
+兼容版本通过 `--unity-version 2020.3.49f1` 或 `--unity-version 6000.3.10f1` 创建独立验证工程。脚本按版本配置 UGUI、TMP、Input System 依赖和平台符号，主开发工程保持原版本。PlayMode 测试同时输出带编辑器版本号的 UGUI 与 FairyGUI 双玩家面板截图。
+
+Windows Player 验收使用 `SkyKeyYuyan.Validation.Editor.SkyPlayerBuild.Build` 构建两个输入后端的双玩家场景。将该方法传给编辑器的 `-executeMethod`，通过 `--sky-backend Mono` 指定后端，输出到 `artifacts/Player/Mono`。运行生成的程序并传入 `--sky-validation --sky-report <JSON路径>`，执行中文选择与保存、韩语组合与回退、双玩家隔离、原框取消，以及已安装 TMP、FairyGUI 的原生控件检查。验收完成后程序以成功或失败退出码结束，并保存实际版本、后端、用例和结果。
+
 ## 候选并发
 
 | 编号 | 场景 | 预期 |

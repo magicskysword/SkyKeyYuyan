@@ -1,0 +1,5 @@
+{
+  "name": "SkyKeyYuyan.Validation.Editor",
+  "references": ["SkyKeyYuyan.Validation"],
+  "includePlatforms": ["Editor"]
+}

@@ -107,7 +107,7 @@ public class UguiPanelTests
         var previous = RenderTexture.active; RenderTexture.active = texture;
         var pixels = new Texture2D(1920, 1080, TextureFormat.RGB24, false); pixels.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); pixels.Apply();
         string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../../artifacts/Reports")); Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, "ugui-default-panels.png"), pixels.EncodeToPNG());
+        File.WriteAllBytes(Path.Combine(directory, "ugui-default-panels-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
         RenderTexture.active = previous; camera.targetTexture = null; texture.Release(); UnityEngine.Object.Destroy(texture); UnityEngine.Object.Destroy(pixels); UnityEngine.Object.Destroy(cameraObject);
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay; _canvas.worldCamera = null;
     }
