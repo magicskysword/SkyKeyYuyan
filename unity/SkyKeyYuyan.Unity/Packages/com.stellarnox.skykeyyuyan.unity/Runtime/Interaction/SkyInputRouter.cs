@@ -74,6 +74,21 @@ namespace SkyKeyYuyan.Unity
         public bool CanRoute(string deviceId) => !_disposed && _bindings.TryGetValue(deviceId, out var binding) && binding.Connected && Enabled(binding)
             && binding.Player.Session != null && binding.Player.Session.Snapshot.Lifecycle == Core.SessionLifecycle.Active;
         /// <summary>
+        /// 玩家当前是否具有已连接且启用的设备，并且应用处于前台。
+        /// </summary>
+        public bool HasEnabledDevice(string playerId) => !_disposed && _focused && _players.TryGetValue(playerId, out var player)
+            && _bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding));
+        /// <summary>
+        /// 解除玩家及其设备绑定，不释放玩家对象。
+        /// </summary>
+        public void Unregister(string playerId)
+        {
+            if (!_players.TryGetValue(playerId, out var player)) return;
+            foreach (var id in _bindings.Where(pair => ReferenceEquals(pair.Value.Player, player)).Select(pair => pair.Key).ToArray()) _bindings.Remove(id);
+            if (_policies.TryGetValue(player, out var callback)) { player.DevicePolicyChanged -= callback; _policies.Remove(player); }
+            player.SetPaused("devices", true); _players.Remove(playerId);
+        }
+        /// <summary>
         /// 注册玩家；设备绑定完成后会话可以恢复活动。
         /// </summary>
         public void Register(SkyPlayerContext player)

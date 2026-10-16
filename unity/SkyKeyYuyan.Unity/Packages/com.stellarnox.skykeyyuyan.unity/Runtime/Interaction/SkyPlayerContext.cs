@@ -98,6 +98,10 @@ namespace SkyKeyYuyan.Unity
         /// </summary>
         public event Action<SkyPlayerContext> Opened;
         /// <summary>
+        /// 活动输入已关闭，包含玩家释放及打开失败后的清理。
+        /// </summary>
+        public event Action<SkyPlayerContext> Closed;
+        /// <summary>
         /// 会话完成并已解除原生输入接管。
         /// </summary>
         public event Action<SessionResult> Completed;
@@ -155,7 +159,7 @@ namespace SkyKeyYuyan.Unity
         {
             var target = _target;
             Release(false);
-            if (target != null && target.IsAlive && (result.Reason == SessionEndReason.Finished || result.Reason == SessionEndReason.Cancelled || result.Reason == SessionEndReason.RuntimeDisposed)) target.EndEditing();
+            if (result.Reason == SessionEndReason.Finished || result.Reason == SessionEndReason.Cancelled || result.Reason == SessionEndReason.RuntimeDisposed) EndNativeEditing(target);
             Notify(Completed, result);
         }
         private void Release(bool cancel = true)
@@ -165,6 +169,12 @@ namespace SkyKeyYuyan.Unity
             Panel?.Dispose(); Panel = null;
             _target?.SetKeyboardOwned(false); _draft?.SetKeyboardOwned(false); _target = null; _draft = null;
             UpdateNativePolicy();
+            if (session != null) Notify(Closed, this);
+        }
+        private static void EndNativeEditing(IUnityTextTarget target)
+        {
+            try { if (target != null && target.IsAlive) target.EndEditing(); }
+            catch (Exception ex) { Debug.LogWarning("SKY native end: " + ex.Message); }
         }
         private void UpdateNativePolicy() => SkyNativeInputCoordination.Set(this, Session != null && KeyboardEnabled, Session != null && GamepadEnabled);
         private static void Notify<T>(Action<T> handlers, T value)
@@ -174,6 +184,11 @@ namespace SkyKeyYuyan.Unity
         }
         /// <inheritdoc>
         /// </inheritdoc>
-        public void Dispose() { if (_disposed) return; _disposed = true; Release(); Opened = null; Completed = null; DevicePolicyChanged = null; }
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true; var target = _target; Release(); EndNativeEditing(target);
+            Opened = null; Closed = null; Completed = null; DevicePolicyChanged = null;
+        }
     }
 }

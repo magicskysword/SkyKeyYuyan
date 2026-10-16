@@ -51,6 +51,10 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 标准接入在指定玩家 UI 根节点内发现支持的文本框，覆盖运行期间创建的目标。特殊控件可通过显式注册文本目标接入。
 
+`SkyInputHost.Configure` 创建指定后端的 `SkyUnityHost`，由组件推进非缩放时间的主循环。通过 `AddPlayer` 提供玩家配置和 `UguiTargetDiscovery`、`TmpTargetDiscovery` 或 `FairyTargetDiscovery`，再绑定设备并安装相应驱动。宿主持有玩家和发现器的生命周期，显式 `RegisterTarget` 的目标由调用方持有。`SkyTextTargetSettings` 可覆盖单个控件的默认模式与语言。
+
+目标发现限定在传入的 UI 根内，并排除 `SkyInputSurface` 标记的面板内部控件。自动跟随原生编辑态的进入变化；原文被宿主修改而结束输入后，继续保持同一编辑态不会重新打开会话。玩家切换到新的原生目标时，先按当前模式取消旧会话，再打开新目标。应用焦点、应用暂停和宿主组件停用分别保留其暂停条件。
+
 进入编辑态的交互由宿主决定。默认行为在已启用设备对应的文本框进入编辑态时打开 SKY；关闭此行为后，宿主负责显式打开。
 
 虚拟键盘、候选列表和功能按键之间的焦点转移属于面板内部交互。目标销毁、宿主中断和外部正文变化通过相应会话结束原因处理。

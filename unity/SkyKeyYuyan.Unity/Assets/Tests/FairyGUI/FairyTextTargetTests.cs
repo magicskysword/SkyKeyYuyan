@@ -140,4 +140,19 @@ public class FairyTextTargetTests
             Assert.That(_field.editable, Is.EqualTo(editable)); Assert.That(_field.keyboardInput, Is.EqualTo(keyboard)); Assert.That(_field.disableIME, Is.EqualTo(ime));
         }
     }
+    [Test]
+    public void DiscoveryUsesLogicalRootAndSkipsPanelDrafts()
+    {
+        using (var discovery = new FairyTargetDiscovery(_parent))
+        {
+            Assert.That(discovery.Scan().Count, Is.EqualTo(1));
+            var panel = new GComponent(); _parent.AddChild(panel); panel.displayObject.gameObject.AddComponent<SkyKeyYuyan.Unity.SkyInputSurface>();
+            panel.AddChild(new GTextInput()); Assert.That(discovery.Scan().Count, Is.EqualTo(1));
+            var dynamic = new GTextInput(); _parent.AddChild(dynamic);
+            var bindings = discovery.Scan(); Assert.That(bindings.Count, Is.EqualTo(2));
+            _parent.RemoveChild(dynamic);
+            Assert.That(discovery.Scan().Count, Is.EqualTo(1)); Assert.That(dynamic.isDisposed, Is.False);
+            dynamic.Dispose();
+        }
+    }
 }

@@ -211,4 +211,24 @@ public class UnityTextTargetTests
             second.Dispose(); Assert.That(system.sendNavigationEvents, Is.EqualTo(originalNavigation));
         }
     }
+    [TestCase(false)]
+    [TestCase(true)]
+    public void DiscoveryFindsDynamicControlsAndExcludesInternalPanel(bool tmp)
+    {
+        using (var original = Target(tmp))
+        using (ISkyTargetDiscovery discovery = tmp ? (ISkyTargetDiscovery)new TmpTargetDiscovery(_root.transform) : new UguiTargetDiscovery(_root.transform))
+        {
+            var first = discovery.Scan(); Assert.That(first.Count, Is.EqualTo(1));
+            first[0].Target.SetKeyboardOwned(true);
+            Assert.That(discovery.Scan().Count, Is.EqualTo(1));
+            var internalRoot = new GameObject("SKY panel", typeof(SkyInputSurface)); internalRoot.transform.SetParent(_root.transform);
+            var hidden = new GameObject("Draft", typeof(RectTransform)); hidden.transform.SetParent(internalRoot.transform);
+            var added = new GameObject("Dynamic", typeof(RectTransform)); added.transform.SetParent(_root.transform);
+            if (tmp) { hidden.AddComponent<TMP_InputField>(); added.AddComponent<TMP_InputField>(); }
+            else { hidden.AddComponent<InputField>(); added.AddComponent<InputField>(); }
+            Assert.That(discovery.Scan().Count, Is.EqualTo(2));
+            UnityEngine.Object.DestroyImmediate(added);
+            Assert.That(discovery.Scan().Count, Is.EqualTo(1));
+        }
+    }
 }

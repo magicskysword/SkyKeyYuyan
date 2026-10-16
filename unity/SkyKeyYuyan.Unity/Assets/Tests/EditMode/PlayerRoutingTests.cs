@@ -10,9 +10,10 @@ public class PlayerRoutingTests
         private string _text;
         private int _anchor, _caret, _limit;
         public bool Owned;
+        public bool Editing = true;
         public Target(string text = "", int caret = 0, int limit = 0) : base(new object()) { _text = text; _anchor = _caret = caret; _limit = limit; }
         protected override bool NativeAlive => true;
-        public override bool IsEditing => true;
+        public override bool IsEditing => Editing;
         protected override int CharacterLimit => _limit;
         protected override bool SingleLine => false;
         protected override string ReadText() => _text;
@@ -21,7 +22,8 @@ public class PlayerRoutingTests
         protected override void WriteSelection(int anchor, int caret) { _anchor = anchor; _caret = caret; }
         protected override void NotifyTextChanged(string text) { }
         public override void SetKeyboardOwned(bool owned) { Owned = owned; }
-        public override void EndEditing() { }
+        public override void EndEditing() { Editing = false; }
+        public void ExternalText(string text) { _text = text; NativeChanged(); }
     }
     private static SkyRuntime Runtime()
     {
@@ -109,6 +111,70 @@ public class PlayerRoutingTests
             player.Handle(SkyControl.Finish);
             Assert.That(target.ReadSnapshot().Text, Is.EqualTo("ABQXY"));
             Assert.That(completions, Is.EqualTo(1)); Assert.That(player.Session, Is.Null);
+        }
+    }
+    [Test]
+    public void HostFollowsEditingEdgesAndKeepsExternalHostChanges()
+    {
+        using (var runtime = Runtime())
+        using (var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime })
+        using (var target = new Target())
+        {
+            var player = host.AddPlayer(new SkyPlayerOptions());
+            host.RegisterTarget("player", new SkyTargetBinding(target)); host.Router.Bind("pad", SkyDeviceKind.Gamepad, "player");
+            int opened = 0; player.Opened += _ => opened++;
+            host.Tick(0); Assert.That(player.Session, Is.Not.Null);
+            player.Handle(SkyControl.Text, text: "draft"); target.ExternalText("host"); host.Tick(0.1);
+            Assert.That(player.Session, Is.Null); Assert.That(opened, Is.EqualTo(1));
+            Assert.That(target.ReadSnapshot().Text, Is.EqualTo("host"));
+            target.Editing = false; host.Tick(0.2); target.Editing = true; host.Tick(0.3);
+            Assert.That(opened, Is.EqualTo(2));
+        }
+    }
+    [Test]
+    public void HostTargetDefaultsOverridePlayerModeAndNewFocusSwitchesTargets()
+    {
+        using (var runtime = Runtime())
+        using (var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime })
+        using (var first = new Target())
+        using (var second = new Target { Editing = false })
+        {
+            var player = host.AddPlayer(new SkyPlayerOptions()); host.Router.Bind("pad", SkyDeviceKind.Gamepad, "player");
+            host.RegisterTarget("player", new SkyTargetBinding(first, EditingMode.Direct)); host.RegisterTarget("player", new SkyTargetBinding(second));
+            host.Tick(0); player.Handle(SkyControl.Text, text: "first");
+            Assert.That(first.ReadSnapshot().Text, Is.EqualTo("first"));
+            first.Editing = false; second.Editing = true; host.Tick(0.1); player.Handle(SkyControl.Text, text: "second");
+            Assert.That(player.Target, Is.SameAs(second)); Assert.That(second.ReadSnapshot().Text, Is.Empty);
+            player.Handle(SkyControl.Finish); Assert.That(second.ReadSnapshot().Text, Is.EqualTo("second"));
+        }
+    }
+    [Test]
+    public void FocusAndApplicationPauseMustBothRestoreBeforeInputResumes()
+    {
+        using (var runtime = Runtime())
+        using (var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime })
+        using (var target = new Target())
+        {
+            var player = host.AddPlayer(new SkyPlayerOptions()); host.Router.Bind("pad", SkyDeviceKind.Gamepad, "player"); host.RegisterTarget("player", new SkyTargetBinding(target));
+            host.Tick(0); host.SetApplicationFocused(false); host.SetApplicationPaused(true); host.SetApplicationFocused(true);
+            Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Paused));
+            host.SetApplicationPaused(false); Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+            host.SetSuspended(true); Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Paused));
+            host.SetSuspended(false); Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+        }
+    }
+    [Test]
+    public void ReleasingHostClosesPlayerViewAndRetainsBorrowedTarget()
+    {
+        using (var runtime = Runtime())
+        using (var target = new Target())
+        {
+            var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime };
+            var player = host.AddPlayer(new SkyPlayerOptions()); host.RegisterTarget("player", new SkyTargetBinding(target)); host.Router.Bind("pad", SkyDeviceKind.Gamepad, "player");
+            int closed = 0; player.Closed += _ => closed++;
+            host.Tick(0); player.Handle(SkyControl.Text, text: "draft"); host.Dispose(); host.Dispose();
+            Assert.That(closed, Is.EqualTo(1)); Assert.That(target.IsAlive, Is.True);
+            Assert.That(target.ReadSnapshot().Text, Is.Empty); Assert.That(target.Editing, Is.False);
         }
     }
 }
