@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<component size="78,42" idnum="2" extention="Button">
+<component size="70,48" idnum="5" extention="Button">
   <displayList>
-    <graph id="n0" name="background" xy="0,0" size="78,42" touchable="false" type="rect" lineSize="0" fillColor="#303b4d">
+    <graph id="n0" name="background" xy="0,0" size="70,48" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#363f4a" corner="8,8,8,8">
       <relation target="" sidePair="width-width,height-height"/>
     </graph>
-    <text id="n1" name="title" xy="3,2" size="72,38" touchable="false" text="输入" fontSize="18" color="#e7eff7" align="center" vAlign="middle" autoSize="shrink" singleLine="true">
+    <graph id="n2" name="focusOutline" xy="0,0" size="70,48" visible="false" touchable="false" type="rect" lineSize="3" lineColor="#64e6cc" fillColor="#00000000" corner="8,8,8,8">
       <relation target="" sidePair="width-width,height-height"/>
+    </graph>
+    <text id="n1" name="title" xy="6,4" size="58,40" touchable="false" text="输入" fontSize="24" color="#ecf2f6" align="center" vAlign="middle" autoSize="shrink" singleLine="true">
+      <relation target="" sidePair="width-width,height-height"/>
+    </text>
+    <graph id="n3" name="focusBadge" xy="53,-6" size="24,24" visible="false" touchable="false" type="rect" lineSize="2" lineColor="#64e6cc" fillColor="#091f1d" corner="12,12,12,12">
+      <relation target="" sidePair="right-right"/>
+    </graph>
+    <text id="n4" name="focusGlyph" xy="53,-6" size="24,24" visible="false" touchable="false" text="A" fontSize="17" color="#64e6cc" align="center" vAlign="middle" autoSize="none" singleLine="true">
+      <relation target="" sidePair="right-right"/>
     </text>
   </displayList>
   <Button/>

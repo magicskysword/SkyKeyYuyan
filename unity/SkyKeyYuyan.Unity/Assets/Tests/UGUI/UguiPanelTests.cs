@@ -75,13 +75,37 @@ public class UguiPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator GamepadSkipsInactiveFunctionsAndNavigatesWideSpaceByCenter()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "keyboard-navigation", InitialLanguage = "en" }))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            player.Open(target, runtime); yield return null; yield return null;
+            for (int step = 0; step < 4; step++) player.Handle(SkyControl.KeyDown);
+            Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("space"));
+            var buttons = panel.GetComponentsInChildren<SkyPanelButton>();
+            Assert.That(buttons.Single(button => button.name == "language").interactable, Is.False);
+            Assert.That(buttons.Single(button => button.name == "completion").interactable, Is.False);
+            var space = buttons.Single(button => button.name == "space").GetComponent<RectTransform>();
+            var letter = buttons.Single(button => button.name == "key-3-4").GetComponent<RectTransform>();
+            Assert.That(space.rect.width, Is.GreaterThan(letter.rect.width * 5));
+            player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-4"));
+            Assert.That(letter.Find("FocusBadge").gameObject.activeSelf, Is.True);
+            player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("b"));
+            player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("b"));
+        }
+    }
+    [UnityTest]
     public IEnumerator PinyinCandidateAndRejectedDraftFillCanBeCorrected()
     {
         using (var runtime = new SkyRuntime())
         using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans", UserId = "ui-test-" + Guid.NewGuid().ToString("N") }))
         using (var target = Target("", 0, 1))
         {
-            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100) }));
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10), new LexiconWord("mark", "痕", "hen", 5) }));
             var services = SkyUnityServices.Shared;
             runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
             var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
@@ -91,6 +115,7 @@ public class UguiPanelTests
             float deadline = Time.realtimeSinceStartup + 5;
             while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
             Assert.That(player.Session.Snapshot.Candidates.Candidates[0].Text, Is.EqualTo("很"));
+            CapturePanels("ugui-pinyin-keyboard");
             player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain();
             Assert.That(panel.DraftField.text, Is.EqualTo("很")); Assert.That(target.ReadSnapshot().Text, Is.Empty);
             player.Handle(SkyControl.Finish); services.Context.Drain();
@@ -99,7 +124,7 @@ public class UguiPanelTests
             Assert.That(target.ReadSnapshot().Text, Is.EqualTo("很")); Assert.That(panel.gameObject.activeSelf, Is.False);
         }
     }
-    private void CapturePanels()
+    private void CapturePanels(string name = "ugui-default-panels")
     {
         var cameraObject = new GameObject("UI Render", typeof(Camera)); var camera = cameraObject.GetComponent<Camera>();
         var texture = new RenderTexture(1920, 1080, 24); texture.Create(); camera.targetTexture = texture; camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color32(9, 13, 22, 255);
@@ -107,7 +132,7 @@ public class UguiPanelTests
         var previous = RenderTexture.active; RenderTexture.active = texture;
         var pixels = new Texture2D(1920, 1080, TextureFormat.RGB24, false); pixels.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); pixels.Apply();
         string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../../artifacts/Reports")); Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, "ugui-default-panels-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
+        File.WriteAllBytes(Path.Combine(directory, name + "-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
         RenderTexture.active = previous; camera.targetTexture = null; texture.Release(); UnityEngine.Object.Destroy(texture); UnityEngine.Object.Destroy(pixels); UnityEngine.Object.Destroy(cameraObject);
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay; _canvas.worldCamera = null;
     }

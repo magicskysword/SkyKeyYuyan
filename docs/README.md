@@ -17,6 +17,7 @@ SkyKeyYuyan，简称 SKY，是提供独立语言输入能力的纯 C# 框架。�
 | [会话与文本编辑](session-and-editing.md) | 组字、正文、草稿、光标、长度限制与会话结束 | 引擎及适配开发者 |
 | [语言引擎](language-engines.md) | 中文、英语、韩语、候选与自定义词组 | 语言模块开发者 |
 | [Unity 接入与默认表现](unity-integration.md) | 设备路由、文本框接入、手柄、字体与默认 UI | Unity 集成开发者 |
+| [默认虚拟键盘](keyboard-design.md) | 六排布局、加宽键帽及手柄焦点反馈 | UI 及集成开发者 |
 | [恢复与词频存储](recovery-and-persistence.md) | 检查点、重试、降级、操作去重与存档 | 框架及 Provider 开发者 |
 | [语言数据与许可](language-data-and-licensing.md) | 数据来源、词条模型、数据构建与整合许可 | 数据及发布维护者 |
 | [分发与构建](distribution-and-build.md) | NuGet、OpenUPM、仓库目录约束和构建流程 | 构建及发布维护者 |

@@ -36,8 +36,9 @@ namespace SkyKeyYuyan.Core.Tests
         {
             var layout = KeyboardLayout.BasicEnglish;
             Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("key-2-8"));
-            Assert.That(layout.Navigate("key-1-0", TextNavigation.Left), Is.EqualTo("key-1-9"));
-            Assert.That(layout.Navigate("key-0-0", TextNavigation.Up), Is.EqualTo("left"));
+            Assert.That(layout.Navigate("key-1-0", TextNavigation.Left), Is.EqualTo("delete"));
+            Assert.That(layout.Navigate("key-0-0", TextNavigation.Up), Is.EqualTo("selectall"));
+            Assert.That(layout.Navigate("space", TextNavigation.Up), Is.EqualTo("key-3-4"));
         }
         [Test]
         public void RuntimeFixesCustomLayoutAndSharesItAcrossSessions()

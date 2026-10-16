@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<component size="852,52" idnum="8">
+<component size="860,52" idnum="8">
   <displayList>
     <component id="n0" name="candidate0" src="167ta" xy="0,0" size="100,52" pkg="7b0bbb69">
       <Button title="你好"/>
     </component>
-    <component id="n1" name="candidate1" src="167ta" xy="107,0" size="100,52" pkg="7b0bbb69">
+    <component id="n1" name="candidate1" src="167ta" xy="108,0" size="100,52" pkg="7b0bbb69">
       <Button title="你好世界"/>
     </component>
-    <component id="n2" name="candidate2" src="167ta" xy="214,0" size="100,52" pkg="7b0bbb69">
+    <component id="n2" name="candidate2" src="167ta" xy="215,0" size="100,52" pkg="7b0bbb69">
       <Button title="你"/>
     </component>
-    <component id="n3" name="candidate3" src="167ta" xy="321,0" size="100,52" pkg="7b0bbb69">
+    <component id="n3" name="candidate3" src="167ta" xy="323,0" size="100,52" pkg="7b0bbb69">
       <Button title="拟"/>
     </component>
-    <component id="n4" name="candidate4" src="167ta" xy="428,0" size="100,52" pkg="7b0bbb69">
+    <component id="n4" name="candidate4" src="167ta" xy="430,0" size="100,52" pkg="7b0bbb69">
       <Button title="泥"/>
     </component>
-    <component id="n5" name="candidate5" src="167ta" xy="535,0" size="100,52" pkg="7b0bbb69">
+    <component id="n5" name="candidate5" src="167ta" xy="538,0" size="100,52" pkg="7b0bbb69">
       <Button title="呢"/>
     </component>
-    <component id="n6" name="candidate6" src="167ta" xy="642,0" size="100,52" pkg="7b0bbb69">
+    <component id="n6" name="candidate6" src="167ta" xy="645,0" size="100,52" pkg="7b0bbb69">
       <Button title="妳"/>
     </component>
-    <component id="n7" name="candidate7" src="167ta" xy="749,0" size="100,52" pkg="7b0bbb69">
+    <component id="n7" name="candidate7" src="167ta" xy="753,0" size="100,52" pkg="7b0bbb69">
       <Button title="倪"/>
     </component>
   </displayList>

@@ -9,6 +9,14 @@ namespace SkyKeyYuyan.Languages.English.Tests
     public class GeneratedDataTests
     {
         [Test]
+        public void ResourceKeyboardMatchesTheIndependentBasicEnglishLayout()
+        {
+            using var module = new EnglishCompletionModule();
+            var actual = module.LoadKeyboard(new RuntimeOptions().Resources);
+            Assert.That(actual.Keys.Select(key => new { key.Id, key.Label, key.Output, key.Alternate, key.Row, key.Column, key.ColumnSpan, key.Action }),
+                Is.EqualTo(KeyboardLayout.BasicEnglish.Keys.Select(key => new { key.Id, key.Label, key.Output, key.Alternate, key.Row, key.Column, key.ColumnSpan, key.Action })));
+        }
+        [Test]
         public async Task PublishedDictionaryLoadsOfflineAndCompletesCommonWords()
         {
             using var module = new EnglishCompletionModule();

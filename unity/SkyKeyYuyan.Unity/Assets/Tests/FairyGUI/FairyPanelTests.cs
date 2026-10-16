@@ -67,13 +67,37 @@ public class FairyPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator GamepadNavigatesWideSpaceAndDisplaysNativeFocusBadge()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "fairy-navigation", InitialLanguage = "en" }))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
+            {
+                player.Open(target, runtime); yield return null;
+                for (int step = 0; step < 4; step++) player.Handle(SkyControl.KeyDown);
+                Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("space"));
+                var keys = panel.View.GetChild("keyboard").asCom;
+                Assert.That(keys.GetChild("language").touchable, Is.False); Assert.That(keys.GetChild("completion").touchable, Is.False);
+                var letter = keys.GetChild("key-3-4").asButton;
+                Assert.That(keys.GetChild("space").width, Is.GreaterThan(letter.width * 5));
+                player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-4"));
+                Assert.That(letter.GetChild("focusOutline").visible, Is.True); Assert.That(letter.GetChild("focusBadge").visible, Is.True);
+                player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("b"));
+                player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("b"));
+            }
+        }
+    }
+    [UnityTest]
     public IEnumerator PinyinCandidateRejectedFillAndRetryUseNativePanel()
     {
         using (var runtime = new SkyRuntime())
         using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans", UserId = "fairy-ui-" + Guid.NewGuid().ToString("N") }))
         using (var target = Target("", 0, 1))
         {
-            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100) }));
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10), new LexiconWord("mark", "痕", "hen", 5) }));
             var services = SkyUnityServices.Shared;
             runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
             using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
@@ -83,6 +107,7 @@ public class FairyPanelTests
                 float deadline = Time.realtimeSinceStartup + 5;
                 while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
                 Assert.That(player.Session.Snapshot.Candidates.Candidates[0].Text, Is.EqualTo("很"));
+                yield return CapturePanels("fairygui-pinyin-keyboard");
                 panel.View.GetChild("candidates").asCom.GetChild("candidate0").asButton.FireClick(false, true); services.Context.Drain();
                 Assert.That(panel.DraftField.text, Is.EqualTo("很")); Assert.That(target.ReadSnapshot().Text, Is.Empty);
                 player.Handle(SkyControl.Finish); services.Context.Drain(); Assert.That(player.Session, Is.Not.Null); Assert.That(panel.View.visible, Is.True);
@@ -91,7 +116,7 @@ public class FairyPanelTests
             }
         }
     }
-    private IEnumerator CapturePanels()
+    private IEnumerator CapturePanels(string name = "fairygui-default-panels")
     {
         var camera = StageCamera.main; var previousTarget = camera.targetTexture;
         var previousPosition = camera.transform.localPosition; float previousSize = camera.orthographicSize;
@@ -102,7 +127,7 @@ public class FairyPanelTests
         var previous = RenderTexture.active; RenderTexture.active = texture;
         var pixels = new Texture2D(1920, 1080, TextureFormat.RGB24, false); pixels.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); pixels.Apply();
         string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "../../Reports")); Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, "fairygui-default-panels-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
+        File.WriteAllBytes(Path.Combine(directory, name + "-" + Application.unityVersion + ".png"), pixels.EncodeToPNG());
         RenderTexture.active = previous; camera.targetTexture = previousTarget; camera.orthographicSize = previousSize; camera.transform.localPosition = previousPosition;
         texture.Release(); UnityEngine.Object.Destroy(texture); UnityEngine.Object.Destroy(pixels);
     }

@@ -15,7 +15,7 @@ namespace SkyKeyYuyan.UI.UGUI
     [RequireComponent(typeof(RectTransform))]
     public sealed class UguiSkyPanel : MonoBehaviour
     {
-        private sealed class KeyView { internal KeyboardKey Key; internal SkyPanelButton Button; internal Text Text; }
+        private sealed class KeyView { internal KeyboardKey Key; internal SkyPanelButton Button; internal Text Text; internal GameObject Badge; }
         private readonly Dictionary<string, Font> _languageFonts = new Dictionary<string, Font>(StringComparer.Ordinal);
         private readonly List<KeyView> _keys = new List<KeyView>();
         private readonly List<SkyPanelButton> _candidateButtons = new List<SkyPanelButton>();
@@ -26,7 +26,7 @@ namespace SkyKeyYuyan.UI.UGUI
         private RectTransform _frame, _keyboard, _candidateRoot;
         private Text _title, _composition, _selection, _status;
         private SkyDraftInputField _body;
-        private SkyPanelButton _retry, _completion, _acceptCurrent, _retryWrite, _previousCandidate, _nextCandidate;
+        private SkyPanelButton _previousCandidate, _nextCandidate;
         private KeyboardLayout _layout;
         private bool _draftActive;
         /// <summary>
@@ -92,27 +92,26 @@ namespace SkyKeyYuyan.UI.UGUI
                 BodyFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
 #endif
             }
-            _frame = Rect("Frame", transform, 0, 0, 900, 810); _frame.anchorMin = _frame.anchorMax = new Vector2(0.5f, 0.5f); _frame.pivot = new Vector2(0.5f, 0.5f); _frame.anchoredPosition = Vector2.zero;
-            _frame.gameObject.AddComponent<Image>().color = new Color32(22, 29, 42, 250);
-            _title = Label("Title", _frame, 24, 18, 852, 36, 24);
-            var bodyRoot = Rect("Body", _frame, 24, 64, 852, 144); bodyRoot.gameObject.AddComponent<Image>().color = new Color32(12, 18, 29, 255);
+            _frame = Rect("Frame", transform, 0, 0, SkyKeyboardStyle.Width, SkyKeyboardStyle.Height); _frame.anchorMin = _frame.anchorMax = new Vector2(0.5f, 0.5f); _frame.pivot = new Vector2(0.5f, 0.5f); _frame.anchoredPosition = Vector2.zero;
+            _frame.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Panel, SkyKeyboardStyle.Border, 1, 16);
+            _title = Label("Title", _frame, 24, 16, 1000, 32, 23);
+            Button("Close", _frame, 1052, 12, 44, 36, "×", () => _player?.Handle(SkyControl.Cancel));
+            var bodyRoot = Rect("Body", _frame, 24, 56, 1072, 72); bodyRoot.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Accent, 1, 10);
             bodyRoot.gameObject.AddComponent<RectMask2D>();
             _body = bodyRoot.gameObject.AddComponent<SkyDraftInputField>(); _body.lineType = InputField.LineType.MultiLineNewline; _body.targetGraphic = bodyRoot.GetComponent<Image>();
-            var bodyLabel = Label("Text", bodyRoot, 12, 8, 828, 128, 24); bodyLabel.verticalOverflow = VerticalWrapMode.Overflow; _body.textComponent = bodyLabel; _body.caretColor = new Color32(102, 222, 212, 255); _body.customCaretColor = true; _body.selectionColor = new Color(0.2f, 0.65f, 0.8f, 0.4f);
-            _composition = Label("Composition", _frame, 24, 218, 852, 40, 26);
-            _candidateRoot = Rect("Candidates", _frame, 24, 264, 852, 52);
-            _selection = Label("SelectedCandidate", _frame, 24, 322, 592, 36, 18);
-            _previousCandidate = Button("PreviousCandidate", _frame, 624, 322, 122, 32, "上一候选", () => _player?.Handle(SkyControl.PreviousCandidate));
-            _nextCandidate = Button("NextCandidate", _frame, 754, 322, 122, 32, "下一候选", () => _player?.Handle(SkyControl.NextCandidate));
-            _keyboard = Rect("Keyboard", _frame, 24, 364, 852, 350);
-            _status = Label("Status", _frame, 24, 716, 852, 32, 17);
-            Button("Cancel", _frame, 24, 758, 118, 36, "取消", () => _player?.Handle(SkyControl.Cancel));
-            Button("Language", _frame, 150, 758, 118, 36, "切换语言", () => _player?.Handle(SkyControl.Language));
-            _completion = Button("Completion", _frame, 276, 758, 118, 36, "补全", () => _player?.Handle(SkyControl.Completion));
-            _retry = Button("Retry", _frame, 402, 758, 118, 36, "重试转换", () => _player?.Handle(SkyControl.Retry));
-            _acceptCurrent = Button("AcceptCurrent", _frame, 528, 758, 118, 36, "使用当前正文", () => _player?.Handle(SkyControl.AcceptCurrentText));
-            _retryWrite = Button("RetryWrite", _frame, 654, 758, 104, 36, "再次提交", () => _player?.Handle(SkyControl.RetryWrite));
-            Button("Finish", _frame, 766, 758, 110, 36, "完成保存", () => _player?.Handle(SkyControl.Finish));
+            var bodyLabel = Label("Text", bodyRoot, 12, 8, 1048, 56, 26); bodyLabel.verticalOverflow = VerticalWrapMode.Overflow; _body.textComponent = bodyLabel; _body.caretColor = SkyKeyboardStyle.Accent; _body.customCaretColor = true; _body.selectionColor = new Color(0.25f, 0.75f, 0.65f, 0.4f);
+            Label("CompositionCaption", _frame, 24, 148, 78, 28, 19).text = "组字";
+            var compositionRoot = Rect("CompositionBackground", _frame, 108, 140, 988, 40); compositionRoot.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Border);
+            _composition = Label("Composition", compositionRoot, 12, 5, 964, 30, 24);
+            var candidatesBackground = Rect("CandidateBackground", _frame, 24, 192, 1072, 52); candidatesBackground.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Border);
+            Label("CandidateCaption", candidatesBackground, 10, 12, 68, 28, 19).text = "候选";
+            _candidateRoot = Rect("Candidates", _frame, 108, 192, 860, 52);
+            _previousCandidate = Button("PreviousCandidate", _frame, 976, 192, 56, 52, "‹", () => _player?.Handle(SkyControl.PreviousCandidate));
+            _nextCandidate = Button("NextCandidate", _frame, 1040, 192, 56, 52, "›", () => _player?.Handle(SkyControl.NextCandidate));
+            _keyboard = Rect("Keyboard", _frame, 24, 262, 1072, 336);
+            _selection = Label("SelectedCandidate", _frame, 24, 600, 1072, 24, 19); _selection.color = SkyKeyboardStyle.Accent;
+            _status = Label("Status", _frame, 24, 628, 1072, 24, 17); _status.color = SkyKeyboardStyle.Muted;
+            BuildHints();
         }
         private void Render(SkyPanelState state)
         {
@@ -132,19 +131,21 @@ namespace SkyKeyYuyan.UI.UGUI
             foreach (var view in _keys)
             {
                 view.Text.font = languageFont;
-                view.Text.text = view.Key.Action == "input" && view.Key.Output != " " ? state.Shift ? view.Key.Alternate : view.Key.Label : view.Key.Label;
-                view.Button.GetComponent<Image>().color = view.Key.Id == state.FocusedKey ? new Color32(32, 136, 143, 255) : new Color32(48, 59, 77, 255);
-                view.Button.interactable = _controller.IsKeyEnabled(view.Key);
+                bool focused = view.Key.Id == state.FocusedKey;
+                bool enabled = _controller.IsKeyEnabled(view.Key);
+                bool active = enabled && (view.Key.Action == "shift" && state.Shift || view.Key.Action == "completion" && snapshot.CompletionEnabled);
+                view.Text.text = SkyKeyboardStyle.KeyLabel(view.Key, state.Shift, snapshot.CompletionEnabled);
+                if (view.Key.Action == "completion" && (language == null || (language.Capabilities & LanguageCapabilities.CompletionSwitch) == 0)) view.Text.text = view.Key.Label;
+                ((SkyPanelGraphic)view.Button.targetGraphic).Configure(SkyKeyboardStyle.KeyColor(view.Key, focused, active), focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, focused ? 3 : 1, 8, focused);
+                view.Text.color = !enabled ? new Color(.6f, .66f, .72f, .45f) : focused || view.Key.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
+                view.Badge.SetActive(focused && enabled);
+                view.Button.interactable = enabled;
             }
             RenderCandidates(snapshot, languageFont);
-            _retry.gameObject.SetActive(snapshot.Literal);
-            _completion.gameObject.SetActive(language != null && (language.Capabilities & LanguageCapabilities.CompletionSwitch) != 0);
-            _completion.GetComponentInChildren<Text>().text = snapshot.CompletionEnabled ? "补全：开" : "补全：关";
-            _acceptCurrent.gameObject.SetActive(snapshot.NeedsResolution); _retryWrite.gameObject.SetActive(snapshot.NeedsResolution);
             var result = state.LastResult;
             _status.text = snapshot.NeedsResolution ? "请确认正文是否已写入，再选择继续方式" : snapshot.Querying ? "正在查找候选…"
                 : state.Problem != null ? "键盘暂不可用，可取消或完成编辑" : result?.Edit?.Status == TextEditStatus.Truncated ? "已按长度上限接受可容纳的文本"
-                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : "A 输入   B 回退   LB / RB 候选   L3 / R3 确认   X 保存   Y 语言";
+                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : "右摇杆移动正文光标  ·  LT 扩展选区";
         }
         private void BuildKeys()
         {
@@ -153,8 +154,12 @@ namespace SkyKeyYuyan.UI.UGUI
             foreach (var key in _layout.Keys)
             {
                 string id = key.Id;
-                var button = Button(id, _keyboard, key.Column * 86, key.Row * 49, 78, 42, key.Label, () => _controller?.ActivateKey(id));
-                _keys.Add(new KeyView { Key = key, Button = button, Text = button.GetComponentInChildren<Text>() });
+                var area = SkyKeyboardStyle.KeyRect(_layout, key);
+                var button = Button(id, _keyboard, area.x, area.y, area.width, area.height, key.Label, () => _controller?.ActivateKey(id));
+                var badge = Rect("FocusBadge", button.transform, area.width - 17, -6, 24, 24);
+                badge.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.DarkText, SkyKeyboardStyle.Accent, 2, 12); badge.GetComponent<SkyPanelGraphic>().raycastTarget = false;
+                var caption = Label("A", badge, 0, 0, 24, 24, 17); caption.alignment = TextAnchor.MiddleCenter; caption.color = SkyKeyboardStyle.Accent; caption.text = "A";
+                _keys.Add(new KeyView { Key = key, Button = button, Text = button.GetComponentInChildren<Text>(), Badge = badge.gameObject });
             }
         }
         private void RenderCandidates(SessionSnapshot snapshot, Font font)
@@ -174,13 +179,15 @@ namespace SkyKeyYuyan.UI.UGUI
             {
                 var button = _candidateButtons[index]; button.gameObject.SetActive(index < count);
                 if (index >= count) continue;
-                float width = 852f / count;
+                float width = 860f / count;
                 var rect = (RectTransform)button.transform;
                 rect.anchoredPosition = new Vector2(index * width, 0); rect.sizeDelta = new Vector2(width - 7, 52);
                 var textRect = (RectTransform)button.GetComponentInChildren<Text>().transform;
-                textRect.sizeDelta = new Vector2(width - 13, 48);
+                textRect.sizeDelta = new Vector2(width - 19, 44);
                 var label = button.GetComponentInChildren<Text>(); label.font = font; label.text = page.Candidates[index].Text;
-                button.GetComponent<Image>().color = index == snapshot.SelectedCandidate ? new Color32(32, 136, 143, 255) : new Color32(48, 59, 77, 255);
+                bool selected = index == snapshot.SelectedCandidate;
+                ((SkyPanelGraphic)button.targetGraphic).Configure(selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function, selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border);
+                label.color = selected ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
                 button.interactable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution;
             }
             _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
@@ -190,14 +197,39 @@ namespace SkyKeyYuyan.UI.UGUI
         private Text Label(string name, Transform parent, float x, float y, float width, float height, int size)
         {
             var label = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Text>(); label.font = BodyFont; label.fontSize = size;
-            label.color = new Color32(231, 239, 247, 255); label.supportRichText = false; label.raycastTarget = false; label.alignment = TextAnchor.UpperLeft; return label;
+            label.color = SkyKeyboardStyle.Text; label.supportRichText = false; label.raycastTarget = false; label.alignment = TextAnchor.UpperLeft; return label;
         }
         private SkyPanelButton Button(string name, Transform parent, float x, float y, float width, float height, string text, Action click)
         {
-            var owner = Rect(name, parent, x, y, width, height); var image = owner.gameObject.AddComponent<Image>(); image.color = new Color32(48, 59, 77, 255);
+            var owner = Rect(name, parent, x, y, width, height); var image = owner.gameObject.AddComponent<SkyPanelGraphic>(); image.Configure(SkyKeyboardStyle.Function, SkyKeyboardStyle.Border);
             var button = owner.gameObject.AddComponent<SkyPanelButton>(); button.targetGraphic = image; button.navigation = new Navigation { mode = Navigation.Mode.None }; button.onClick.AddListener(() => click());
-            var label = Label("Label", owner, 3, 2, width - 6, height - 4, 18); label.alignment = TextAnchor.MiddleCenter; label.resizeTextForBestFit = true; label.resizeTextMinSize = 12; label.resizeTextMaxSize = 18;
+            var colors = button.colors; colors.normalColor = colors.highlightedColor = colors.selectedColor = Color.white; colors.pressedColor = new Color(.8f, .8f, .8f, 1); colors.disabledColor = new Color(1, 1, 1, .32f); button.colors = colors;
+            var label = Label("Label", owner, 6, 4, width - 12, height - 8, 24); label.alignment = TextAnchor.MiddleCenter; label.resizeTextForBestFit = true; label.resizeTextMinSize = 14; label.resizeTextMaxSize = 24;
             label.text = text; return button;
+        }
+        private void BuildHints()
+        {
+            var glyphs = new[] { "+", "A", "B", "LB/RB", "L3/R3", "X", "Y" };
+            var labels = new[] { "移动", "输入", "回退", "候选", "确认", "保存", "语言" };
+            var widths = new[] { 128, 128, 128, 184, 184, 144, 144 };
+            float x = 24;
+            for (int index = 0; index < glyphs.Length; index++)
+            {
+                float glyphWidth = glyphs[index].Length > 1 ? 64 : 30;
+                var group = Rect("HintGroup" + index, _frame, x, 660, widths[index], 30);
+                if (index == 5 || index == 6)
+                {
+                    var graphic = group.gameObject.AddComponent<Image>(); graphic.color = Color.clear;
+                    var button = group.gameObject.AddComponent<SkyPanelButton>(); button.targetGraphic = graphic; button.navigation = new Navigation { mode = Navigation.Mode.None };
+                    var control = index == 5 ? SkyControl.Finish : SkyControl.Language;
+                    button.onClick.AddListener(() => _player?.Handle(control));
+                }
+                var glyph = Rect("Hint" + index, group, 0, 0, glyphWidth, 30);
+                glyph.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Muted, 1, glyphWidth == 30 ? 15 : 6);
+                var caption = Label("Glyph", glyph, 0, 0, glyphWidth, 30, 16); caption.alignment = TextAnchor.MiddleCenter; caption.text = glyphs[index];
+                Label("HintLabel" + index, group, glyphWidth + 8, 3, widths[index] - glyphWidth - 8, 26, 18).text = labels[index];
+                x += widths[index];
+            }
         }
         private static RectTransform Rect(string name, Transform parent, float x, float y, float width, float height)
         {
@@ -207,7 +239,7 @@ namespace SkyKeyYuyan.UI.UGUI
         private void Fit()
         {
             if (_frame == null) return;
-            var rect = ((RectTransform)transform).rect; float scale = Mathf.Min(1, rect.width / 932, rect.height / 842); _frame.localScale = Vector3.one * Mathf.Max(0.01f, scale);
+            var rect = ((RectTransform)transform).rect; float scale = Mathf.Min(1, rect.width / (SkyKeyboardStyle.Width + 32), rect.height / (SkyKeyboardStyle.Height + 32)); _frame.localScale = Vector3.one * Mathf.Max(0.01f, scale);
         }
         private void OnRectTransformDimensionsChange() => Fit();
         private void Unbind()

@@ -15,6 +15,13 @@ namespace SkyKeyYuyan.UI.FairyGUI
     public sealed class FairySkyPanel : IDisposable
     {
         private sealed class KeyView { internal KeyboardKey Key; internal GButton Button; }
+        private sealed class ButtonSkin
+        {
+            internal GGraph Background;
+            internal GObject Outline, Badge, Glyph;
+            internal bool Initialized, Focused;
+            internal Color Fill, Edge;
+        }
         private const string PackageId = "7b0bbb69", PackageName = "SkyKeyYuyan";
         private readonly SkyPlayerContext _player;
         private readonly GComponent _parent, _keyboard, _candidates;
@@ -61,8 +68,6 @@ namespace SkyKeyYuyan.UI.FairyGUI
             if (!string.IsNullOrEmpty(mixedFont)) SetFont(View, mixedFont);
             _draftSelection = new FairyDraftSelection(_body);
             Wire("cancel", SkyControl.Cancel); Wire("finish", SkyControl.Finish); Wire("language", SkyControl.Language);
-            Wire("completion", SkyControl.Completion); Wire("retry", SkyControl.Retry);
-            Wire("acceptCurrent", SkyControl.AcceptCurrentText); Wire("retryWrite", SkyControl.RetryWrite);
             Wire("previousCandidate", SkyControl.PreviousCandidate); Wire("nextCandidate", SkyControl.NextCandidate);
             _factory = CreateDraft; _previousFactory = player.DraftTargetFactory; player.DraftTargetFactory = _factory;
             player.Opened += OnOpened; player.Closed += OnClosed; parent.onSizeChanged.Add(Fit);
@@ -107,18 +112,17 @@ namespace SkyKeyYuyan.UI.FairyGUI
             if (!ReferenceEquals(_layout, state.Layout)) { _layout = state.Layout; BuildKeys(); }
             foreach (var key in _keys)
             {
-                key.Button.title = key.Key.Action == "input" && key.Key.Output != " " ? state.Shift ? key.Key.Alternate : key.Key.Label : key.Key.Label;
-                Style(key.Button, font, key.Key.Id == state.FocusedKey, _controller.IsKeyEnabled(key.Key));
+                bool enabled = _controller.IsKeyEnabled(key.Key);
+                bool active = enabled && (key.Key.Action == "shift" && state.Shift || key.Key.Action == "completion" && snapshot.CompletionEnabled);
+                key.Button.title = SkyKeyboardStyle.KeyLabel(key.Key, state.Shift, snapshot.CompletionEnabled);
+                if (key.Key.Action == "completion" && (language == null || (language.Capabilities & LanguageCapabilities.CompletionSwitch) == 0)) key.Button.title = key.Key.Label;
+                Style(key.Button, font, key.Key.Id == state.FocusedKey, enabled, key.Key, active);
             }
             RenderCandidates(snapshot, font);
-            View.GetChild("retry").visible = snapshot.Literal;
-            View.GetChild("completion").visible = language != null && (language.Capabilities & LanguageCapabilities.CompletionSwitch) != 0;
-            View.GetChild("completion").text = snapshot.CompletionEnabled ? "补全：开" : "补全：关";
-            View.GetChild("acceptCurrent").visible = View.GetChild("retryWrite").visible = snapshot.NeedsResolution;
             var result = state.LastResult;
             _status.text = snapshot.NeedsResolution ? "请确认正文是否已写入，再选择继续方式" : snapshot.Querying ? "正在查找候选…"
                 : state.Problem != null ? "键盘暂不可用，可取消或完成编辑" : result?.Edit?.Status == TextEditStatus.Truncated ? "已按长度上限接受可容纳的文本"
-                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : "A 输入   B 回退   LB / RB 候选   L3 / R3 确认   X 保存   Y 语言";
+                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : "右摇杆移动正文光标  ·  LT 扩展选区";
             _draftSelection.Render(snapshot.Text);
         }
         private void BuildKeys()
@@ -127,7 +131,8 @@ namespace SkyKeyYuyan.UI.FairyGUI
             if (_layout == null) return;
             foreach (var key in _layout.Keys)
             {
-                string id = key.Id; var button = NewButton(_keyboard, id, key.Column * 86, key.Row * 49, 78, 42);
+                string id = key.Id; var area = SkyKeyboardStyle.KeyRect(_layout, key);
+                var button = NewButton(_keyboard, id, area.x, area.y, area.width, area.height);
                 button.onClick.Add(() => _controller?.ActivateKey(id)); _keys.Add(new KeyView { Key = key, Button = button });
             }
         }
@@ -149,7 +154,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             {
                 var button = _candidateButtons[index]; button.visible = index < count;
                 if (index >= count) continue;
-                float width = 852f / count; button.SetXY(index * width, 0); button.SetSize(width - 7, 52); button.title = page.Candidates[index].Text;
+                float width = 860f / count; button.SetXY(index * width, 0); button.SetSize(width - 7, 52); button.title = page.Candidates[index].Text;
                 Style(button, font, index == snapshot.SelectedCandidate, !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution);
             }
             SetFont(_selection, font); _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
@@ -161,21 +166,39 @@ namespace SkyKeyYuyan.UI.FairyGUI
             var button = UIPackage.CreateObject(PackageName, "Key").asButton; button.name = name; button.focusable = false;
             parent.AddChild(button); button.SetXY(x, y); button.SetSize(width, height); return button;
         }
-        private static void Style(GButton button, string font, bool focused, bool enabled)
+        private static void Style(GButton button, string font, bool focused, bool enabled, KeyboardKey key = null, bool active = false)
         {
-            SetFont(button.GetTextField(), font); button.touchable = enabled; button.alpha = enabled ? 1 : 0.45f;
-            button.GetChild("background").asGraph.color = focused ? new Color32(32, 136, 143, 255) : new Color32(48, 59, 77, 255);
+            var text = button.GetTextField(); SetFont(text, font); button.touchable = enabled; button.alpha = enabled ? 1 : 0.32f;
+            var skin = button.data as ButtonSkin;
+            if (skin == null)
+            {
+                skin = new ButtonSkin { Background = button.GetChild("background").asGraph, Outline = button.GetChild("focusOutline"), Badge = button.GetChild("focusBadge"), Glyph = button.GetChild("focusGlyph") };
+                button.data = skin;
+            }
+            bool frame = focused && key != null;
+            Color fill = key != null ? SkyKeyboardStyle.KeyColor(key, focused, active) : focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function;
+            Color edge = frame ? SkyKeyboardStyle.DarkText : focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border;
+            if (!skin.Initialized || skin.Fill != fill || skin.Edge != edge || skin.Focused != frame)
+            {
+                skin.Background.shape.DrawRoundRect(frame ? 5 : 1, edge, fill, 8, 8, 8, 8);
+                skin.Fill = fill; skin.Edge = edge; skin.Focused = frame; skin.Initialized = true;
+            }
+            if (skin.Outline != null) skin.Outline.visible = frame;
+            if (skin.Badge != null) skin.Badge.visible = frame && enabled;
+            if (skin.Glyph != null) skin.Glyph.visible = frame && enabled;
+            var format = text.textFormat; Color foreground = focused || key?.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
+            if (format.color != foreground) { format.color = foreground; text.textFormat = format; }
         }
         private static void SetFont(GObject value, string font)
         {
-            if (value is GTextField field) { var format = field.textFormat; format.font = font; field.textFormat = format; }
+            if (value is GTextField field) { var format = field.textFormat; if (format.font != font) { format.font = font; field.textFormat = format; } }
             else if (value is GComponent component) foreach (var child in component.GetChildren()) SetFont(child, font);
         }
         private void Fit()
         {
             if (_disposed || View.isDisposed) return;
-            float scale = Mathf.Max(0.01f, Mathf.Min(1, _parent.width / 932, _parent.height / 842)); View.SetScale(scale, scale);
-            View.SetXY((_parent.width - 900 * scale) / 2, (_parent.height - 810 * scale) / 2);
+            float scale = Mathf.Max(0.01f, Mathf.Min(1, _parent.width / (SkyKeyboardStyle.Width + 32), _parent.height / (SkyKeyboardStyle.Height + 32))); View.SetScale(scale, scale);
+            View.SetXY((_parent.width - SkyKeyboardStyle.Width * scale) / 2, (_parent.height - SkyKeyboardStyle.Height * scale) / 2);
         }
         internal void Tick()
         {

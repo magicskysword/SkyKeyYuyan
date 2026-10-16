@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildChinese, supplements, assignIdentities, ordinal } from './lib/lexicon.mjs';
+import { keyboardKeys } from './lib/keyboard.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = path => readFile(resolve(root, path), 'utf8');
@@ -35,19 +36,9 @@ for (const language of languageRecords) {
   report.languages[language.language] = { entries: assigned.words.length, bytes: Buffer.byteLength(resource), identityEntries: assigned.identities.size };
 }
 
-const qwerty = ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
-const korean = ['1234567890', 'ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ', 'ㅁㄴㅇㄹㅎㅗㅓㅏㅣ', 'ㅋㅌㅊㅍㅠㅜㅡ'];
-const shiftedKorean = new Map([['ㅂ', 'ㅃ'], ['ㅈ', 'ㅉ'], ['ㄷ', 'ㄸ'], ['ㄱ', 'ㄲ'], ['ㅅ', 'ㅆ'], ['ㅐ', 'ㅒ'], ['ㅔ', 'ㅖ']]);
-for (const [directory, language, rows] of [['chinese', 'zh-Hans', qwerty], ['english', 'en', qwerty], ['korean', 'ko', korean]]) {
+for (const [directory, language] of [['chinese', 'zh-Hans'], ['english', 'en'], ['korean', 'ko']]) {
   await mkdir(resolve(generated, directory), { recursive: true });
-  const keys = [];
-  rows.forEach((row, rowIndex) => [...row].forEach((output, column) => keys.push([`key-${rowIndex}-${column}`, output, output, shiftedKorean.get(output) ?? output.toUpperCase(), rowIndex, column, 'input'])));
-  const punctuation = language === 'zh-Hans' ? '，。？！、：；（）’' : ',.?!:;()-\'';
-  [...punctuation].forEach((output, column) => keys.push([`punctuation-${column}`, output, output, output, 4, column, 'input']));
-  const functions = [['space', '空格', ' ', 'input'], ['shift', 'Shift', '', 'shift'], ['backspace', '退格', '', 'backspace'], ['newline', '换行', '', 'newline'], ['language', '语言', '', 'language'], ['finish', '完成', '', 'finish'], ['cancel', '取消', '', 'cancel']];
-  functions.forEach(([id, label, output, action], column) => keys.push([id, label, output, output, 5, column, action]));
-  ['left', 'right', 'up', 'down', 'delete', 'selectall', 'clear', 'completion', 'retry'].forEach((action, column) => keys.push([action, ({ left: '左移', right: '右移', up: '上移', down: '下移', delete: '删除', selectall: '全选', clear: '清空', completion: '补全', retry: '重试转换' })[action], '', '', 6, column, action]));
-  await writeFile(resolve(generated, directory, 'keyboard.bytes'), [`SKYKEYS\t1\t${language}\t${manifest.dataVersion}`, ...keys.map(key => key.join('\t'))].join('\n') + '\n');
+  await writeFile(resolve(generated, directory, 'keyboard.bytes'), [`SKYKEYS\t2\t${language}\t${manifest.dataVersion}`, ...keyboardKeys(language).map(key => key.join('\t'))].join('\n') + '\n');
 }
 
 const ownLicense = (await read('LICENSE')).replaceAll('\r\n', '\n').split('\n\nThird-party data:')[0].trimEnd();
