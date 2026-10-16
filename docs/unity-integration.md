@@ -85,6 +85,8 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 `SkyInputRouter` 在构造时固定事件后端。注册玩家后，将设备标识绑定到玩家，使用 `Route` 发送动作；设备不能同时绑定给两位玩家。后端提供递增设备事件序号时，重复事件保持无效。`KeyboardEnabled` 和 `GamepadEnabled` 分别控制路由。设备断开和应用失焦分别占用暂停原因，全部恢复后会话才继续活动。
 
+安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 扩展选区，Enter 完成，Escape 取消，Tab 切换语言，Ctrl+A 全选。键盘默认仍需显式启用。
+
 默认界面支持双手柄、双面板和独立草稿。两套 UI 的验证都包含此场景。原框模式依赖对应目标适配的选区与焦点处理，并按控件逐项验证。
 
 目标编辑权由运行时统一管理。第二个会话打开同一目标时收到目标占用结果，宿主可先结束原会话再转交编辑权。

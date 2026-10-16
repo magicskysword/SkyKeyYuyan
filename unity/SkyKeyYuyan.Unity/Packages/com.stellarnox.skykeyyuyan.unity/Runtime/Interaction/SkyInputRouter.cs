@@ -61,6 +61,19 @@ namespace SkyKeyYuyan.Unity
         /// </summary>
         public SkyInputBackend Backend { get; }
         /// <summary>
+        /// 查询设备当前所属玩家。
+        /// </summary>
+        public bool TryGetPlayer(string deviceId, out SkyPlayerContext player)
+        {
+            if (_bindings.TryGetValue(deviceId, out var binding)) { player = binding.Player; return true; }
+            player = null; return false;
+        }
+        /// <summary>
+        /// 设备是否可以向活动会话发送内容动作。
+        /// </summary>
+        public bool CanRoute(string deviceId) => !_disposed && _bindings.TryGetValue(deviceId, out var binding) && binding.Connected && Enabled(binding)
+            && binding.Player.Session != null && binding.Player.Session.Snapshot.Lifecycle == Core.SessionLifecycle.Active;
+        /// <summary>
         /// 注册玩家；设备绑定完成后会话可以恢复活动。
         /// </summary>
         public void Register(SkyPlayerContext player)

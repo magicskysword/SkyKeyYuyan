@@ -1,0 +1,10 @@
+{
+  "name": "SkyKeyYuyan.InputSystem.Tests",
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.InputSystem", "Unity.InputSystem"],
+  "includePlatforms": ["Editor"],
+  "defineConstraints": ["SKY_INPUT_SYSTEM_AVAILABLE", "ENABLE_INPUT_SYSTEM"],
+  "versionDefines": [{"name":"com.unity.inputsystem","expression":"1.0.0","define":"SKY_INPUT_SYSTEM_AVAILABLE"}],
+  "overrideReferences": true,
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "nunit.framework.dll"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
