@@ -33,6 +33,18 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public string DefaultUserId { get; set; } = "default";
         /// <summary>
+        /// 首次配置进程共享词频的存档 Provider。
+        /// </summary>
+        public IFrequencyStore? FrequencyStore { get; set; }
+        /// <summary>
+        /// 除默认用户外，在初始化时加载词频的用户。
+        /// </summary>
+        public IReadOnlyList<string> PreloadUsers { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// 是否在会话及运行时结束时自动保存词频。
+        /// </summary>
+        public bool AutoSaveFrequencies { get; set; } = true;
+        /// <summary>
         /// 接收带阶段与操作归属的诊断。
         /// </summary>
         public Action<SkyDiagnostic>? DiagnosticSink { get; set; }
@@ -77,7 +89,7 @@ namespace SkyKeyYuyan.Core
     /// </summary>
     public sealed class InitializationResult
     {
-        internal InitializationResult(ServiceResult result, IEnumerable<string> readyEngines) { Result = result; ReadyEngines = Array.AsReadOnly(readyEngines.ToArray()); }
+        internal InitializationResult(ServiceResult result, IEnumerable<string> readyEngines, IEnumerable<FrequencyStoreResult>? preloadResults = null) { Result = result; ReadyEngines = Array.AsReadOnly(readyEngines.ToArray()); PreloadResults = Array.AsReadOnly((preloadResults ?? Enumerable.Empty<FrequencyStoreResult>()).ToArray()); }
         /// <summary>
         /// 成功、失败或取消及对应阶段。
         /// </summary>
@@ -90,6 +102,10 @@ namespace SkyKeyYuyan.Core
         /// 当时已就绪的引擎。
         /// </summary>
         public IReadOnlyList<string> ReadyEngines { get; }
+        /// <summary>
+        /// 不影响语言初始化成功状态的词频预加载结果。
+        /// </summary>
+        public IReadOnlyList<FrequencyStoreResult> PreloadResults { get; }
     }
     /// <summary>
     /// 打开输入的确定结果。
@@ -139,6 +155,14 @@ namespace SkyKeyYuyan.Core
         /// 在指定文本目标上打开会话。
         /// </summary>
         SessionOpenResult OpenSession(SessionOptions options, ITextTarget target);
+        /// <summary>
+        /// 显式保存进程内待保存的词频。
+        /// </summary>
+        IReadOnlyList<FrequencyStoreResult> SaveFrequencies();
+        /// <summary>
+        /// 等待所有已安排的词频读写完成。
+        /// </summary>
+        Task<IReadOnlyList<FrequencyStoreResult>> SaveFrequenciesAsync(CancellationToken cancellationToken);
     }
     /// <summary>
     /// 可独立使用的输入运行时，默认实例仅在成功初始化后替换。
@@ -163,6 +187,9 @@ namespace SkyKeyYuyan.Core
         private bool _initializing, _initialized, _retired, _disposed, _resourcesReleased;
         private int _workCount;
         private RuntimeOptions _options = new RuntimeOptions();
+        private FrequencyService? _frequency;
+        private FrequencyStoreResult[] _preloadResults = Array.Empty<FrequencyStoreResult>();
+        private bool _frequencySubscribed;
 
         /// <summary>
         /// 最近一次成功发布的默认运行时。
@@ -170,6 +197,7 @@ namespace SkyKeyYuyan.Core
         public static ISkyRuntime? Default { get { lock (GlobalGate) return _default; } }
         internal ISkyExecutionContext Context => _options.ExecutionContext;
         internal string DefaultUserId => _options.DefaultUserId;
+        internal FrequencyService Frequency => _frequency ?? FrequencyService.Shared;
 
         /// <inheritdoc />
         public ServiceResult RegisterLanguage(ILanguageModule module)
@@ -198,6 +226,7 @@ namespace SkyKeyYuyan.Core
                 catch (Exception ex) { result = new ServiceResult(false, "language:" + module.EngineId, ex.Message); }
                 if (!result.Succeeded) break;
             }
+            if (result.Succeeded) _preloadResults = Preload(modules.Select(module => module.LanguageId));
             return CompleteInitialization(result, modules, acquired);
         }
         /// <inheritdoc />
@@ -218,6 +247,7 @@ namespace SkyKeyYuyan.Core
                     if (!result.Succeeded) break;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
+                if (result.Succeeded) _preloadResults = await PreloadAsync(modules.Select(module => module.LanguageId), cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { result = new ServiceResult(false, "initialize", "初始化已取消", true); }
             catch (Exception ex) { result = new ServiceResult(false, "initialize", ex.Message); }
@@ -235,7 +265,11 @@ namespace SkyKeyYuyan.Core
                     if (!_modules.TryGetValue(pair.Value, out var module) || module.LanguageId != pair.Key) return new ServiceResult(false, "configuration", "语言实现配置未注册");
                 foreach (var group in _modules.Values.GroupBy(module => module.LanguageId))
                     if (group.Count() > 1 && !options.LanguageEngines.ContainsKey(group.Key)) return new ServiceResult(false, "configuration", "同语言多个实现需要显式选择");
-                _options = new RuntimeOptions { ExecutionContext = options.ExecutionContext, Resources = options.Resources, DefaultUserId = options.DefaultUserId, ReplaceDefault = options.ReplaceDefault, DiagnosticSink = options.DiagnosticSink, LanguageEngines = options.LanguageEngines.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal) };
+                if (options.PreloadUsers.Any(string.IsNullOrWhiteSpace)) return new ServiceResult(false, "configuration", "预加载用户标识不能为空");
+                if (options.FrequencyStore != null) FrequencyService.ConfigureStore(options.FrequencyStore);
+                _frequency = FrequencyService.Shared;
+                _options = new RuntimeOptions { ExecutionContext = options.ExecutionContext, Resources = options.Resources, DefaultUserId = options.DefaultUserId, ReplaceDefault = options.ReplaceDefault, DiagnosticSink = options.DiagnosticSink, LanguageEngines = options.LanguageEngines.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal), FrequencyStore = options.FrequencyStore, PreloadUsers = options.PreloadUsers.ToArray(), AutoSaveFrequencies = options.AutoSaveFrequencies };
+                _preloadResults = Array.Empty<FrequencyStoreResult>();
                 _initializing = true;
                 modules = _modules.Values.ToArray();
                 return new ServiceResult(true, "initialize");
@@ -255,6 +289,7 @@ namespace SkyKeyYuyan.Core
                         if (!_options.LanguageEngines.TryGetValue(module.LanguageId, out var engineId) || engineId == module.EngineId) _selected[module.LanguageId] = module;
                     }
                     _initialized = true; publish = _options.ReplaceDefault;
+                    if (!_frequencySubscribed) { Frequency.Diagnostic += Report; _frequencySubscribed = true; }
                 }
             }
             if (!result.Succeeded) foreach (var module in acquired.AsEnumerable().Reverse()) DisposeModule(module);
@@ -280,6 +315,7 @@ namespace SkyKeyYuyan.Core
             ServiceResult result;
             try { result = module.Initialize(_options.Resources); }
             catch (Exception ex) { result = new ServiceResult(false, "language:" + engineId, ex.Message); }
+            if (result.Succeeded) _preloadResults = Preload(new[] { module.LanguageId });
             return CompleteLanguageInitialization(module, result);
         }
         /// <inheritdoc />
@@ -288,7 +324,11 @@ namespace SkyKeyYuyan.Core
             var module = BeginLanguageInitialization(engineId, out var error);
             if (module == null) return Result(error!);
             ServiceResult result;
-            try { result = await module.InitializeAsync(_options.Resources, cancellationToken).ConfigureAwait(false); cancellationToken.ThrowIfCancellationRequested(); }
+            try
+            {
+                result = await module.InitializeAsync(_options.Resources, cancellationToken).ConfigureAwait(false); cancellationToken.ThrowIfCancellationRequested();
+                if (result.Succeeded) _preloadResults = await PreloadAsync(new[] { module.LanguageId }, cancellationToken).ConfigureAwait(false);
+            }
             catch (OperationCanceledException) { result = new ServiceResult(false, "language:" + engineId, "初始化已取消", true); }
             catch (Exception ex) { result = new ServiceResult(false, "language:" + engineId, ex.Message); }
             return CompleteLanguageInitialization(module, result);
@@ -316,7 +356,28 @@ namespace SkyKeyYuyan.Core
             TryReleaseResources();
             return Result(result);
         }
-        private InitializationResult Result(ServiceResult result) { lock (_gate) return new InitializationResult(result, _ready); }
+        private InitializationResult Result(ServiceResult result) { lock (_gate) return new InitializationResult(result, _ready, _preloadResults); }
+        private FrequencyStoreResult[] Preload(IEnumerable<string> languageIds)
+        {
+            return (from user in new[] { _options.DefaultUserId }.Concat(_options.PreloadUsers).Distinct(StringComparer.Ordinal)
+                    from language in languageIds.Distinct(StringComparer.Ordinal)
+                    select Frequency.Load(user, language)).ToArray();
+        }
+        private async Task<FrequencyStoreResult[]> PreloadAsync(IEnumerable<string> languageIds, CancellationToken cancellationToken)
+        {
+            var requests = (from user in new[] { _options.DefaultUserId }.Concat(_options.PreloadUsers).Distinct(StringComparer.Ordinal)
+                            from language in languageIds.Distinct(StringComparer.Ordinal)
+                            select Frequency.LoadAsync(user, language)).ToArray();
+            var all = Task.WhenAll(requests);
+            if (!cancellationToken.CanBeCanceled) return await all.ConfigureAwait(false);
+            var cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => cancelled.TrySetResult(true)))
+            {
+                await Task.WhenAny(all, cancelled.Task).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                return await all.ConfigureAwait(false);
+            }
+        }
 
         /// <inheritdoc />
         public SessionOpenResult OpenSession(SessionOptions options, ITextTarget target)
@@ -341,6 +402,7 @@ namespace SkyKeyYuyan.Core
                 {
                     var session = new SkySession(this, sessionId, target, options, languages.ToDictionary(language => language, language => _selected[language], StringComparer.Ordinal), initial);
                     _sessions.Add(session);
+                    session.PrepareUser();
                     RememberLanguage(options.PlayerId, initial);
                     return new SessionOpenResult(session);
                 }
@@ -366,7 +428,9 @@ namespace SkyKeyYuyan.Core
                 if ((!_disposed && !_retired) || _resourcesReleased || _initializing || _sessions.Count != 0 || _workCount != 0) return;
                 _resourcesReleased = true; modules = _modules.Values.Reverse().ToArray();
             }
+            if (_options.AutoSaveFrequencies && _frequency != null) _frequency.SaveAll();
             foreach (var module in modules) DisposeModule(module);
+            if (_frequencySubscribed) { Frequency.Diagnostic -= Report; _frequencySubscribed = false; }
         }
         private void DisposeModule(ILanguageModule module)
         {
@@ -380,6 +444,11 @@ namespace SkyKeyYuyan.Core
                 try { _options.DiagnosticSink?.Invoke(diagnostic); } catch { /* 诊断接收者不参与输入状态转换。 */ }
             });
         }
+        internal IReadOnlyList<FrequencyStoreResult> SaveUser(string userId, IEnumerable<string> languages) => _options.AutoSaveFrequencies ? Array.AsReadOnly(languages.Select(language => Frequency.Save(userId, language)).ToArray()) : Array.Empty<FrequencyStoreResult>();
+        /// <inheritdoc />
+        public IReadOnlyList<FrequencyStoreResult> SaveFrequencies() => Frequency.SaveAll();
+        /// <inheritdoc />
+        public Task<IReadOnlyList<FrequencyStoreResult>> SaveFrequenciesAsync(CancellationToken cancellationToken) => Frequency.SaveAllAsync(cancellationToken);
         /// <inheritdoc />
         public void Dispose()
         {

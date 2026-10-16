@@ -39,14 +39,17 @@ namespace SkyKeyYuyan.Core
         private readonly Guid _id;
         private readonly ITextTarget _target, _editing;
         private readonly string _playerId;
+        private readonly string _userId;
         private readonly Dictionary<string, ILanguageModule> _languages;
         private readonly EditingMode _mode;
         private readonly List<string> _diagnostics = new List<string>();
+        private readonly List<ChoiceRecord> _draftChoices = new List<ChoiceRecord>();
         private ILanguageModule _module;
         private EngineSlot _slot;
         private CompositionSnapshot _composition;
         private TextSnapshot _text;
         private long _nextOperation, _generation = 1, _querySequence, _settingsVersion;
+        private long _choiceSequence;
         private SessionLifecycle _lifecycle = SessionLifecycle.Active;
         private CandidatePage? _page;
         private int _selectedCandidate;
@@ -61,6 +64,8 @@ namespace SkyKeyYuyan.Core
         internal SkySession(SkyRuntime runtime, Guid id, ITextTarget target, SessionOptions options, Dictionary<string, ILanguageModule> languages, string initial)
         {
             _runtime = runtime; _id = id; _target = target; _playerId = options.PlayerId; _languages = languages; _mode = options.EditingMode;
+            _userId = options.UserId ?? runtime.DefaultUserId;
+            if (string.IsNullOrWhiteSpace(_userId)) throw new ArgumentException("用户标识不能为空");
             _text = target.ReadSnapshot();
             _editing = _mode == EditingMode.Draft ? new MemoryTextTarget(_text.Text, _text.Anchor, _text.Caret) : target;
             _text = _editing.ReadSnapshot();
@@ -74,6 +79,7 @@ namespace SkyKeyYuyan.Core
                 Snapshot = BuildSnapshot();
                 _target.Changed += OnTargetChanged;
                 _module.DataChanged += OnDataChanged;
+                _runtime.Frequency.Changed += OnFrequencyChanged;
             }
             catch { _slot.Retire(); throw; }
         }
@@ -82,6 +88,10 @@ namespace SkyKeyYuyan.Core
         public event Action<SessionSnapshot>? StateChanged;
         public event Action<OperationResult>? OperationCompleted;
         public event Action<SessionResult>? Completed;
+        internal void PrepareUser()
+        {
+            foreach (var language in _languages.Keys) _ = _runtime.Frequency.LoadAsync(_userId, language);
+        }
 
         public OperationReceipt Process(InputOperation operation)
         {
@@ -203,6 +213,11 @@ namespace SkyKeyYuyan.Core
         private void ApplyStep(Request request, EngineStep step)
         {
             _composition = step.Snapshot;
+            if (step.Choices.Count > 0)
+            {
+                var record = new ChoiceRecord(request.Id + ":" + (++_choiceSequence), request.Id, _userId, _module.LanguageId, step.Choices);
+                if (_mode == EditingMode.Draft) _draftChoices.Add(record); else _runtime.Frequency.Record(record);
+            }
             _page = null;
             if (step.CommitText != null)
             {
@@ -357,7 +372,7 @@ namespace SkyKeyYuyan.Core
         {
             CancelQuery();
             if (_literal || _composition.RawText.Length == 0) return;
-            var query = new CandidateQuery(++_querySequence, _generation, _composition, _module.CaptureData(), _settingsVersion);
+            var query = new CandidateQuery(++_querySequence, _generation, _composition, _module.CaptureData(), _settingsVersion, _runtime.Frequency.Capture(_userId, _module.LanguageId));
             var cancellation = new CancellationTokenSource(); _queryCancellation = cancellation;
             _querying = true; _page = null;
             var slot = _slot; slot.Retain(); _runtime.RetainWork();
@@ -395,6 +410,10 @@ namespace SkyKeyYuyan.Core
             _querying = false; _page = null; _querySequence++;
         }
         private void OnDataChanged() => _runtime.Context.Post(() => { if (_lifecycle == SessionLifecycle.Ended || _literal || _composition.RawText.Length == 0) return; StartQuery(); Publish(); });
+        private void OnFrequencyChanged(FrequencyChange change)
+        {
+            if (change.UserId == _userId && change.LanguageId == _module.LanguageId) OnDataChanged();
+        }
         private void OnTargetChanged(TextTargetChange change) => _runtime.Context.Post(() =>
         {
             if (_lifecycle == SessionLifecycle.Ended) return;
@@ -417,6 +436,11 @@ namespace SkyKeyYuyan.Core
             _lifecycle = SessionLifecycle.Ended; CancelQuery();
             _pending = null;
             _target.Changed -= OnTargetChanged; _module.DataChanged -= OnDataChanged;
+            _runtime.Frequency.Changed -= OnFrequencyChanged;
+            if (reason == SessionEndReason.Finished) foreach (var record in _draftChoices) _runtime.Frequency.Record(record);
+            _draftChoices.Clear();
+            _runtime.Frequency.ReleaseSession(_id);
+            var storageResults = _runtime.SaveUser(_userId, _languages.Keys);
             TextSnapshot final;
             try { final = _target.ReadSnapshot(); } catch { final = _text; }
             _slot.Retire();
@@ -427,7 +451,7 @@ namespace SkyKeyYuyan.Core
             }
             catch (Exception ex) { Report("text-cache", ex.Message); }
             _runtime.SessionEnded(this, _target.Identity, _id);
-            Publish(); Notify(Completed, new SessionResult(reason, final, fill, _diagnostics));
+            Publish(); Notify(Completed, new SessionResult(reason, final, fill, _diagnostics, storageResults));
         }
         private void Report(string stage, string reason, OperationId? operation = null, bool recovered = false)
         {

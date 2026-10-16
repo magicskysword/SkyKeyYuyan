@@ -344,7 +344,7 @@ namespace SkyKeyYuyan.Core.Tests
                         if (_module.QueryFailures-- > 0) throw new InvalidOperationException("query fault");
                         if (_module.QueryHandler != null) return await _module.QueryHandler(query).ConfigureAwait(false);
                         if (_module.QueryGate != null) await _module.QueryGate.Task.ConfigureAwait(false);
-                        return new CandidatePage(query, new[] { new Candidate("first", query.Composition.RawText.ToUpperInvariant(), query.Composition.RawText.Length) });
+                        return new CandidatePage(query, new[] { new Candidate("first", query.Composition.RawText.ToUpperInvariant(), query.Composition.RawText.Length, new[] { new WordUsage("probe.word") }) });
                     }
                     finally { Interlocked.Increment(ref _module.QueriesFinished); }
                 }

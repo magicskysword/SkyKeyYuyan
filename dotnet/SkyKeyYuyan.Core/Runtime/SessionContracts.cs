@@ -336,8 +336,8 @@ namespace SkyKeyYuyan.Core
     /// </summary>
     public sealed class SessionResult
     {
-        internal SessionResult(SessionEndReason reason, TextSnapshot text, TextEditResult? fill, IReadOnlyList<string> diagnostics)
-        { Reason = reason; Text = text; FillResult = fill; Diagnostics = Array.AsReadOnly(diagnostics.ToArray()); }
+        internal SessionResult(SessionEndReason reason, TextSnapshot text, TextEditResult? fill, IReadOnlyList<string> diagnostics, IReadOnlyList<FrequencyStoreResult> storageResults)
+        { Reason = reason; Text = text; FillResult = fill; Diagnostics = Array.AsReadOnly(diagnostics.ToArray()); StorageResults = Array.AsReadOnly(storageResults.ToArray()); }
         /// <summary>
         /// 会话结束原因。
         /// </summary>
@@ -354,6 +354,10 @@ namespace SkyKeyYuyan.Core
         /// 会话期间的诊断。
         /// </summary>
         public IReadOnlyList<string> Diagnostics { get; }
+        /// <summary>
+        /// 会话结束时的词频保存结果及后台等待状态。
+        /// </summary>
+        public IReadOnlyList<FrequencyStoreResult> StorageResults { get; }
     }
     /// <summary>
     /// 接收统一操作并发布完整状态。
