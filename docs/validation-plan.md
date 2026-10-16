@@ -210,6 +210,8 @@ Provider 验证同时覆盖同步和异步路径、PlayerPrefs 默认实现以�
 
 基准阶段形成各发布版本的性能预算，后续构建在相同条件下比较并按该预算验收。报告同时保留原始数值和测试条件。
 
+`node scripts/benchmark.mjs` 生成独立托管基准；`node scripts/check-performance.mjs --player-report artifacts/Reports/player-package-mono.json` 联合检查同环境的托管及 PlayerPrefs 预算。测量方法和预算见[性能基准](performance.md)，当前构建结果见[验证记录](validation-results.md)。
+
 ## 交付阶段
 
 | 阶段 | 产出 | 完成条件 |

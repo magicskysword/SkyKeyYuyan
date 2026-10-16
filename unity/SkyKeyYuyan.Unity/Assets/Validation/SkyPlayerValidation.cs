@@ -16,12 +16,15 @@ namespace SkyKeyYuyan.Validation
     public sealed class SkyPlayerValidation : MonoBehaviour
     {
         [Serializable]
-        private sealed class Report { public string unity, platform, backend, error; public bool passed; public string[] cases; }
+        private sealed class Report { public string unity, platform, backend, error, os, processor; public int systemMemoryMb; public bool passed; public string[] cases; public Metric[] measurements; }
+        [Serializable]
+        private sealed class Metric { public string name; public int entries; public double medianMs, p95Ms; public double[] rawMs; }
         private sealed class CheckEntry { internal string Name; internal Func<Task> Run; }
         private static readonly List<CheckEntry> Additional = new List<CheckEntry>();
+        private static readonly List<Metric> Measurements = new List<Metric>();
         private readonly List<string> _cases = new List<string>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void Reset() => Additional.Clear();
+        private static void Reset() { Additional.Clear(); Measurements.Clear(); }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Launch()
         {
@@ -32,6 +35,14 @@ namespace SkyKeyYuyan.Validation
         /// 为安装的可选适配登记独立 Player 检查。
         /// </summary>
         public static void Register(string name, Func<Task> check) => Additional.Add(new CheckEntry { Name = name, Run = check });
+        /// <summary>
+        /// 记录同一规模的主线程操作耗时，保留原始毫秒样本。
+        /// </summary>
+        public static void RecordMeasurement(string name, int entries, double[] samples)
+        {
+            var sorted = samples.OrderBy(value => value).ToArray();
+            Measurements.Add(new Metric { name = name, entries = entries, medianMs = sorted[(sorted.Length - 1) / 2], p95Ms = sorted[(int)Math.Ceiling(sorted.Length * .95) - 1], rawMs = samples });
+        }
         /// <summary>
         /// 等待主线程状态变化，超时返回明确失败。
         /// </summary>
@@ -46,7 +57,7 @@ namespace SkyKeyYuyan.Validation
         public static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
         private async void Start()
         {
-            var report = new Report { unity = Application.unityVersion, platform = Application.platform.ToString() };
+            var report = new Report { unity = Application.unityVersion, platform = Application.platform.ToString(), os = SystemInfo.operatingSystem, processor = SystemInfo.processorType, systemMemoryMb = SystemInfo.systemMemorySize };
 #if ENABLE_IL2CPP
             report.backend = "IL2CPP";
 #else
@@ -64,6 +75,7 @@ namespace SkyKeyYuyan.Validation
             }
             catch (Exception ex) { report.error = ex.ToString(); Debug.LogException(ex); }
             report.cases = _cases.ToArray();
+            report.measurements = Measurements.ToArray();
             var arguments = Environment.GetCommandLineArgs(); int index = Array.IndexOf(arguments, "--sky-report");
             if (index >= 0 && index + 1 < arguments.Length)
             {

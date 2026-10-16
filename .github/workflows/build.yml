@@ -23,6 +23,7 @@ jobs:
         with:
           dotnet-version: '10.0.400'
       - run: node scripts/build.mjs
+      - run: node scripts/benchmark.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: SkyKeyYuyan

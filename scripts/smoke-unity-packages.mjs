@@ -75,5 +75,7 @@ const reportPath = resolve(reports, 'player-package-mono.json');
 await run(resolve(player, 'SkyKeyYuyan.exe'), ['-batchmode', '-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080', '--sky-validation', '--sky-report', reportPath, '-logFile', resolve(reports, 'player-package-mono.log')], 'Run installed UPM packages');
 const result = JSON.parse(await readFile(reportPath, 'utf8'));
 if (!result.passed) throw new Error(result.error);
-await writeFile(resolve(reports, 'unity-package-install.json'), JSON.stringify({ passed: true, version: packageReport.version, unity: result.unity, packages: installed, cases: result.cases }, null, 2) + '\n');
+const dependencies = Object.fromEntries(Object.entries(lock.dependencies).filter(([name]) => ['com.unity.inputsystem', 'com.unity.textmeshpro', 'com.unity.ugui'].includes(name)).map(([name, entry]) => [name, entry.version]));
+if (sdk) dependencies.fairygui = (await command('git', ['-C', sdk, 'rev-parse', 'HEAD'], { windowsHide: true })).stdout.trim();
+await writeFile(resolve(reports, 'unity-package-install.json'), JSON.stringify({ passed: true, version: packageReport.version, unity: result.unity, dependencies, packages: installed, cases: result.cases }, null, 2) + '\n');
 process.stdout.write(`UPM consumer passed: ${installed.length} packages, ${result.cases.length} cases\n`);

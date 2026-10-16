@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0",
+  "dataVersion": "2026.10.1",
+  "environment": {
+    "processor": "13th Gen Intel(R) Core(TM) i7-13700KF",
+    "os": "Microsoft Windows 10.0.26200",
+    "framework": ".NET 10.0.11",
+    "logicalProcessors": 24,
+    "architecture": "X64",
+    "configuration": "Release",
+    "serverGc": false
+  },
+  "managed": {
+    "initializationMs": 2000,
+    "initializationAllocatedBytes": 1073741824,
+    "retainedManagedBytes": 268435456,
+    "queryP95Ms": 20,
+    "queryAllocatedBytesPerOperation": 3145728,
+    "feedbackP95Ms": 2,
+    "feedbackAllocatedBytesPerOperation": 4194304,
+    "historyRetainedBytes": 2097152,
+    "historyP95Ms": 2
+  },
+  "player": {
+    "unity": "2022.3.62f3",
+    "backend": "Mono",
+    "mainThreadP95Ms": 20
+  }
+}

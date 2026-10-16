@@ -21,6 +21,8 @@ SkyKeyYuyan，简称 SKY，是提供独立语言输入能力的纯 C# 框架。�
 | [语言数据与许可](language-data-and-licensing.md) | 数据来源、词条模型、数据构建与整合许可 | 数据及发布维护者 |
 | [分发与构建](distribution-and-build.md) | NuGet、OpenUPM、仓库目录约束和构建流程 | 构建及发布维护者 |
 | [验证与交付计划](validation-plan.md) | 行为用例、兼容矩阵、故障注入和交付阶段 | 开发及测试人员 |
+| [验证记录](validation-results.md) | 当前构建、安装和 Unity 版本矩阵的实际结果 | 集成及发布维护者 |
+| [性能基准](performance.md) | 测量方法、固定环境数据和版本预算 | 开发及发布维护者 |
 
 ## 核心约定
 
