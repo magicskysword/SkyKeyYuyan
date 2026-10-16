@@ -26,7 +26,7 @@ namespace SkyKeyYuyan.Unity.TMP
             var seen = new HashSet<TMP_InputField>();
             foreach (var control in controls)
             {
-                if (control.GetComponentInParent<SkyInputSurface>() != null) continue;
+                if (SkyInputSurface.Contains(control.transform)) continue;
                 if (!_targets.TryGetValue(control, out var binding))
                 {
                     if (control.readOnly) continue;

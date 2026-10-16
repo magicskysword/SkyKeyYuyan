@@ -1,0 +1,7 @@
+{
+  "name": "SkyKeyYuyan.UGUI.Tests",
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.UGUI", "SkyKeyYuyan.UI.UGUI", "UnityEngine.UI"],
+  "overrideReferences": true,
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "SkyKeyYuyan.Languages.Chinese.dll", "nunit.framework.dll"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

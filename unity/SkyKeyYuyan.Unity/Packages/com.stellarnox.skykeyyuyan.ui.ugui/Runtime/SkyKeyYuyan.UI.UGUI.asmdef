@@ -3,6 +3,7 @@
     "rootNamespace": "SkyKeyYuyan.UI.UGUI",
     "references": [
         "SkyKeyYuyan.Unity",
+        "SkyKeyYuyan.Unity.UGUI",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

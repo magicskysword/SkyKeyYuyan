@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using SkyKeyYuyan.Core;
 using UnityEngine;
 
@@ -173,6 +174,19 @@ namespace SkyKeyYuyan.Unity
         /// 面板需要刷新。
         /// </summary>
         public event Action<SkyPanelState> Changed;
+        /// <summary>
+        /// 按当前语言能力和恢复状态判断虚拟按键是否可用。
+        /// </summary>
+        public bool IsKeyEnabled(KeyboardKey key)
+        {
+            var snapshot = _session.Snapshot;
+            if (_disposed || snapshot.Lifecycle != SessionLifecycle.Active) return false;
+            if (snapshot.NeedsResolution) return key.Action == "cancel";
+            if (key.Action == "completion") return _session.Languages.Any(language => language.LanguageId == snapshot.LanguageId && (language.Capabilities & LanguageCapabilities.CompletionSwitch) != 0);
+            if (key.Action == "retry") return snapshot.Literal;
+            if (key.Action == "language") return _session.Languages.Count > 1;
+            return true;
+        }
         private void OnState(SessionSnapshot snapshot)
         {
             if (_language != snapshot.LanguageId)
@@ -199,6 +213,7 @@ namespace SkyKeyYuyan.Unity
             if (_disposed || _layout == null || _session.Snapshot.Lifecycle != SessionLifecycle.Active) return false;
             KeyboardKey key;
             try { key = _layout[id]; } catch (System.Collections.Generic.KeyNotFoundException) { return false; }
+            if (!IsKeyEnabled(key)) return false;
             _focus = id;
             switch (key.Action)
             {
@@ -233,7 +248,10 @@ namespace SkyKeyYuyan.Unity
             {
                 case SkyControl.KeyLeft: case SkyControl.KeyRight: case SkyControl.KeyUp: case SkyControl.KeyDown:
                     if (_layout == null) return false;
-                    _focus = _layout.Navigate(_focus, control == SkyControl.KeyLeft ? TextNavigation.Left : control == SkyControl.KeyRight ? TextNavigation.Right : control == SkyControl.KeyUp ? TextNavigation.Up : TextNavigation.Down);
+                    var available = _layout.Keys.Where(IsKeyEnabled).ToArray();
+                    if (available.Length == 0) return false;
+                    var navigation = new KeyboardLayout(_layout.LanguageId, _layout.DataVersion, available);
+                    _focus = navigation.Navigate(_focus, control == SkyControl.KeyLeft ? TextNavigation.Left : control == SkyControl.KeyRight ? TextNavigation.Right : control == SkyControl.KeyUp ? TextNavigation.Up : TextNavigation.Down);
                     Publish(snapshot); return true;
                 case SkyControl.Activate: return ActivateKey(_focus);
                 case SkyControl.Shift: _shift = !_shift; Publish(snapshot); return true;
