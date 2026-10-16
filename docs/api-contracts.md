@@ -147,7 +147,7 @@ public interface ILanguageEngine : IDisposable
     /// <summary>
     /// 从兼容的检查点恢复组合状态。
     /// </summary>
-    RestoreResult RestoreCheckpoint(
+    ServiceResult RestoreCheckpoint(
         ICompositionCheckpoint checkpoint);
 }
 ```
@@ -156,7 +156,7 @@ Process 同步产生一次语言状态变化。耗时查询通过 QueryCandidate
 
 QueryCandidatesAsync 只读取 CandidateQuery 携带的不可变数据和语言模块的只读资源，不访问引擎实例的可变状态。因此查询可以与同一实例上的 Process 并行执行，引擎实例无需加锁。查询所需的组字信息必须全部放入 CandidateQuery。
 
-检查点包含引擎标识、状态格式版本、原始拼写、已选片段、组合光标及回退历史。检查点在运行时内用于恢复，共享词典继续由模块持有。RestoreResult 区分成功、状态版本不兼容、资源不匹配和恢复失败。
+检查点包含引擎标识、状态格式版本、原始拼写、已选片段及回退历史。检查点在运行时内用于恢复，共享词典继续由模块持有。ServiceResult 提供成功状态、执行阶段、失败原因和取消状态。
 
 ## 组字与候选数据
 
@@ -167,6 +167,8 @@ QueryCandidatesAsync 只读取 CandidateQuery 携带的不可变数据和语言�
 | CandidatePage | 原查询标识和版本、候选项、分页继续信息及查询结果 |
 | Candidate | 候选标识、显示文本、输出文本、消耗的拼写范围、关联已有词条标识 |
 | ChoiceRecord | 选择记录标识、所属操作、用户、语言、选中的已有词条及出现次数 |
+
+CandidateQuery 固定 CompositionSnapshot、LanguageDataSnapshot 和用户词频副本。候选只消耗剩余拼写的前缀，以 ConsumedLength 表达范围。Candidate 的 Words 列出稳定词条身份和出现次数。EngineStep 提供最新组字、可选提交文本、查询需求和本次选择的词条；提交文本经目标接受后，由会话发送 Clear 命令结束组字。
 
 候选标识在所属查询内解释。接纳异步结果时，运行时核对会话、实例代次和查询版本；候选确认使用当前已经显示的有效结果。
 
