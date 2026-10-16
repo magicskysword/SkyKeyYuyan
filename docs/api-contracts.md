@@ -180,6 +180,11 @@ QueryCandidatesAsync 只读取 CandidateQuery 携带的不可变数据和语言�
 /// </summary>
 public interface ITextTarget
 {
+    /// <summary>
+    /// 宿主控件的稳定引用身份，用于跨运行时仲裁编辑权。
+    /// </summary>
+    object Identity { get; }
+
     TextSnapshot ReadSnapshot();
 
     TextEditResult ApplyEdit(TextEditRequest request);
@@ -203,6 +208,10 @@ public interface ITextTarget
 | TextNavigationResult | 导航结果、最新选区和目标快照 |
 
 文本位置使用 UTF-16 偏移，范围使用起点与长度。锚点和活动端分别保存，保留选区方向。目标适配器负责与控件坐标转换，并把操作边界调整到完整 Unicode 字符边界。
+
+同一宿主控件的所有适配器返回同一个 Identity 引用。编辑权在进程内按该身份仲裁。文本编辑通过操作标识和操作内编辑序号去重，导航通过操作标识去重。实现 ITextOperationCache 的目标在会话结束后由运行时调用 ReleaseSession，释放该会话的回执。
+
+核心提供 MemoryTextTarget，用于独立宿主和草稿正文。其长度上限采用 UTF-16 单元，零表示不限长度；原框插入保留未选中的正文，完整回填截取全文前缀。内存目标按逻辑行执行垂直导航，平台目标按实际排版执行。
 
 适配器在正文或选区发生有效变化时推进版本。预期版本不匹配时返回最新快照，由会话按外部修改规则处理。垂直导航基于控件的实际行排版。
 
