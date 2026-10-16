@@ -1,0 +1,9 @@
+{
+  "name": "SkyKeyYuyan.FairyGUI.Tests",
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.FairyGUI", "FairyGUI"],
+  "includePlatforms": [],
+  "defineConstraints": ["SKY_FAIRYGUI"],
+  "overrideReferences": true,
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "nunit.framework.dll"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

@@ -186,7 +186,10 @@ namespace SkyKeyYuyan.Unity
             }
             finally { _writing = false; }
         }
-        private TextEditResult Plan(TextSnapshot before, TextEditRequest request, string input)
+        /// <summary>
+        /// 根据目标的原生长度计数生成不会修改正文的编辑计划。
+        /// </summary>
+        protected virtual TextEditResult Plan(TextSnapshot before, TextEditRequest request, string input)
         {
             var preview = new MemoryTextTarget(before.Text, before.Anchor, before.Caret, Math.Max(0, CharacterLimit), SingleLine);
             return preview.ApplyEdit(new TextEditRequest(request.Operation, 0, request.Start, request.Length, input, request.Part));

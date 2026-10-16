@@ -94,6 +94,8 @@
 
 各控件使用同一组预期文本结果验证适配层，特别检查控件自带验证、长度限制和事件回调对实际写入的影响。
 
+仓库的 Unity 测试位于开发工程的 `Assets/Tests`。`node scripts/prepare-unity-validation.mjs --fairygui <SDK仓库路径>` 将开发工程和指定 SDK 复制到 `artifacts/UnityValidation`，保留该验证工程的 Library 缓存，并为 Windows 平台启用 FairyGUI 适配。FairyGUI 测试在 PlayMode 运行，使用真实 Stage、焦点和文本排版；基础服务及 UGUI/TMP 契约测试在 EditMode 运行。
+
 ## 候选并发
 
 | 编号 | 场景 | 预期 |

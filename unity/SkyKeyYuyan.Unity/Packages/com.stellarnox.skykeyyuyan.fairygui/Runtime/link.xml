@@ -1,0 +1,10 @@
+<linker>
+  <assembly fullname="FairyGUI" ignoreIfMissing="1">
+    <type fullname="FairyGUI.InputTextField">
+      <field name="_selectionStart" />
+      <field name="_caretPosition" />
+      <method name="UpdateCaret" />
+      <method name="ValidateInput" />
+    </type>
+  </assembly>
+</linker>
