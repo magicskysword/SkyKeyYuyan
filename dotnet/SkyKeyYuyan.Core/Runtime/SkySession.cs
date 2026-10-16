@@ -135,7 +135,13 @@ namespace SkyKeyYuyan.Core
                     else Delete(request, false);
                     break;
                 case "candidate":
-                    if (_page != null && _page.Candidates.Count > 0) _selectedCandidate = ((_selectedCandidate + operation.Amount) % _page.Candidates.Count + _page.Candidates.Count) % _page.Candidates.Count;
+                    if (_page != null && _page.Candidates.Count > 0)
+                    {
+                        int next = _selectedCandidate + operation.Amount;
+                        if (next >= _page.Candidates.Count && _page.HasMore) StartQuery(offset: _page.Query.Offset + _page.Candidates.Count, selection: next - _page.Candidates.Count);
+                        else if (next < 0 && _page.Query.Offset > 0) StartQuery(offset: Math.Max(0, _page.Query.Offset - _page.Query.PageSize), selection: -1);
+                        else _selectedCandidate = ((next % _page.Candidates.Count) + _page.Candidates.Count) % _page.Candidates.Count;
+                    }
                     break;
                 case "choose":
                     var candidate = _page?.Candidates.FirstOrDefault(item => item.Id == operation.Text);
@@ -389,17 +395,17 @@ namespace SkyKeyYuyan.Core
             }
             Complete(request, _needsResolution ? OperationStatus.NeedsResolution : OperationStatus.Applied);
         }
-        private void StartQuery(int attempt = 0)
+        private void StartQuery(int attempt = 0, int offset = 0, int selection = 0)
         {
             CancelQuery();
             if (_literal || _composition.RawText.Length == 0) return;
-            var query = new CandidateQuery(++_querySequence, _generation, _composition, _module.CaptureData(), _settingsVersion, _runtime.Frequency.Capture(_userId, _module.LanguageId));
+            var query = new CandidateQuery(++_querySequence, _generation, _composition, _module.CaptureData(), _settingsVersion, _runtime.Frequency.Capture(_userId, _module.LanguageId), offset);
             var cancellation = new CancellationTokenSource(); _queryCancellation = cancellation;
             _querying = true; _page = null;
             var slot = _slot; slot.Retain(); _runtime.RetainWork();
-            _ = RunQuery(slot, query, cancellation, attempt);
+            _ = RunQuery(slot, query, cancellation, attempt, selection);
         }
-        private async Task RunQuery(EngineSlot slot, CandidateQuery query, CancellationTokenSource cancellation, int attempt)
+        private async Task RunQuery(EngineSlot slot, CandidateQuery query, CancellationTokenSource cancellation, int attempt, int selection)
         {
             CandidatePage? page = null; Exception? failure = null;
             try { page = await Task.Run(() => slot.Engine.QueryCandidatesAsync(query, cancellation.Token), cancellation.Token).ConfigureAwait(false); }
@@ -414,13 +420,14 @@ namespace SkyKeyYuyan.Core
                 if (cancelled) return;
                 if (query.Composition.Version != _composition.Version || query.Data.Version != _module.CaptureData().Version || query.SettingsVersion != _settingsVersion) return;
                 _querying = false;
+                if (failure == null && (page == null || !ReferenceEquals(page.Query, query))) failure = new InvalidOperationException("候选页与原查询不一致");
                 if (failure != null)
                 {
                     Report("query", failure.Message);
-                    if (attempt == 0) { StartQuery(1); Publish(); return; }
+                    if (attempt == 0) { StartQuery(1, query.Offset, selection); Publish(); return; }
                     EnterLiteral();
                 }
-                else if (page != null && ReferenceEquals(page.Query, query)) { _page = page; _selectedCandidate = 0; }
+                else if (page != null) { _page = page; _selectedCandidate = Math.Max(0, selection < 0 ? page.Candidates.Count - 1 : Math.Min(selection, page.Candidates.Count - 1)); }
                 Publish(); ContinuePending();
             });
         }
