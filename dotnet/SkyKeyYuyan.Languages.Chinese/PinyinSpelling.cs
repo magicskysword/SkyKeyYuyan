@@ -16,6 +16,13 @@ namespace SkyKeyYuyan.Languages.Chinese
         /// </summary>
         public static string Normalize(string spelling)
         {
+            bool canonical = spelling.Length > 0 && spelling[0] != ' ' && spelling[spelling.Length - 1] != ' ';
+            for (int index = 0; canonical && index < spelling.Length; index++)
+            {
+                char value = spelling[index];
+                canonical = value >= 'a' && value <= 'z' || value == ' ' && index > 0 && spelling[index - 1] != ' ';
+            }
+            if (canonical) return spelling;
             string decomposed = spelling.ToLowerInvariant().Normalize(NormalizationForm.FormD).Replace("u\u0308", "v").Replace("u:", "v");
             var result = new StringBuilder(decomposed.Length);
             foreach (char value in decomposed)

@@ -151,6 +151,34 @@ namespace SkyKeyYuyan.Languages.English.Tests
             Assert.That((await module.InitializeAsync(good, CancellationToken.None)).Succeeded, Is.True);
             Assert.That(module.CaptureData().Words[0].Id, Is.EqualTo("hello"));
         }
+        [Test]
+        public void HostEntriesRegisteredBeforeInitializationUseBaseIdentityAndKeepRemovedHostIdentity()
+        {
+            using var module = new EnglishCompletionModule(new[] { new LexiconWord("base", "hello", "hello", 10) });
+            module.UpsertWord(new LexiconWord("override", "hello", "HELLO", 20));
+            module.UpsertWord(new LexiconWord("planet-first", "planet", "planet")); module.RemoveWord("planet-first");
+            Assert.That(module.Initialize(new MemoryResourceProvider()).Succeeded, Is.True);
+            Assert.That(module.CaptureData().Words.Single().Id, Is.EqualTo("base"));
+            Assert.That(module.CaptureData().Words.Single().Weight, Is.EqualTo(20));
+            module.UpsertWord(new LexiconWord("planet-second", "planet", "planet", 30));
+            Assert.That(module.CaptureData().Words.Single(word => word.Text == "planet").Id, Is.EqualTo("planet-first"));
+            module.RemoveWord("override");
+            Assert.That(module.CaptureData().Words.Single(word => word.Text == "hello").Weight, Is.EqualTo(10));
+        }
+        [Test]
+        public async Task Utf8ResourceAcceptsBomAndRejectsMalformedRowsWithoutBlockingRetry()
+        {
+            using var module = new EnglishCompletionModule();
+            byte[] invalid = Encoding.UTF8.GetBytes("SKY\t1\ten\t1\nhello\thello\thello\t10\textra\n");
+            Assert.That(module.Initialize(new MemoryResourceProvider(new Dictionary<string, byte[]> { [module.ResourceId] = invalid })).Succeeded, Is.False);
+            byte[] invalidEncoding = Encoding.UTF8.GetBytes("SKY\t1\ten\t1\nhello\thello\thello\t10\n").Concat(new byte[] { 0xff }).ToArray();
+            Assert.That(module.Initialize(new MemoryResourceProvider(new Dictionary<string, byte[]> { [module.ResourceId] = invalidEncoding })).Succeeded, Is.False);
+            var valid = new MemoryResourceProvider(new Dictionary<string, byte[]> { [module.ResourceId] = Encoding.UTF8.GetBytes("\ufeffSKY\t1\ten\t1\r\nhello\thello\thello\t10\r\nhelp\thelp\thelp\t2\n") });
+            Assert.That((await module.InitializeAsync(valid, CancellationToken.None)).Succeeded, Is.True);
+            using var engine = module.CreateEngine();
+            var page = await Query(engine, module, "hel");
+            Assert.That(page.Candidates.Select(candidate => candidate.Text), Is.EqualTo(new[] { "hello", "help" }));
+        }
         private static void WaitFor(Func<bool> condition) => Assert.That(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(5)), Is.True, "候选未在期限内完成");
     }
 }

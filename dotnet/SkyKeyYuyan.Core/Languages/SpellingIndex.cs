@@ -15,10 +15,24 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public SpellingIndex(IEnumerable<LexiconWord> words, Func<string, string> keySelector)
         {
-            _entries = words.Select(word => new KeyValuePair<string, LexiconWord>(keySelector(word.Spelling), word)).OrderBy(pair => pair.Key, StringComparer.Ordinal).ThenBy(pair => pair.Value.Id, StringComparer.Ordinal).ToArray();
-            MaxKeyLength = _entries.Length == 0 ? 0 : _entries.Max(pair => pair.Key.Length);
-            double max = _entries.Length == 0 ? 1 : Math.Max(1, _entries.Max(pair => pair.Value.Weight));
-            LogTotalWeight = Math.Log(max) + Math.Log(Math.Max(1, _entries.Sum(pair => (pair.Value.Weight + 1) / max)));
+            var source = words as IReadOnlyCollection<LexiconWord> ?? words.ToArray();
+            _entries = new KeyValuePair<string, LexiconWord>[source.Count];
+            int position = 0, longest = 0; double max = 1;
+            foreach (var word in source)
+            {
+                string key = keySelector(word.Spelling);
+                _entries[position++] = new KeyValuePair<string, LexiconWord>(key, word);
+                longest = Math.Max(longest, key.Length); max = Math.Max(max, word.Weight);
+            }
+            Array.Sort(_entries, (left, right) =>
+            {
+                int key = StringComparer.Ordinal.Compare(left.Key, right.Key);
+                return key != 0 ? key : StringComparer.Ordinal.Compare(left.Value.Id, right.Value.Id);
+            });
+            double total = 0;
+            foreach (var entry in _entries) total += (entry.Value.Weight + 1) / max;
+            MaxKeyLength = longest;
+            LogTotalWeight = Math.Log(max) + Math.Log(Math.Max(1, total));
         }
         /// <summary>
         /// 索引内最长拼写。

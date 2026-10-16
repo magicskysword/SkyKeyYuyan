@@ -18,7 +18,7 @@ namespace SkyKeyYuyan.Validation
         [Serializable]
         private sealed class Report { public string unity, platform, backend, error, os, processor; public int systemMemoryMb; public bool passed; public string[] cases; public Metric[] measurements; }
         [Serializable]
-        private sealed class Metric { public string name; public int entries; public double medianMs, p95Ms; public double[] rawMs; }
+        private sealed class Metric { public string name; public int entries; public double medianMs, p95Ms; public long retainedManagedBytes; public double[] rawMs; }
         private sealed class CheckEntry { internal string Name; internal Func<Task> Run; }
         private static readonly List<CheckEntry> Additional = new List<CheckEntry>();
         private static readonly List<Metric> Measurements = new List<Metric>();
@@ -38,10 +38,10 @@ namespace SkyKeyYuyan.Validation
         /// <summary>
         /// 记录同一规模的主线程操作耗时，保留原始毫秒样本。
         /// </summary>
-        public static void RecordMeasurement(string name, int entries, double[] samples)
+        public static void RecordMeasurement(string name, int entries, double[] samples, long retainedManagedBytes = 0)
         {
             var sorted = samples.OrderBy(value => value).ToArray();
-            Measurements.Add(new Metric { name = name, entries = entries, medianMs = sorted[(sorted.Length - 1) / 2], p95Ms = sorted[(int)Math.Ceiling(sorted.Length * .95) - 1], rawMs = samples });
+            Measurements.Add(new Metric { name = name, entries = entries, medianMs = sorted[(sorted.Length - 1) / 2], p95Ms = sorted[(int)Math.Ceiling(sorted.Length * .95) - 1], retainedManagedBytes = retainedManagedBytes, rawMs = samples });
         }
         /// <summary>
         /// 等待主线程状态变化，超时返回明确失败。

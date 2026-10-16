@@ -1,0 +1,9 @@
+{
+  "name": "SkyKeyYuyan.Validation.Languages",
+  "references": ["SkyKeyYuyan.Validation", "SkyKeyYuyan.Unity"],
+  "defineConstraints": ["SKY_VALIDATION_CHINESE", "SKY_VALIDATION_ENGLISH"],
+  "versionDefines": [
+    { "name": "com.stellarnox.skykeyyuyan.chinese", "expression": "0.1.0", "define": "SKY_VALIDATION_CHINESE" },
+    { "name": "com.stellarnox.skykeyyuyan.english", "expression": "0.1.0", "define": "SKY_VALIDATION_ENGLISH" }
+  ]
+}

@@ -57,6 +57,7 @@ foreach (int size in new[] { 100, 10000 })
 var source = JsonDocument.Parse(File.ReadAllText(Path.Combine(args[0], "data/manifests/sources.json")));
 var report = new
 {
+    version = typeof(SkyRuntime).Assembly.GetName().Version!.ToString(3),
     generatedAtUtc = DateTime.UtcNow,
     environment = new { os = RuntimeInformation.OSDescription, processor = args[2], logicalProcessors = Environment.ProcessorCount, architecture = RuntimeInformation.ProcessArchitecture.ToString(), framework = RuntimeInformation.FrameworkDescription, serverGc = System.Runtime.GCSettings.IsServerGC, configuration = "Release" },
     dataVersion = source.RootElement.GetProperty("dataVersion").GetString(),

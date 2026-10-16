@@ -78,13 +78,14 @@ namespace SkyKeyYuyan.Core
     /// </summary>
     public sealed class LexiconWord
     {
+        private static readonly char[] FieldSeparators = { '\t', '\r', '\n' };
         /// <summary>
         /// 创建词条，拼写由对应语言模块规范化。
         /// </summary>
         public LexiconWord(string id, string text, string spelling, double weight = 1)
         {
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(spelling)) throw new ArgumentException("词条身份、文本和拼写不能为空");
-            if (id.IndexOfAny(new[] { '\t', '\r', '\n' }) >= 0 || text.IndexOfAny(new[] { '\t', '\r', '\n' }) >= 0 || spelling.IndexOfAny(new[] { '\t', '\r', '\n' }) >= 0) throw new ArgumentException("词条字段不能包含制表符或换行");
+            if (id.IndexOfAny(FieldSeparators) >= 0 || text.IndexOfAny(FieldSeparators) >= 0 || spelling.IndexOfAny(FieldSeparators) >= 0) throw new ArgumentException("词条字段不能包含制表符或换行");
             if (double.IsNaN(weight) || double.IsInfinity(weight) || weight < 0) throw new ArgumentOutOfRangeException(nameof(weight));
             Id = id; Text = text; Spelling = spelling; Weight = weight;
         }

@@ -47,24 +47,26 @@ namespace SkyKeyYuyan.Languages.Chinese
         {
             internal readonly SpellingIndex Words;
             internal readonly HashSet<string> MultipleReadings = new HashSet<string>(StringComparer.Ordinal);
-            private readonly Dictionary<string, int[]> _boundaries = new Dictionary<string, int[]>(StringComparer.Ordinal);
-            internal Index(IEnumerable<LexiconWord> words)
+            internal Index(IReadOnlyList<LexiconWord> words)
             {
-                var list = words.ToArray(); Words = new SpellingIndex(list, PinyinSpelling.Flatten);
+                Words = new SpellingIndex(words, PinyinSpelling.Flatten);
                 var texts = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var word in list)
-                {
+                foreach (var word in words)
                     if (!texts.Add(word.Text)) MultipleReadings.Add(word.Text);
-                    int position = 0;
-                    var boundaries = new List<int>();
-                    foreach (string syllable in word.Spelling.Split(' ')) { position += syllable.Length; boundaries.Add(position); }
-                    _boundaries[word.Id] = boundaries.ToArray();
-                }
             }
             internal bool Fits(LexiconWord word, PinyinSpelling.Input input, int start, int end)
             {
                 foreach (int boundary in input.Boundaries)
-                    if (boundary > start && boundary < end && Array.IndexOf(_boundaries[word.Id], boundary - start) < 0) return false;
+                {
+                    if (boundary <= start || boundary >= end) continue;
+                    int wanted = boundary - start, position = 0; bool found = false;
+                    foreach (char value in word.Spelling)
+                    {
+                        if (value == ' ') { if (position == wanted) { found = true; break; } }
+                        else position++;
+                    }
+                    if (!found && position != wanted) return false;
+                }
                 return true;
             }
         }

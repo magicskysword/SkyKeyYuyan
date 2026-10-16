@@ -11,19 +11,22 @@
     "serverGc": false
   },
   "managed": {
-    "initializationMs": 2000,
-    "initializationAllocatedBytes": 1073741824,
-    "retainedManagedBytes": 268435456,
-    "queryP95Ms": 20,
-    "queryAllocatedBytesPerOperation": 3145728,
+    "initializationMs": 1250,
+    "initializationAllocatedBytes": 402653184,
+    "retainedManagedBytes": 150994944,
+    "queryP95Ms": 4,
+    "queryAllocatedBytesPerOperation": 262144,
     "feedbackP95Ms": 2,
-    "feedbackAllocatedBytesPerOperation": 4194304,
+    "feedbackAllocatedBytesPerOperation": 102400,
     "historyRetainedBytes": 2097152,
     "historyP95Ms": 2
   },
   "player": {
     "unity": "2022.3.62f3",
     "backend": "Mono",
+    "initializationMs": 2000,
+    "retainedManagedBytes": 167772160,
+    "queryP95Ms": 8,
     "mainThreadP95Ms": 20
   }
 }

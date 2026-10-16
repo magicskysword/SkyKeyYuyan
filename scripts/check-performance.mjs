@@ -8,6 +8,7 @@ const checks = [];
 function same(name, actual, expected) { checks.push({ name, actual, expected, passed: actual === expected }); }
 function limit(name, actual, maximum) { checks.push({ name, actual, maximum, passed: Number.isFinite(actual) && actual <= maximum }); }
 same('data-version', report.dataVersion, budget.dataVersion);
+same('software-version', report.version, budget.version);
 for (const [key, expected] of Object.entries(budget.environment)) same('environment/' + key, report.environment[key], expected);
 for (const entry of report.initialization) {
   limit(entry.mode + '/ms', entry.elapsedMs, budget.managed.initializationMs);
@@ -31,7 +32,11 @@ if (playerIndex >= 0) {
   same('player/unity', player.unity, budget.player.unity);
   same('player/backend', player.backend, budget.player.backend);
   if (!player.measurements?.length) throw new Error('Player measurements are missing');
-  for (const entry of player.measurements) limit(entry.name + '/' + entry.entries + '/p95-ms', entry.p95Ms, budget.player.mainThreadP95Ms);
+  for (const entry of player.measurements) {
+    const maximum = entry.name.startsWith('language/') ? budget.player.initializationMs : entry.name.startsWith('query/') ? budget.player.queryP95Ms : budget.player.mainThreadP95Ms;
+    limit(entry.name + '/' + entry.entries + '/p95-ms', entry.p95Ms, maximum);
+    if (entry.name.startsWith('language/')) limit(entry.name + '/retained-bytes', entry.retainedManagedBytes, budget.player.retainedManagedBytes);
+  }
 }
 const passed = checks.every(entry => entry.passed);
 await writeFile(resolve(artifacts, 'Reports/performance-budget.json'), JSON.stringify({ version: budget.version, passed, checks }, null, 2) + '\n');
