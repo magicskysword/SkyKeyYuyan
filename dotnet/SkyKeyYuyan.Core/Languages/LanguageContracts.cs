@@ -361,8 +361,8 @@ namespace SkyKeyYuyan.Core
         /// <summary>
         /// 创建处理结果，提交文本为 null 时表示继续组字。
         /// </summary>
-        public EngineStep(CompositionSnapshot snapshot, string? commitText = null, bool queryRequested = false, IEnumerable<WordUsage>? choices = null)
-        { Snapshot = snapshot; CommitText = commitText; QueryRequested = queryRequested; Choices = Array.AsReadOnly((choices ?? Enumerable.Empty<WordUsage>()).ToArray()); }
+        public EngineStep(CompositionSnapshot snapshot, string? commitText = null, bool queryRequested = false, IEnumerable<WordUsage>? choices = null, string? deferredInput = null)
+        { Snapshot = snapshot; CommitText = commitText; QueryRequested = queryRequested; Choices = Array.AsReadOnly((choices ?? Enumerable.Empty<WordUsage>()).ToArray()); DeferredInput = deferredInput; }
         /// <summary>
         /// 最新组字快照。
         /// </summary>
@@ -379,6 +379,10 @@ namespace SkyKeyYuyan.Core
         /// 本次成功选择的词条。
         /// </summary>
         public IReadOnlyList<WordUsage> Choices { get; }
+        /// <summary>
+        /// 先提交当前组字后，在同一操作中继续处理的输入。
+        /// </summary>
+        public string? DeferredInput { get; }
     }
 
     /// <summary>

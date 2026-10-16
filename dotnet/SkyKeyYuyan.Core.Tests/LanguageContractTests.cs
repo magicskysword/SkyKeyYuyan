@@ -50,5 +50,15 @@ namespace SkyKeyYuyan.Core.Tests
                 Assert.That(engine.Snapshot.RawText, Is.EqualTo("ab"));
             });
         }
+
+        [Test]
+        public void LongInputHasCharacterHistoryAndRestoredTextCanBeDeleted()
+        {
+            using var engine = new BasicEnglishModule().CreateEngine();
+            engine.Process(CompositionCommand.Insert(new string('a', 20000)));
+            Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.RawText.Length, Is.EqualTo(19999));
+            engine.Process(CompositionCommand.RestoreText("你好😀"));
+            Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.DisplayText, Is.EqualTo("你好"));
+        }
     }
 }

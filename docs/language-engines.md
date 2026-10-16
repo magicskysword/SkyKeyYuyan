@@ -85,6 +85,10 @@
 
 现代韩文字符组合的结构依据可参考 [Unicode 韩文音节边界说明](https://www.unicode.org/reports/tr29/#Hangul_Syllable_Boundary_Determination)，键盘背景可参考 [Microsoft 韩语 IME 文档](https://learn.microsoft.com/en-us/globalization/input/korean-ime)。本节定义 SKY 的交互与提交语义。
 
+KoreanModule 注册 `ko.two-set` 实现。HangulComposer 接受两套式拉丁键位、兼容韩文字母和现代规范字母序列，按 [Unicode 音节组合规则](https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-3/#G117718) 生成现代音节。双辅音与 Shift 元音由对应的大写键位输入。
+
+TokenLanguageEngine 将同一文本片段中的词内拼写和分隔符按顺序处理。EngineStep.DeferredInput 交给会话在当前组字提交后继续执行，沿用同一操作标识和递增编辑序号。HistoryLanguageEngine 使用共享文本片段保存历史；多字符输入按完整字符建立回退步骤，检查点共享已有的不可变历史节点。
+
 ## 自定义词组
 
 宿主拥有自定义词条定义及其持久化，运行期间通过稳定词条标识添加、更新或删除。词频由 SKY 的用户词频服务保存。

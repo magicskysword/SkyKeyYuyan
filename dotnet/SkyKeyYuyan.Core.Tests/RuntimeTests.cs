@@ -120,7 +120,7 @@ namespace SkyKeyYuyan.Core.Tests
             using var session = runtime.OpenSession(new SessionOptions { EditingMode = EditingMode.Direct }, target).Session!;
             session.Process(InputOperation.Insert("bad"));
             Assert.That(session.Snapshot.Composition.DisplayText, Is.EqualTo("bad"));
-            session.Process(InputOperation.Backspace()); session.Process(InputOperation.Insert("good"));
+            session.Process(InputOperation.Backspace()); session.Process(InputOperation.Backspace()); session.Process(InputOperation.Backspace()); session.Process(InputOperation.Insert("good"));
             Assert.That(target.ReadSnapshot().Text, Is.EqualTo("good"));
         }
 

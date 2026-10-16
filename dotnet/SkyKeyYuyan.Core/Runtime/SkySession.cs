@@ -14,6 +14,7 @@ namespace SkyKeyYuyan.Core
             internal readonly InputOperation Operation;
             internal OperationResult? Result;
             internal int Part;
+            internal string? DeferredInput;
             internal Request(OperationId id, InputOperation operation) { Id = id; Operation = operation; }
         }
         private sealed class EngineSlot
@@ -125,7 +126,10 @@ namespace SkyKeyYuyan.Core
             var operation = request.Operation;
             switch (operation.Kind)
             {
-                case "input": ApplyStep(request, ProcessEngine(CompositionCommand.Insert(operation.Text), request.Id)); break;
+                case "input":
+                    ApplyStep(request, ProcessEngine(CompositionCommand.Insert(operation.Text), request.Id));
+                    if (request.DeferredInput != null && request.Result == null) { _pending = request; ContinuePending(); return; }
+                    break;
                 case "backspace":
                     if (!_composition.IsEmpty) ApplyStep(request, ProcessEngine(CompositionCommand.Backspace(), request.Id));
                     else Delete(request, false);
@@ -153,10 +157,18 @@ namespace SkyKeyYuyan.Core
             if (request == null || _lifecycle != SessionLifecycle.Active || request.Result != null) return;
             try
             {
+                while (_pending == request && request.Result == null && _lifecycle == SessionLifecycle.Active)
+                {
                 if (!FlushComposition(request)) { Publish(); return; }
                 if (request.Result != null || _lifecycle == SessionLifecycle.Ended) return;
                 switch (request.Operation.Kind)
                 {
+                    case "input":
+                        string? deferred = request.DeferredInput; request.DeferredInput = null;
+                        if (deferred != null) ApplyStep(request, ProcessEngine(CompositionCommand.Insert(deferred), request.Id));
+                        if (request.Result != null) return;
+                        if (request.DeferredInput != null) continue;
+                        break;
                     case "finish":
                         if (_mode == EditingMode.Draft)
                         {
@@ -188,12 +200,14 @@ namespace SkyKeyYuyan.Core
                     default: Complete(request, OperationStatus.Rejected, "无法识别输入操作"); return;
                 }
                 if (request.Result == null) Complete(request, _needsResolution ? OperationStatus.NeedsResolution : _lastEdit != null && !_lastEdit.Applied ? OperationStatus.Rejected : OperationStatus.Applied);
+                }
             }
             catch (Exception ex) { _stagedFinishText = null; Report("operation", ex.Message, request.Id); Complete(request, OperationStatus.Rejected, ex.Message); }
         }
         private bool FlushComposition(Request request)
         {
             if (_stagedFinishText != null || _composition.IsEmpty) return true;
+            if (!_literal && _querying) return false;
             if (!_literal && (_module.Capabilities & LanguageCapabilities.ConvertOnCommit) != 0 && _composition.RawText.Length > 0)
             {
                 if (_querying) return false;
@@ -213,6 +227,7 @@ namespace SkyKeyYuyan.Core
         private void ApplyStep(Request request, EngineStep step)
         {
             _composition = step.Snapshot;
+            if (step.DeferredInput != null) request.DeferredInput = step.DeferredInput;
             if (step.Choices.Count > 0)
             {
                 var record = new ChoiceRecord(request.Id + ":" + (++_choiceSequence), request.Id, _userId, _module.LanguageId, step.Choices);
@@ -262,6 +277,12 @@ namespace SkyKeyYuyan.Core
         }
         private bool HandleEditFailure(Request request, TextEditResult result, bool host)
         {
+            if (result.Status == TextEditStatus.Rejected && request.DeferredInput != null)
+            {
+                var retained = new CompositionSnapshot(_composition.Version, _composition.RawText + request.DeferredInput, _composition.SelectedText);
+                request.DeferredInput = null;
+                _composition = ProcessEngine(CompositionCommand.RestoreComposition(retained), request.Id).Snapshot;
+            }
             if (result.Status == TextEditStatus.VersionConflict && host) End(SessionEndReason.ExternalChange);
             else if (result.Status == TextEditStatus.InvalidTarget) End(SessionEndReason.TargetInvalidated);
             else if (result.Status == TextEditStatus.Unknown) _needsResolution = true;

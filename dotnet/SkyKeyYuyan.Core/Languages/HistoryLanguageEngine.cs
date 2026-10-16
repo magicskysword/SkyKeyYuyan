@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,11 +12,27 @@ namespace SkyKeyYuyan.Core
     /// </summary>
     public abstract class HistoryLanguageEngine : ILanguageEngine
     {
+        private sealed class TextChain
+        {
+            internal readonly TextChain? Previous;
+            internal readonly string Part;
+            internal readonly int Length;
+            internal TextChain(string part, TextChain? previous = null) { Part = part; Previous = previous; Length = part.Length + (previous?.Length ?? 0); }
+            internal TextChain Append(string part) => new TextChain(part, this);
+            public override string ToString()
+            {
+                var parts = new Stack<string>();
+                for (TextChain? node = this; node != null; node = node.Previous) parts.Push(node.Part);
+                var text = new StringBuilder(Length);
+                foreach (string part in parts) text.Append(part);
+                return text.ToString();
+            }
+        }
         private sealed class Node
         {
-            internal readonly string Raw, Selected;
+            internal readonly TextChain Raw, Selected;
             internal readonly Node? Previous;
-            internal Node(string raw, string selected, Node? previous) { Raw = raw; Selected = selected; Previous = previous; }
+            internal Node(TextChain raw, TextChain selected, Node? previous) { Raw = raw; Selected = selected; Previous = previous; }
         }
         private sealed class Checkpoint : ICompositionCheckpoint
         {
@@ -25,9 +43,10 @@ namespace SkyKeyYuyan.Core
             internal Checkpoint(string engineId, Node state, bool completion) { EngineId = engineId; State = state; Completion = completion; }
         }
 
-        private Node _state = new Node("", "", null);
+        private Node _state = new Node(new TextChain(""), new TextChain(""), null);
         private long _version;
         private bool _disposed;
+        private CompositionSnapshot? _cachedSnapshot;
 
         /// <summary>
         /// 创建指定实现的历史状态机。
@@ -50,7 +69,15 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         protected virtual bool DirectInput => false;
         /// <inheritdoc />
-        public CompositionSnapshot Snapshot => new CompositionSnapshot(_version, _state.Raw, _state.Selected, _state.Selected + Render(_state.Raw), _state.Previous != null);
+        public CompositionSnapshot Snapshot
+        {
+            get
+            {
+                if (_cachedSnapshot != null && _cachedSnapshot.Version == _version) return _cachedSnapshot;
+                string raw = _state.Raw.ToString(), selected = _state.Selected.ToString();
+                return _cachedSnapshot = new CompositionSnapshot(_version, raw, selected, selected + Render(raw), _state.Previous != null || raw.Length > 0 || selected.Length > 0);
+            }
+        }
 
         /// <summary>
         /// 将原始拼写映射为展示内容。
@@ -68,25 +95,32 @@ namespace SkyKeyYuyan.Core
             switch (command.Kind)
             {
                 case "input":
-                    Push(_state.Raw + command.Text, _state.Selected);
+                    for (int offset = 0; offset < command.Text.Length;)
+                    {
+                        int next = TextBoundary.Next(command.Text, offset);
+                        Push(_state.Raw.Append(command.Text.Substring(offset, next - offset)), _state.Selected);
+                        offset = next;
+                    }
                     return new EngineStep(Snapshot, DirectInput || (!UsesCandidates && command.Text.Any(IsTerminator)) ? Snapshot.DisplayText : null, UsesCandidates);
                 case "backspace":
                     if (_state.Previous != null) { _state = _state.Previous; _version++; }
+                    else if (_state.Raw.Length > 0) { string raw = _state.Raw.ToString(); _state = new Node(new TextChain(raw.Substring(0, TextBoundary.Previous(raw, raw.Length))), _state.Selected, null); _version++; }
+                    else if (_state.Selected.Length > 0) { string selected = _state.Selected.ToString(); _state = new Node(_state.Raw, new TextChain(selected.Substring(0, TextBoundary.Previous(selected, selected.Length))), null); _version++; }
                     return new EngineStep(Snapshot, queryRequested: UsesCandidates && !Snapshot.IsEmpty);
                 case "choose":
                     var candidate = command.Candidate ?? throw new ArgumentException("候选不能为空");
                     if (candidate.ConsumedLength > _state.Raw.Length) throw new ArgumentException("候选消耗范围超出拼写");
-                    Push(_state.Raw.Substring(candidate.ConsumedLength), _state.Selected + candidate.Text);
+                    Push(new TextChain(_state.Raw.ToString().Substring(candidate.ConsumedLength)), _state.Selected.Append(candidate.Text));
                     return new EngineStep(Snapshot, _state.Raw.Length == 0 ? Snapshot.DisplayText : null, _state.Raw.Length > 0 && UsesCandidates, candidate.Words);
                 case "commit": return new EngineStep(Snapshot, Snapshot.IsEmpty ? null : Snapshot.DisplayText);
-                case "clear": _state = new Node("", "", null); _version++; return new EngineStep(Snapshot);
+                case "clear": _state = new Node(new TextChain(""), new TextChain(""), null); _version++; return new EngineStep(Snapshot);
                 case "completion": CompletionEnabled = command.Enabled; _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates && !Snapshot.IsEmpty);
-                case "restore": _state = new Node(command.Text, command.SelectedText, null); _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates);
+                case "restore": _state = new Node(new TextChain(command.Text), new TextChain(command.SelectedText), null); _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates);
                 default: throw new ArgumentException("无法识别语言命令", nameof(command));
             }
         }
 
-        private void Push(string raw, string selected) { _state = new Node(raw, selected, _state); _version++; }
+        private void Push(TextChain raw, TextChain selected) { _state = new Node(raw, selected, _state); _version++; }
 
         /// <inheritdoc />
         public virtual Task<CandidatePage> QueryCandidatesAsync(CandidateQuery query, CancellationToken cancellationToken)
