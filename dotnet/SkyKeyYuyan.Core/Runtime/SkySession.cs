@@ -178,6 +178,7 @@ namespace SkyKeyYuyan.Core
                 if (request.Result != null || _lifecycle == SessionLifecycle.Ended) return;
                 switch (request.Operation.Kind)
                 {
+                    case "commit": break;
                     case "input":
                         string? deferred = request.DeferredInput; request.DeferredInput = null;
                         if (deferred != null) ApplyStep(request, ProcessEngine(CompositionCommand.Insert(deferred), request.Id));

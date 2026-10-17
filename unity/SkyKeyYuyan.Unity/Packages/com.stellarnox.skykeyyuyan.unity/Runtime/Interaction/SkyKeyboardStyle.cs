@@ -9,8 +9,9 @@ namespace SkyKeyYuyan.Unity
     /// </summary>
     public static class SkyKeyboardStyle
     {
-        public const float Width = 1120, Height = 700, ContentWidth = 1072, KeyboardHeight = 336;
+        public const float Width = 1120, Height = 624, ContentWidth = 1072, KeyboardHeight = 336;
         public const float CandidateStripWidth = 860, CandidateGap = 8;
+        public const float CandidatePopupHeight = 68;
         public const float BodyLineHeight = 36;
         public static readonly Color32 Panel = new Color32(30, 37, 44, 252), Inset = new Color32(23, 30, 37, 255);
         public static readonly Color32 Key = new Color32(54, 63, 74, 255), Function = new Color32(44, 53, 63, 255);
@@ -43,6 +44,17 @@ namespace SkyKeyYuyan.Unity
         /// 根据字体测得的文字宽度保留两侧留白，并限制在候选区内。
         /// </summary>
         public static float CandidateWidth(float textWidth) => Mathf.Clamp(Mathf.Ceil(textWidth) + 24, 48, CandidateStripWidth);
+        /// <summary>
+        /// 将候选浮窗放到光标所在行下方，空间不足时翻到上方并限制在面板内。
+        /// </summary>
+        public static Rect CandidatePopupRect(Vector2 caret, float lineHeight, float width, float keyboardTop)
+        {
+            width = Mathf.Clamp(width, 1, ContentWidth);
+            float bottom = keyboardTop - 8, y = caret.y + lineHeight + 6;
+            if (y + CandidatePopupHeight > bottom) y = caret.y - CandidatePopupHeight - 6;
+            y = Mathf.Clamp(y, 56, Mathf.Max(56, bottom - CandidatePopupHeight));
+            return new Rect(Mathf.Clamp(caret.x, 24, Width - 24 - width), y, width, CandidatePopupHeight);
+        }
         /// <summary>
         /// 按最低行数及当前内容计算正文视口高度，超出五行的内容由原生控件滚动。
         /// </summary>

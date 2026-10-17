@@ -26,9 +26,10 @@ namespace SkyKeyYuyan.UI.UGUI
         private SkyPanelController _controller;
         private UguiTextTarget _draftTarget;
         private Func<TextSnapshot, ITextTarget> _factory, _previousFactory;
-        private RectTransform _frame, _keyboard, _candidateRoot;
-        private Text _title, _composition, _selection, _status;
+        private RectTransform _frame, _keyboard, _candidateRoot, _candidatePopup;
+        private Text _title, _status;
         private SkyDraftInputField _body;
+        private UguiCompositionView _inline;
         private SkyPanelButton _previousCandidate, _nextCandidate;
         private KeyboardLayout _layout;
         private bool _draftActive;
@@ -57,7 +58,7 @@ namespace SkyKeyYuyan.UI.UGUI
             var panel = owner.AddComponent<UguiSkyPanel>(); panel.BodyFont = mixedFont; panel.Bind(player); return panel;
         }
         /// <summary>
-        /// 为组字、候选及键盘指定语言字体。
+        /// 为候选及键盘指定语言字体。
         /// </summary>
         public void SetLanguageFont(string language, Font font) { _languageFonts[language] = font; if (_controller != null) Render(_controller.State); }
         /// <summary>
@@ -112,19 +113,25 @@ namespace SkyKeyYuyan.UI.UGUI
             bodyRoot.gameObject.AddComponent<RectMask2D>();
             _body = bodyRoot.gameObject.AddComponent<SkyDraftInputField>(); _body.lineType = InputField.LineType.MultiLineNewline; _body.targetGraphic = bodyRoot.GetComponent<Image>();
             _body.FocusRequested += () => _controller?.SetTextFocused(true);
+            _body.PreparePointerFocus = PrepareBodyPointer;
             var bodyLabel = Label("Text", bodyRoot, 12, 8, 1048, 56, 26); bodyLabel.verticalOverflow = VerticalWrapMode.Overflow; _body.textComponent = bodyLabel; _body.caretColor = SkyKeyboardStyle.Accent; _body.customCaretColor = true; _body.selectionColor = new Color(0.25f, 0.75f, 0.65f, 0.4f);
-            Label("CompositionCaption", _frame, 24, 148, 78, 28, 19).text = "组字";
-            var compositionRoot = Rect("CompositionBackground", _frame, 108, 140, 988, 40); compositionRoot.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Border);
-            _composition = Label("Composition", compositionRoot, 12, 5, 964, 30, 24);
-            var candidatesBackground = Rect("CandidateBackground", _frame, 24, 192, 1072, 52); candidatesBackground.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Border);
-            Label("CandidateCaption", candidatesBackground, 10, 12, 68, 28, 19).text = "候选";
-            _candidateRoot = Rect("Candidates", _frame, 108, 192, 860, 52);
-            _previousCandidate = Button("PreviousCandidate", _frame, 976, 192, 56, 52, "‹", () => _player?.Handle(SkyControl.PreviousCandidate));
-            _nextCandidate = Button("NextCandidate", _frame, 1040, 192, 56, 52, "›", () => _player?.Handle(SkyControl.NextCandidate));
-            _keyboard = Rect("Keyboard", _frame, 24, 262, 1072, 336);
-            _selection = Label("SelectedCandidate", _frame, 24, 600, 1072, 24, 19); _selection.color = SkyKeyboardStyle.Accent;
-            _status = Label("Status", _frame, 24, 628, 1072, 24, 17); _status.color = SkyKeyboardStyle.Muted;
+            _inline = new UguiCompositionView(_body);
+            _keyboard = Rect("Keyboard", _frame, 24, 208, 1072, 336);
+            _status = Label("Status", _frame, 24, 552, 1072, 24, 17); _status.color = SkyKeyboardStyle.Muted;
             BuildHints();
+            _candidatePopup = Rect("CandidatePopup", _frame, 24, 100, 964, SkyKeyboardStyle.CandidatePopupHeight);
+            _candidatePopup.gameObject.AddComponent<SkyPanelGraphic>().Configure(SkyKeyboardStyle.Inset, SkyKeyboardStyle.Border, 1, 10);
+            _candidateRoot = Rect("Candidates", _candidatePopup, 8, 8, 860, 52);
+            _previousCandidate = Button("PreviousCandidate", _candidatePopup, 876, 8, 36, 52, "‹", () => _player?.Handle(SkyControl.PreviousCandidate));
+            _nextCandidate = Button("NextCandidate", _candidatePopup, 920, 8, 36, 52, "›", () => _player?.Handle(SkyControl.NextCandidate));
+            _candidatePopup.gameObject.SetActive(false);
+        }
+        private bool PrepareBodyPointer()
+        {
+            var session = _player?.Session;
+            if (session == null) return false;
+            if (!session.Snapshot.Composition.IsEmpty) session.Process(InputOperation.CommitComposition());
+            return session.Snapshot.Composition.IsEmpty && !session.Snapshot.NeedsResolution;
         }
         private void Render(SkyPanelState state)
         {
@@ -132,15 +139,15 @@ namespace SkyKeyYuyan.UI.UGUI
             Font languageFont = _languageFonts.TryGetValue(snapshot.LanguageId, out var configured) && configured != null ? configured : BodyFont;
             var language = _player.Session?.Languages.FirstOrDefault(item => item.LanguageId == snapshot.LanguageId);
             _title.text = _player.PlayerId + "   ·   " + (language?.DisplayName ?? snapshot.LanguageId) + (snapshot.Lifecycle == SessionLifecycle.Paused ? "   已暂停" : snapshot.Literal ? "   字面输入" : "");
-            _composition.font = languageFont; _composition.text = snapshot.Composition.IsEmpty ? "请输入" : snapshot.Composition.DisplayText;
-            _selection.font = languageFont;
+            var composition = new SkyCompositionText(snapshot);
             if (!_draftActive)
             {
                 _body.readOnly = true; _body.interactable = false; _body.SetTextWithoutNotify(snapshot.Text.Text);
                 _body.selectionAnchorPosition = snapshot.Text.Anchor; _body.selectionFocusPosition = snapshot.Text.Caret;
             }
             else _body.interactable = true;
-            RenderBody(state);
+            RenderBody(state, composition);
+            _inline.Render(composition);
             if (!ReferenceEquals(_layout, state.Layout)) { _layout = state.Layout; BuildKeys(); }
             foreach (var view in _keys)
             {
@@ -163,7 +170,7 @@ namespace SkyKeyYuyan.UI.UGUI
             _hintLabels[0].text = state.TextFocused ? "光标" : "选键"; _hintLabels[3].text = state.TextFocused ? "框选" : "候选"; _hintLabels[4].text = state.TextFocused ? "键盘" : "正文";
             _activationHint.alpha = state.TextFocused ? .35f : 1;
         }
-        private void RenderBody(SkyPanelState state)
+        private void RenderBody(SkyPanelState state, SkyCompositionText composition)
         {
             _body.RetainEditing = _draftActive && state.TextFocused;
             if (_bodyFocused != state.TextFocused)
@@ -172,7 +179,7 @@ namespace SkyKeyYuyan.UI.UGUI
                 if (_draftActive) { if (_bodyFocused) _body.ActivateInputField(); else _body.DeactivateInputField(); }
             }
             ((SkyPanelGraphic)_body.targetGraphic).Configure(SkyKeyboardStyle.Inset, state.TextFocused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, state.TextFocused ? 3 : 1, 10);
-            var options = _player.TextInput; var label = _body.textComponent; string text = state.Session.Text.Text;
+            var options = _player.TextInput; var label = _body.textComponent; string text = composition.Text;
             if (_measuredBodyText == text && ReferenceEquals(_bodyOptions, options) && _measuredBodyFont == label.font) return;
             _measuredBodyText = text; _bodyOptions = options; _measuredBodyFont = label.font;
             _body.lineType = options.Type == SkyTextInputType.SingleLine ? InputField.LineType.SingleLine : InputField.LineType.MultiLineNewline;
@@ -184,7 +191,7 @@ namespace SkyKeyYuyan.UI.UGUI
             ((RectTransform)_body.transform).sizeDelta = new Vector2(1072, height);
             label.rectTransform.sizeDelta = new Vector2(1048, height - 16);
             foreach (RectTransform child in _frame)
-                if (child.name != "Title" && child.name != "Close" && child.name != "Body") child.anchoredPosition += new Vector2(0, -delta);
+                if (child.name != "Title" && child.name != "Close" && child.name != "Body" && child != _candidatePopup) child.anchoredPosition += new Vector2(0, -delta);
             _body.ForceLabelUpdate(); Fit();
         }
         private void BuildKeys()
@@ -240,14 +247,18 @@ namespace SkyKeyYuyan.UI.UGUI
                 textRect.sizeDelta = new Vector2(width - 12, 44);
                 var label = button.GetComponentInChildren<Text>(); label.font = font; label.text = page.Candidates[index].Text;
                 bool selected = index == snapshot.SelectedCandidate;
-                ((SkyPanelGraphic)button.targetGraphic).Configure(selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function, selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border);
-                label.color = selected ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
+                ((SkyPanelGraphic)button.targetGraphic).Configure(selected ? SkyKeyboardStyle.Active : SkyKeyboardStyle.Function, selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, selected ? 2 : 1);
+                label.color = selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Text;
                 button.interactable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution;
                 x += width + SkyKeyboardStyle.CandidateGap;
             }
-            _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
-            _previousCandidate.gameObject.SetActive(count > 0); _nextCandidate.gameObject.SetActive(count > 0);
+            _candidatePopup.gameObject.SetActive(count > 0 && !snapshot.Composition.IsEmpty);
             _previousCandidate.interactable = _nextCandidate.interactable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution;
+            if (!_candidatePopup.gameObject.activeSelf) return;
+            ((RectTransform)_previousCandidate.transform).anchoredPosition = new Vector2(x + 8, -8);
+            ((RectTransform)_nextCandidate.transform).anchoredPosition = new Vector2(x + 52, -8);
+            var popup = SkyKeyboardStyle.CandidatePopupRect(_inline.Caret, _inline.LineHeight, x + 96, -_keyboard.anchoredPosition.y);
+            _candidatePopup.anchoredPosition = new Vector2(popup.x, -popup.y); _candidatePopup.sizeDelta = popup.size;
         }
         private Text Label(string name, Transform parent, float x, float y, float width, float height, int size)
         {
@@ -271,7 +282,7 @@ namespace SkyKeyYuyan.UI.UGUI
             for (int index = 0; index < glyphs.Length; index++)
             {
                 float glyphWidth = glyphs[index].Length > 1 ? 64 : 30;
-                var group = Rect("HintGroup" + index, _frame, x, 660, widths[index], 30);
+                var group = Rect("HintGroup" + index, _frame, x, 584, widths[index], 30);
                 if (index == 1) _activationHint = group.gameObject.AddComponent<CanvasGroup>();
                 if (index >= 5)
                 {
@@ -309,6 +320,6 @@ namespace SkyKeyYuyan.UI.UGUI
             _draftTarget?.Dispose(); _draftTarget = null; _player = null; _controller = null;
         }
         private static void DestroyView(UnityEngine.Object value) { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); }
-        private void OnDestroy() { Unbind(); ((IDisposable)_bodyMeasure).Dispose(); }
+        private void OnDestroy() { Unbind(); _inline?.Dispose(); ((IDisposable)_bodyMeasure).Dispose(); }
     }
 }

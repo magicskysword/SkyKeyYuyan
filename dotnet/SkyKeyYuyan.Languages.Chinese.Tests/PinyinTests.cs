@@ -24,6 +24,22 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
             return module;
         }
         private static Task<CandidatePage> Query(ILanguageEngine engine, ILanguageModule module, IReadOnlyDictionary<string, long>? frequencies = null) => engine.QueryCandidatesAsync(new CandidateQuery(1, 1, engine.Snapshot, module.CaptureData(), frequencies: frequencies), CancellationToken.None);
+        [Test]
+        public void CommitCompositionReplacesReverseSelectionAndKeepsSessionOpen()
+        {
+            using var runtime = new SkyRuntime(); runtime.RegisterLanguage(Module());
+            runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            var target = new MemoryTextTarget("AB😀CD", 4, 2);
+            using var session = runtime.OpenSession(new SessionOptions { InitialLanguage = "zh-Hans" }, target).Session!;
+            session.Process(InputOperation.Insert("hen"));
+            session.Process(InputOperation.CommitComposition());
+            WaitFor(() => session.Snapshot.PendingOperation == null && session.Snapshot.Composition.IsEmpty);
+            Assert.That(session.Snapshot.Text.Text, Is.EqualTo("AB很CD"));
+            Assert.That(session.Snapshot.Text.Anchor, Is.EqualTo(3)); Assert.That(session.Snapshot.Text.Caret, Is.EqualTo(3));
+            Assert.That(session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+            Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB😀CD"));
+            session.Process(InputOperation.Finish()); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB很CD"));
+        }
         [TestCase(1)]
         [TestCase(7)]
         [TestCase(20)]

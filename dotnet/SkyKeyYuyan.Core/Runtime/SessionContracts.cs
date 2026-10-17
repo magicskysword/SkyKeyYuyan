@@ -178,6 +178,10 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         public static InputOperation Newline() => new InputOperation("newline");
         /// <summary>
+        /// 提交当前组字，保留提交后的光标位置并继续编辑。
+        /// </summary>
+        public static InputOperation CommitComposition() => new InputOperation("commit");
+        /// <summary>
         /// 移动正文光标或扩展选区。
         /// </summary>
         public static InputOperation Navigate(TextNavigation direction, bool extend = false) => new InputOperation("navigate", navigation: direction, enabled: extend);

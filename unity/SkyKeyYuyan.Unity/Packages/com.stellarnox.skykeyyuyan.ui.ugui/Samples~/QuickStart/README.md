@@ -20,4 +20,6 @@
 
 键盘模式中左摇杆选键、A 输入、B 回退、右摇杆浏览候选、X 确认选词、Y 切换语言；Start 保存并关闭面板，在正文编辑中也可使用。
 
+用 Y 切换到简体中文，输入 `hen` 可查看正文光标处的拼音下划线和浮动候选；X 确认后正文显示所选汉字。正文较长时，行内组字和候选浮窗跟随可见光标。
+
 场景由 `Tools/SkyKeyYuyan/示例` 菜单生成。核心接入流程位于 `SkyQuickStart`，后端绑定分别位于 `SkyLegacyQuickStart` 与 `SkyInputSystemQuickStart`。

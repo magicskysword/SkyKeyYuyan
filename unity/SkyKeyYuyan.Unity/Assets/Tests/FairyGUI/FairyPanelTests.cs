@@ -131,6 +131,53 @@ public class FairyPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator InlineCompositionPreservesTextAndFloatingCandidatesFollowVisibleCaret()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("AB😀CD", 4))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule());
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10) }));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
+            {
+                player.Open(target, runtime); yield return null;
+                player.Handle(SkyControl.SelectLeft); player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                var viewport = panel.View.GetChild("compositionViewport").asCom;
+                var preview = viewport.GetChild("compositionPreview").asTextField;
+                var popup = panel.View.GetChild("candidatePopup").asCom; var keyboard = panel.View.GetChild("keyboard");
+                Assert.That(preview.text, Is.EqualTo("ABhenCD")); Assert.That(viewport.visible, Is.True);
+                Assert.That(panel.DraftField.text, Is.EqualTo("AB😀CD")); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("AB😀CD"));
+                Assert.That(popup.visible, Is.True);
+                yield return CapturePanels("fairygui-inline-composition");
+                player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain(); yield return null;
+                Assert.That(panel.DraftField.text, Is.EqualTo("AB很CD")); Assert.That(viewport.visible, Is.False);
+                Assert.That(popup.visible, Is.False); Assert.That(panel.DraftField.inputTextField.alpha, Is.EqualTo(1));
+                foreach (var type in new[] { SkyTextInputType.MultiLine, SkyTextInputType.SingleLine })
+                {
+                    player.Handle(SkyControl.Cancel); player.Open(target, runtime, textInput: new SkyTextInputOptions(type));
+                    player.Session.Process(InputOperation.SwitchLanguage("en")); player.Handle(SkyControl.SelectAll); player.Handle(SkyControl.Clear);
+                    string text = type == SkyTextInputType.MultiLine ? "第一行\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行\n" : new string('W', 120);
+                    player.Handle(SkyControl.Text, text: text); player.Session.Process(InputOperation.SwitchLanguage("zh-Hans")); player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+                    deadline = Time.realtimeSinceStartup + 5;
+                    while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                    Assert.That(preview.text, Is.EqualTo(text + "hen")); Assert.That(panel.DraftField.text, Is.EqualTo(text));
+                    Assert.That(popup.x, Is.GreaterThanOrEqualTo(24)); Assert.That(popup.x + popup.width, Is.LessThanOrEqualTo(1096));
+                    Assert.That(popup.y + popup.height, Is.LessThanOrEqualTo(keyboard.y - 8));
+                    Assert.That(preview.y, Is.LessThanOrEqualTo(0));
+                    yield return CapturePanels(type == SkyTextInputType.MultiLine ? "fairygui-inline-multiline" : "fairygui-inline-single-line");
+                    player.Session.Process(InputOperation.CommitComposition()); services.Context.Drain();
+                    Assert.That(panel.DraftField.text, Is.EqualTo(text + "很")); Assert.That(popup.visible, Is.False);
+                }
+                player.Handle(SkyControl.Cancel); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB😀CD"));
+            }
+        }
+    }
+    [UnityTest]
     public IEnumerator CandidatesUseNativeTextWidthsAndFollowGamepadSelection()
     {
         var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };
@@ -148,7 +195,7 @@ public class FairyPanelTests
                 float deadline = Time.realtimeSinceStartup + 5;
                 while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
                 Assert.That(player.Session.Snapshot.Candidates.Candidates.Count, Is.EqualTo(20));
-                var candidates = panel.View.GetChild("candidates").asCom;
+                var candidates = panel.View.GetChild("candidatePopup").asCom.GetChild("candidates").asCom;
                 var first = candidates.GetChild("candidate0").asButton; var phrase = candidates.GetChild("candidate7").asButton;
                 Assert.That(first.width, Is.LessThan(70)); Assert.That(phrase.width, Is.GreaterThan(first.width));
                 foreach (var button in candidates.GetChildren().Where(button => button.visible).Select(button => button.asButton))
@@ -191,7 +238,7 @@ public class FairyPanelTests
                 while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
                 Assert.That(player.Session.Snapshot.Candidates.Candidates[0].Text, Is.EqualTo("很"));
                 yield return CapturePanels("fairygui-pinyin-keyboard");
-                panel.View.GetChild("candidates").asCom.GetChild("candidate0").asButton.FireClick(false, true); services.Context.Drain();
+                panel.View.GetChild("candidatePopup").asCom.GetChild("candidates").asCom.GetChild("candidate0").asButton.FireClick(false, true); services.Context.Drain();
                 Assert.That(panel.DraftField.text, Is.EqualTo("很")); Assert.That(target.ReadSnapshot().Text, Is.Empty);
                 player.Handle(SkyControl.Finish); services.Context.Drain(); Assert.That(player.Session, Is.Not.Null); Assert.That(panel.View.visible, Is.True);
                 native.restrict = ""; player.Handle(SkyControl.Finish); services.Context.Drain();

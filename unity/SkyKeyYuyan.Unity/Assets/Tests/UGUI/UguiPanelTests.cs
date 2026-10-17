@@ -139,6 +139,59 @@ public class UguiPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator InlineCompositionPreservesTextAndFloatingCandidatesFollowVisibleCaret()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("AB😀CD", 4))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule());
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10) }));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            player.Open(target, runtime); yield return null;
+            player.Handle(SkyControl.SelectLeft); player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+            float deadline = Time.realtimeSinceStartup + 5;
+            while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+            var preview = panel.GetComponentsInChildren<Text>(true).Single(text => text.name == "CompositionPreview");
+            var popup = (RectTransform)panel.transform.Find("Frame/CandidatePopup");
+            var keyboard = (RectTransform)panel.transform.Find("Frame/Keyboard");
+            Assert.That(preview.text, Is.EqualTo("ABhenCD")); Assert.That(preview.gameObject.activeSelf, Is.True);
+            Assert.That(panel.DraftField.text, Is.EqualTo("AB😀CD")); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("AB😀CD"));
+            Assert.That(popup.gameObject.activeSelf, Is.True);
+            yield return null; CapturePanels("ugui-inline-composition");
+            player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain(); yield return null;
+            Assert.That(panel.DraftField.text, Is.EqualTo("AB很CD")); Assert.That(preview.gameObject.activeSelf, Is.False);
+            Assert.That(popup.gameObject.activeSelf, Is.False); Assert.That(panel.DraftField.textComponent.color.a, Is.EqualTo(1));
+            foreach (var type in new[] { SkyTextInputType.MultiLine, SkyTextInputType.SingleLine })
+            {
+                player.Handle(SkyControl.Cancel); player.Open(target, runtime, textInput: new SkyTextInputOptions(type));
+                player.Session.Process(InputOperation.SwitchLanguage("en")); player.Handle(SkyControl.SelectAll); player.Handle(SkyControl.Clear);
+                string text = type == SkyTextInputType.MultiLine ? "第一行\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行\n" : new string('W', 120);
+                player.Handle(SkyControl.Text, text: text); player.Session.Process(InputOperation.SwitchLanguage("zh-Hans")); player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+                deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                Assert.That(preview.text, Is.EqualTo(text + "hen")); Assert.That(panel.DraftField.text, Is.EqualTo(text));
+                Assert.That(popup.anchoredPosition.x, Is.GreaterThanOrEqualTo(24));
+                Assert.That(popup.anchoredPosition.x + popup.rect.width, Is.LessThanOrEqualTo(1096));
+                Assert.That(-popup.anchoredPosition.y + popup.rect.height, Is.LessThanOrEqualTo(-keyboard.anchoredPosition.y - 8));
+                Assert.That(preview.rectTransform.anchoredPosition.y, Is.GreaterThanOrEqualTo(-8));
+                yield return null; Canvas.ForceUpdateCanvases();
+                var vertices = preview.cachedTextGenerator.verts;
+                Assert.That(vertices.Count, Is.GreaterThanOrEqualTo(8));
+                Vector3 lastGlyph = Vector3.zero;
+                for (int index = vertices.Count - 8; index < vertices.Count - 4; index++) lastGlyph += vertices[index].position / 4;
+                var bodyRect = (RectTransform)panel.DraftField.transform;
+                Assert.That(bodyRect.rect.Contains(bodyRect.InverseTransformPoint(preview.rectTransform.TransformPoint(lastGlyph / preview.pixelsPerUnit))), Is.True);
+                CapturePanels(type == SkyTextInputType.MultiLine ? "ugui-inline-multiline" : "ugui-inline-single-line");
+                Assert.That(panel.DraftField.PreparePointerFocus(), Is.True); services.Context.Drain();
+                Assert.That(panel.DraftField.text, Is.EqualTo(text + "很")); Assert.That(popup.gameObject.activeSelf, Is.False);
+            }
+            player.Handle(SkyControl.Cancel); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB😀CD"));
+        }
+    }
+    [UnityTest]
     public IEnumerator CandidatesFitTheirTextAndKeepGamepadSelectionVisible()
     {
         var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };

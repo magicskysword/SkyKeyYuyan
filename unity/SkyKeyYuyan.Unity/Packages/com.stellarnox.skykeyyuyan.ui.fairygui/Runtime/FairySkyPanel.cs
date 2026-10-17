@@ -24,10 +24,13 @@ namespace SkyKeyYuyan.UI.FairyGUI
         }
         private const string PackageId = "7b0bbb69", PackageName = "SkyKeyYuyan";
         private readonly SkyPlayerContext _player;
-        private readonly GComponent _parent, _keyboard, _candidates;
-        private readonly GTextField _title, _composition, _selection, _status;
+        private readonly GComponent _parent, _keyboard, _candidates, _candidatePopup;
+        private readonly GGraph _candidateBackground;
+        private readonly GButton _previousCandidate, _nextCandidate;
+        private readonly GTextField _title, _status;
         private readonly GTextInput _body;
         private readonly FairyDraftSelection _draftSelection;
+        private readonly FairyCompositionView _inline;
         private readonly Dictionary<string, string> _fonts = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<KeyView> _keys = new List<KeyView>();
         private readonly List<GButton> _candidateButtons = new List<GButton>();
@@ -68,15 +71,21 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _parent = parent; _player = player;
             View = UIPackage.CreateObject(PackageName, "Panel").asCom; parent.AddChild(View);
             View.displayObject.gameObject.AddComponent<SkyInputSurface>();
-            _title = View.GetChild("title").asTextField; _composition = View.GetChild("composition").asTextField;
-            _selection = View.GetChild("selection").asTextField; _status = View.GetChild("status").asTextField;
+            _title = View.GetChild("title").asTextField; _status = View.GetChild("status").asTextField;
             _body = (GTextInput)View.GetChild("body"); _body.maxLength = 0;
             _bodyBackground = View.GetChild("bodyBackground").asGraph; _bodyHeight = _bodyBackground.height;
-            _body.onTouchBegin.Add(() => _controller?.SetTextFocused(true));
+            _body.onTouchBegin.AddCapture(context => { if (!PrepareBodyPointer()) context.StopPropagation(); else _controller?.SetTextFocused(true); });
             _keyboard = View.GetChild("keyboard").asCom; _candidates = View.GetChild("candidates").asCom;
             _keyboard.RemoveChildren(0, -1, true); _candidates.RemoveChildren(0, -1, true);
             if (!string.IsNullOrEmpty(mixedFont)) SetFont(View, mixedFont);
             _draftSelection = new FairyDraftSelection(_body);
+            _inline = new FairyCompositionView(_body, View.GetChild("compositionPreview").asTextField);
+            _candidatePopup = new GComponent { name = "candidatePopup" }; View.AddChild(_candidatePopup);
+            _candidateBackground = View.GetChild("candidateBackground").asGraph;
+            _previousCandidate = View.GetChild("previousCandidate").asButton; _nextCandidate = View.GetChild("nextCandidate").asButton;
+            _candidatePopup.AddChild(_candidateBackground); _candidatePopup.AddChild(_candidates); _candidatePopup.AddChild(_previousCandidate); _candidatePopup.AddChild(_nextCandidate);
+            _candidateBackground.SetXY(0, 0); _candidates.SetXY(8, 8); _previousCandidate.SetSize(36, 52); _nextCandidate.SetSize(36, 52);
+            _candidatePopup.visible = false;
             Wire("cancel", SkyControl.Cancel); Wire("finish", SkyControl.Finish); Wire("language", SkyControl.Language); Wire("confirm", SkyControl.ConfirmCandidate);
             Wire("previousCandidate", SkyControl.PreviousCandidate); Wire("nextCandidate", SkyControl.NextCandidate);
             _factory = CreateDraft; _previousFactory = player.DraftTargetFactory; player.DraftTargetFactory = _factory;
@@ -85,7 +94,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             View.visible = false; Fit();
         }
         /// <summary>
-        /// 配置组字、候选和虚拟按键的语言字体。
+        /// 配置候选和虚拟按键的语言字体。
         /// </summary>
         public void SetLanguageFont(string language, string font)
         { _fonts[language] = font; if (_controller != null) Render(_controller.State); }
@@ -109,8 +118,15 @@ namespace SkyKeyYuyan.UI.FairyGUI
         }
         private void Wire(string name, SkyControl control)
         {
-            var button = View.GetChild(name).asButton; button.focusable = false;
+            var button = (View.GetChild(name) ?? _candidatePopup.GetChild(name)).asButton; button.focusable = false;
             button.onClick.Add(() => _player.Handle(control));
+        }
+        private bool PrepareBodyPointer()
+        {
+            var session = _player.Session;
+            if (session == null) return false;
+            if (!session.Snapshot.Composition.IsEmpty) session.Process(InputOperation.CommitComposition());
+            return session.Snapshot.Composition.IsEmpty && !session.Snapshot.NeedsResolution;
         }
         private void Render(SkyPanelState state)
         {
@@ -118,10 +134,10 @@ namespace SkyKeyYuyan.UI.FairyGUI
             var snapshot = state.Session; var language = _player.Session?.Languages.FirstOrDefault(item => item.LanguageId == snapshot.LanguageId);
             string font = _fonts.TryGetValue(snapshot.LanguageId, out var configured) && !string.IsNullOrEmpty(configured) ? configured : _body.textFormat.font;
             _title.text = _player.PlayerId + "   ·   " + (language?.DisplayName ?? snapshot.LanguageId) + (snapshot.Lifecycle == SessionLifecycle.Paused ? "   已暂停" : snapshot.Literal ? "   字面输入" : "");
-            SetFont(_composition, font); _composition.text = snapshot.Composition.IsEmpty ? "请输入" : snapshot.Composition.DisplayText;
+            var composition = new SkyCompositionText(snapshot);
             if (!_draftActive) { _body.editable = false; _body.touchable = false; _body.text = snapshot.Text.Text; }
             else _body.touchable = true;
-            RenderBody(state);
+            RenderBody(state, composition); _inline.Render(composition);
             if (!ReferenceEquals(_layout, state.Layout)) { _layout = state.Layout; BuildKeys(); }
             foreach (var key in _keys)
             {
@@ -140,9 +156,9 @@ namespace SkyKeyYuyan.UI.FairyGUI
             View.GetChild("hintLabel3").asTextField.text = state.TextFocused ? "框选" : "候选";
             View.GetChild("hintLabel4").asTextField.text = state.TextFocused ? "键盘" : "正文";
             foreach (string name in new[] { "hint1", "hintGlyph1", "hintLabel1" }) View.GetChild(name).alpha = state.TextFocused ? .35f : 1;
-            _draftSelection.Render(snapshot.Text, state.TextFocused);
+            _draftSelection.Render(snapshot.Text, state.TextFocused && !composition.Active);
         }
-        private void RenderBody(SkyPanelState state)
+        private void RenderBody(SkyPanelState state, SkyCompositionText composition)
         {
             if (_bodyFocused != state.TextFocused)
             {
@@ -150,16 +166,16 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 if (_draftActive) { if (_bodyFocused) _body.RequestFocus(); else if (_body.inputTextField.focused) Stage.inst.SetFocus(null); }
                 _bodyBackground.shape.DrawRoundRect(state.TextFocused ? 3 : 1, state.TextFocused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, SkyKeyboardStyle.Inset, 10, 10, 10, 10);
             }
-            var options = _player.TextInput; string text = state.Session.Text.Text;
+            var options = _player.TextInput; string text = composition.Text;
             if (_measuredBodyText == text && ReferenceEquals(_bodyOptions, options)) return;
             _measuredBodyText = text; _bodyOptions = options; _body.singleLine = options.Type == SkyTextInputType.SingleLine;
-            float height = SkyKeyboardStyle.BodyHeight(options, _body.textHeight), delta = height - _bodyHeight;
+            float height = SkyKeyboardStyle.BodyHeight(options, _inline.Measure(text)), delta = height - _bodyHeight;
             if (delta == 0) return;
             _bodyHeight = height; View.SetSize(View.width, View.height + delta);
             View.GetChild("background").SetSize(View.width, View.height);
             _bodyBackground.SetSize(_bodyBackground.width, height); _body.SetSize(_body.width, height - 16);
             foreach (var child in View.GetChildren())
-                if (child.name != "background" && child.name != "title" && child.name != "cancel" && child.name != "bodyBackground" && child.name != "body") child.y += delta;
+                if (child.name != "background" && child.name != "title" && child.name != "cancel" && child.name != "bodyBackground" && child.name != "body" && child.name != "compositionViewport" && child != _candidatePopup) child.y += delta;
             Fit();
         }
         private void BuildKeys()
@@ -205,19 +221,23 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 var button = _candidateButtons[index]; button.visible = index >= first && index < end;
                 if (!button.visible) continue;
                 float width = _candidateWidths[index]; button.SetXY(x, 0); button.SetSize(width, 52); button.title = page.Candidates[index].Text;
-                Style(button, font, index == snapshot.SelectedCandidate, !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution);
+                Style(button, font, index == snapshot.SelectedCandidate, !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution, candidate: true);
                 x += width + SkyKeyboardStyle.CandidateGap;
             }
-            SetFont(_selection, font); _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
-            foreach (string name in new[] { "previousCandidate", "nextCandidate" })
-            { var button = View.GetChild(name); button.visible = count > 0; button.touchable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution; }
+            _candidatePopup.visible = count > 0 && !snapshot.Composition.IsEmpty;
+            _previousCandidate.touchable = _nextCandidate.touchable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution;
+            if (!_candidatePopup.visible) return;
+            _previousCandidate.SetXY(x + 8, 8); _nextCandidate.SetXY(x + 52, 8);
+            var popup = SkyKeyboardStyle.CandidatePopupRect(_inline.Caret, _inline.LineHeight, x + 96, _keyboard.y);
+            _candidatePopup.SetXY(popup.x, popup.y); _candidatePopup.SetSize(popup.width, popup.height);
+            _candidateBackground.SetSize(popup.width, popup.height); _candidateBackground.shape.DrawRoundRect(1, SkyKeyboardStyle.Border, SkyKeyboardStyle.Inset, 10, 10, 10, 10);
         }
         private static GButton NewButton(GComponent parent, string name, float x, float y, float width, float height)
         {
             var button = UIPackage.CreateObject(PackageName, "Key").asButton; button.name = name; button.focusable = false;
             parent.AddChild(button); button.SetXY(x, y); button.SetSize(width, height); return button;
         }
-        private static void Style(GButton button, string font, bool focused, bool enabled, KeyboardKey key = null, bool active = false)
+        private static void Style(GButton button, string font, bool focused, bool enabled, KeyboardKey key = null, bool active = false, bool candidate = false)
         {
             var text = button.GetTextField(); SetFont(text, font); button.touchable = enabled; button.alpha = enabled ? 1 : 0.32f;
             var skin = button.data as ButtonSkin;
@@ -227,17 +247,17 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 button.data = skin;
             }
             bool frame = focused && key != null;
-            Color fill = key != null ? SkyKeyboardStyle.KeyColor(key, focused, active) : focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function;
+            Color fill = key != null ? SkyKeyboardStyle.KeyColor(key, focused, active) : focused ? candidate ? SkyKeyboardStyle.Active : SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function;
             Color edge = frame ? SkyKeyboardStyle.DarkText : focused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border;
             if (!skin.Initialized || skin.Fill != fill || skin.Edge != edge || skin.Focused != frame)
             {
-                skin.Background.shape.DrawRoundRect(frame ? 5 : 1, edge, fill, 8, 8, 8, 8);
+                skin.Background.shape.DrawRoundRect(frame ? 5 : candidate && focused ? 2 : 1, edge, fill, 8, 8, 8, 8);
                 skin.Fill = fill; skin.Edge = edge; skin.Focused = frame; skin.Initialized = true;
             }
             if (skin.Outline != null) skin.Outline.visible = frame;
             if (skin.Badge != null) skin.Badge.visible = frame && enabled;
             if (skin.Glyph != null) skin.Glyph.visible = frame && enabled;
-            var format = text.textFormat; Color foreground = focused || key?.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
+            var format = text.textFormat; Color foreground = candidate && focused ? SkyKeyboardStyle.Accent : focused || key?.Action == "finish" ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
             if (format.color != foreground) { format.color = foreground; text.textFormat = format; }
         }
         private static void SetFont(GObject value, string font)
@@ -255,7 +275,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
         {
             if (_disposed) return;
             if (View.isDisposed) { Dispose(); return; }
-            if (_player.Session != null && View.visible) _draftSelection.Render(_player.Session.Snapshot.Text, _player.Panel.State.TextFocused);
+            if (_player.Session != null && View.visible) _draftSelection.Render(_player.Session.Snapshot.Text, _player.Panel.State.TextFocused && _player.Session.Snapshot.Composition.IsEmpty);
         }
         /// <inheritdoc>
         /// </inheritdoc>
@@ -266,7 +286,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _disposed = true; if (_controller != null) _controller.Changed -= Render;
             _player.Opened -= OnOpened; _player.Closed -= OnClosed; _parent.onSizeChanged.Remove(Fit);
             if (ReferenceEquals(_player.DraftTargetFactory, _factory)) _player.DraftTargetFactory = _previousFactory;
-            _draft?.Dispose(); _draftSelection.Dispose(); if (!View.isDisposed) View.Dispose();
+            _draft?.Dispose(); _draftSelection.Dispose(); _inline.Dispose(); if (!View.isDisposed) View.Dispose();
         }
     }
 }

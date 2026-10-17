@@ -17,9 +17,17 @@ namespace SkyKeyYuyan.UI.UGUI
         /// 用户通过指针进入正文编辑。
         /// </summary>
         public event Action FocusRequested;
+        /// <summary>
+        /// 指针定位前协调组字提交，返回就绪状态。
+        /// </summary>
+        public Func<bool> PreparePointerFocus { get; set; }
         /// <inheritdoc>
         /// </inheritdoc>
-        public override void OnPointerDown(PointerEventData eventData) { FocusRequested?.Invoke(); base.OnPointerDown(eventData); }
+        public override void OnPointerDown(PointerEventData eventData)
+        {
+            if (PreparePointerFocus != null && !PreparePointerFocus()) return;
+            FocusRequested?.Invoke(); base.OnPointerDown(eventData);
+        }
         /// <inheritdoc>
         /// </inheritdoc>
         public override void OnDeselect(BaseEventData eventData) { if (!RetainEditing) base.OnDeselect(eventData); }
@@ -28,7 +36,11 @@ namespace SkyKeyYuyan.UI.UGUI
         public override void OnSelect(BaseEventData eventData) { if (!RetainEditing || !isFocused) base.OnSelect(eventData); }
         /// <inheritdoc>
         /// </inheritdoc>
-        public override void OnPointerClick(PointerEventData eventData) { if (!RetainEditing || !isFocused) base.OnPointerClick(eventData); }
+        public override void OnPointerClick(PointerEventData eventData)
+        {
+            if (PreparePointerFocus != null && !PreparePointerFocus()) return;
+            if (!RetainEditing || !isFocused) base.OnPointerClick(eventData);
+        }
         /// <inheritdoc>
         /// </inheritdoc>
         protected override void LateUpdate()
