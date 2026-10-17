@@ -77,10 +77,16 @@ public class UguiPanelTests
             yield return null; Canvas.ForceUpdateCanvases();
             Assert.That(Vector3.Distance(preview.rectTransform.position, label.TransformPoint(new Vector3(label.rect.xMin, label.rect.yMax))), Is.LessThan(.1f));
             var marks = field.GetComponentsInChildren<MaskableGraphic>().Single(item => item.name == "CompositionMarks");
-            var mesh = marks.canvasRenderer.GetMesh();
+            var mesh = new Mesh();
+            using (var vertices = new VertexHelper())
+            {
+                marks.GetType().GetMethod("OnPopulateMesh", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new[] { typeof(VertexHelper) }, null).Invoke(marks, new object[] { vertices });
+                vertices.FillMesh(mesh);
+            }
             var caretBottom = marks.rectTransform.TransformPoint(mesh.vertices[mesh.vertexCount - 4]);
             var popupTop = _root.transform.InverseTransformPoint(popup.position); var caretPoint = _root.transform.InverseTransformPoint(caretBottom);
-            Assert.That(popupTop.y - caretPoint.y, Is.InRange(-8f, 0f));
+            Assert.That(popupTop.y - caretPoint.y, Is.InRange(-8f, 0f)); UnityEngine.Object.Destroy(mesh);
             host.Router.RouteKeyboardText(SkyInputBackend.Custom, "keyboard", " ", 1); services.Context.Drain();
             Assert.That(field.text, Is.EqualTo("AQ你好B")); Assert.That(player.Session, Is.Not.Null);
             player.ConfigureKeyboardInput(new SkyKeyboardInputOptions(SkyKeyboardInputMode.SystemIme));
