@@ -186,6 +186,8 @@ namespace SkyKeyYuyan.Unity
         private bool _shift, _disposed, _resolving;
         private bool _textFocused;
         private double? _navigationColumn;
+        private long? _confirmationVersion;
+        private string _confirmationLanguage;
         private OperationResult _lastResult;
         /// <summary>
         /// 绑定已打开的会话。
@@ -256,6 +258,13 @@ namespace SkyKeyYuyan.Unity
                 _focus = _resolving ? "cancel" : _layout?.Keys[0].Id ?? "";
             }
             Publish(snapshot);
+            if (!_confirmationVersion.HasValue) return;
+            if (snapshot.Composition.Version != _confirmationVersion.Value || snapshot.LanguageId != _confirmationLanguage ||
+                snapshot.Composition.IsEmpty || snapshot.Lifecycle != SessionLifecycle.Active || snapshot.NeedsResolution || snapshot.PendingOperation != null)
+            { _confirmationVersion = null; return; }
+            if (snapshot.Querying) return;
+            _confirmationVersion = null;
+            Handle(SkyControl.ConfirmCandidate);
         }
         private void OnOperation(OperationResult result) { _lastResult = result; Publish(_session.Snapshot); }
         private void Publish(SessionSnapshot snapshot)
@@ -340,8 +349,14 @@ namespace SkyKeyYuyan.Unity
                 case SkyControl.PreviousCandidate: operation = InputOperation.MoveCandidate(-1); break;
                 case SkyControl.NextCandidate: operation = InputOperation.MoveCandidate(1); break;
                 case SkyControl.ConfirmCandidate:
+                    if (snapshot.Composition.IsEmpty || snapshot.NeedsResolution || snapshot.PendingOperation != null) return false;
+                    if (snapshot.Querying)
+                    {
+                        // 确认只等待同一版组字，后续编辑会使它失效。
+                        _confirmationVersion = snapshot.Composition.Version; _confirmationLanguage = snapshot.LanguageId; return true;
+                    }
                     var page = snapshot.Candidates;
-                    if (snapshot.Querying || page == null || page.Candidates.Count == 0) return false;
+                    if (page == null || page.Candidates.Count == 0) return false;
                     operation = InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[snapshot.SelectedCandidate].Id); break;
                 case SkyControl.Finish: operation = InputOperation.Finish(); break;
                 case SkyControl.Cancel: operation = InputOperation.Cancel(); break;

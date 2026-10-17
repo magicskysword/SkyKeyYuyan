@@ -192,6 +192,53 @@ public class UguiPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator FullDictionarySupportsRepeatedPartialChoicesAndUndo()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("AB", 1))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule());
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            player.Open(target, runtime); player.Handle(SkyControl.Text, text: "nihaoshijie");
+            foreach (string choice in new[] { "你", "好", "世界" })
+            {
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                var snapshot = player.Session.Snapshot;
+                Assert.That(snapshot.Querying, Is.False); Assert.That(snapshot.SelectedCandidate, Is.EqualTo(0));
+                int index = snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == choice);
+                Assert.That(index, Is.GreaterThanOrEqualTo(0));
+                for (int step = 0; step < index; step++) player.Handle(SkyControl.NextCandidate);
+                var button = panel.GetComponentsInChildren<SkyPanelButton>().Single(item => item.name == "Candidate" + index);
+                Assert.That(button.interactable, Is.True); Assert.That(button.GetComponentInChildren<Text>().text, Is.EqualTo(choice));
+                player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain(); yield return null;
+                if (choice == "世界") break;
+                string raw = choice == "你" ? "haoshijie" : "shijie";
+                Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo(raw));
+                Assert.That(panel.DraftField.text, Is.EqualTo("AB"));
+                var preview = panel.GetComponentsInChildren<Text>(true).Single(text => text.name == "CompositionPreview");
+                Assert.That(preview.text, Is.EqualTo("A" + player.Session.Snapshot.Composition.DisplayText + "B"));
+                if (choice == "你")
+                {
+                    player.Handle(SkyControl.Backspace); Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo("nihaoshijie"));
+                    deadline = Time.realtimeSinceStartup + 5;
+                    while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                    index = player.Session.Snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == "你");
+                    for (int step = 0; step < index; step++) player.Handle(SkyControl.NextCandidate);
+                    player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain();
+                }
+            }
+            Assert.That(panel.DraftField.text, Is.EqualTo("A你好世界B")); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB"));
+            Assert.That(player.Session.Snapshot.Composition.IsEmpty, Is.True);
+            Assert.That(panel.transform.Find("Frame/CandidatePopup").gameObject.activeSelf, Is.False);
+            CapturePanels("ugui-continuous-selection");
+            player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A你好世界B"));
+        }
+    }
+    [UnityTest]
     public IEnumerator CandidatesFitTheirTextAndKeepGamepadSelectionVisible()
     {
         var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };

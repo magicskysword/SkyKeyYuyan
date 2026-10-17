@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using NUnit.Framework;
 using SkyKeyYuyan.Core;
 using SkyKeyYuyan.Languages.Chinese;
@@ -129,6 +130,74 @@ public class InputSystemDriverTests
             }
         }
         finally { InputSystem.RemoveDevice(pad); }
+    }
+    [Test]
+    public void VirtualGamepadContinuesChoosingTheRemainingPinyin()
+    {
+        var pad = InputSystem.AddDevice<Gamepad>(); var context = new PumpExecutionContext();
+        try
+        {
+            using (var runtime = new SkyRuntime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                runtime.RegisterLanguage(new ChinesePinyinModule(new[]
+                {
+                    new LexiconWord("ni", "你", "ni"), new LexiconWord("hao", "好", "hao"), new LexiconWord("world", "世界", "shi jie")
+                }));
+                runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false, ExecutionContext = context });
+                router.Register(player); driver.Bind(pad, "player"); player.Open(new Target(), runtime);
+                player.Handle(SkyControl.Text, text: "nihaoshijie"); double time = 0;
+                foreach (string word in new[] { "你", "好", "世界" })
+                {
+                    DrainUntil(context, () => !player.Session.Snapshot.Querying);
+                    int index = player.Session.Snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == word);
+                    Assert.That(index, Is.GreaterThanOrEqualTo(0));
+                    for (int step = 0; step < index; step++)
+                    {
+                        InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.right }); InputSystem.Update(); driver.Poll(time += .02);
+                        InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(time += .02);
+                    }
+                    InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.West)); InputSystem.Update(); driver.Poll(time += .02);
+                    InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(time += .02);
+                    Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo(word == "你" ? "haoshijie" : word == "好" ? "shijie" : ""));
+                }
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("你好世界"));
+                Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+            }
+        }
+        finally { InputSystem.RemoveDevice(pad); }
+    }
+    [Test]
+    public void XDuringQueryConfirmsOneSegmentAndFurtherInputInvalidatesIt()
+    {
+        var context = new PumpExecutionContext();
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[]
+            {
+                new LexiconWord("ni", "你", "ni"), new LexiconWord("hao", "好", "hao"), new LexiconWord("world", "世界", "shi jie")
+            }));
+            runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false, ExecutionContext = context });
+            player.Open(new Target(), runtime); player.Handle(SkyControl.Text, text: "nihaoshijie");
+            Assert.That(player.Session.Snapshot.Querying, Is.True);
+            Assert.That(player.Handle(SkyControl.ConfirmCandidate), Is.True);
+            DrainUntil(context, () => !player.Session.Snapshot.Querying);
+            Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("你好世界"));
+            player.Handle(SkyControl.Text, text: "ni"); player.Handle(SkyControl.ConfirmCandidate);
+            player.Handle(SkyControl.Text, text: "hao");
+            DrainUntil(context, () => !player.Session.Snapshot.Querying);
+            Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo("nihao"));
+            Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("你好世界"));
+        }
+    }
+    private static void DrainUntil(PumpExecutionContext context, Func<bool> condition)
+    {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        while (!condition() && timer.Elapsed.TotalSeconds < 5) { context.Drain(); System.Threading.Thread.Sleep(1); }
+        Assert.That(condition(), Is.True);
     }
     [Test]
     public void FocusedMultilineEnterAddsNewlineAndControlEnterSaves()

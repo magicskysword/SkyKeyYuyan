@@ -178,6 +178,45 @@ public class FairyPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator FullDictionaryRefreshesCandidatesAfterEachPartialChoice()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("AB", 1))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule());
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
+            {
+                player.Open(target, runtime); player.Handle(SkyControl.Text, text: "nihaoshijie");
+                foreach (string choice in new[] { "你", "好", "世界" })
+                {
+                    float deadline = Time.realtimeSinceStartup + 5;
+                    while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                    var snapshot = player.Session.Snapshot;
+                    Assert.That(snapshot.Querying, Is.False); Assert.That(snapshot.SelectedCandidate, Is.EqualTo(0));
+                    int index = snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == choice);
+                    Assert.That(index, Is.GreaterThanOrEqualTo(0));
+                    for (int step = 0; step < index; step++) player.Handle(SkyControl.NextCandidate);
+                    var button = panel.View.GetChild("candidatePopup").asCom.GetChild("candidates").asCom.GetChild("candidate" + index).asButton;
+                    Assert.That(button.visible, Is.True); Assert.That(button.title, Is.EqualTo(choice));
+                    if (choice == "你") button.FireClick(false, true); else player.Handle(SkyControl.ConfirmCandidate);
+                    services.Context.Drain(); yield return null;
+                    if (choice == "世界") break;
+                    Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo(choice == "你" ? "haoshijie" : "shijie"));
+                    Assert.That(panel.DraftField.text, Is.EqualTo("AB"));
+                    Assert.That(panel.View.GetChild("compositionViewport").asCom.GetChild("compositionPreview").asTextField.text,
+                        Is.EqualTo("A" + player.Session.Snapshot.Composition.DisplayText + "B"));
+                }
+                Assert.That(panel.DraftField.text, Is.EqualTo("A你好世界B")); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB"));
+                Assert.That(panel.View.GetChild("candidatePopup").visible, Is.False);
+                yield return CapturePanels("fairygui-continuous-selection");
+                player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A你好世界B"));
+            }
+        }
+    }
+    [UnityTest]
     public IEnumerator CandidatesUseNativeTextWidthsAndFollowGamepadSelection()
     {
         var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };
