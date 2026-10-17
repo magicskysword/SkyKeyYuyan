@@ -1,5 +1,6 @@
 using System;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Unity.CanvasUI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,22 +9,41 @@ namespace SkyKeyYuyan.Unity.UGUI
     /// <summary>
     /// 将 UGUI InputField 连接到统一文本编辑契约。
     /// </summary>
-    public sealed class UguiTextTarget : UnityTextTarget
+    public sealed class UguiTextTarget : UnityTextTarget, ISkyInlineKeyboardTarget
     {
         private readonly InputField _field;
         private UguiValidationProxy _validation;
         private readonly TextGenerator _generator = new TextGenerator();
         private bool _keyboardOwned, _originalReadOnly;
+        private readonly SkyKeyboardFocusObserver _focus;
+        private bool _focusRequested;
         /// <summary>
         /// 绑定现有输入框，不改变其字体和验证配置。
         /// </summary>
-        public UguiTextTarget(InputField field) : base(field) { _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged); UguiNavigationCoordination.EnsureRegistered(); }
+        public UguiTextTarget(InputField field) : base(field)
+        {
+            _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged); UguiNavigationCoordination.EnsureRegistered();
+            _focus = field.GetComponent<SkyKeyboardFocusObserver>() ?? field.gameObject.AddComponent<SkyKeyboardFocusObserver>(); _focus.Requested += OnFocusRequested;
+        }
+        private void OnFocusRequested() { _focusRequested = true; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public bool TakeKeyboardFocusRequest() { bool value = _focusRequested; _focusRequested = false; return value; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public SkyTextInputType KeyboardTextType => SingleLine ? SkyTextInputType.SingleLine : SkyTextInputType.MultiLine;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public void RestoreKeyboardSelection(int anchor, int caret) => WriteSelection(anchor, caret);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override bool NativeAlive => _field != null;
         /// <inheritdoc>
         /// </inheritdoc>
         public override bool IsEditing => IsAlive && _field.isFocused;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public IDisposable CreateKeyboardView(ISkySession session) => new UguiKeyboardView(session, _field);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override int CharacterLimit => _field.characterLimit;
@@ -126,6 +146,7 @@ namespace SkyKeyYuyan.Unity.UGUI
         /// </inheritdoc>
         protected override void DisposeNative()
         {
+            if (_focus != null) _focus.Requested -= OnFocusRequested;
             if (NativeAlive) _field.onValueChanged.RemoveListener(OnChanged);
             if (_validation != null) { if (Application.isPlaying) UnityEngine.Object.Destroy(_validation.gameObject); else UnityEngine.Object.DestroyImmediate(_validation.gameObject); }
             ((IDisposable)_generator).Dispose();

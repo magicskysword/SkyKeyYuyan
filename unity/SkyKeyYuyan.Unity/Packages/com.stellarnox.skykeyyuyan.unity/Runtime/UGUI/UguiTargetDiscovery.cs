@@ -36,6 +36,7 @@ namespace SkyKeyYuyan.Unity.UGUI
                 binding.Mode = settings != null && !settings.UsePlayerEditingMode ? settings.EditingMode : (EditingMode?)null;
                 binding.InitialLanguage = settings != null && !string.IsNullOrWhiteSpace(settings.InitialLanguage) ? settings.InitialLanguage : null;
                 binding.TextInput = settings?.TextInput;
+                binding.KeyboardInput = settings?.KeyboardInput;
             }
             foreach (var old in _targets.Keys.Where(control => !seen.Contains(control)).ToArray()) { _targets[old].Target.Dispose(); _targets.Remove(old); }
             return _targets.Values.ToArray();

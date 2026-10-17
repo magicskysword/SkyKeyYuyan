@@ -1,5 +1,6 @@
 using System;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Unity.CanvasUI;
 using TMPro;
 using UnityEngine;
 
@@ -8,21 +9,39 @@ namespace SkyKeyYuyan.Unity.TMP
     /// <summary>
     /// 使用字符串选区坐标适配 TMP_InputField。
     /// </summary>
-    public sealed class TmpTextTarget : UnityTextTarget
+    public sealed class TmpTextTarget : UnityTextTarget, ISkyInlineKeyboardTarget
     {
         private readonly TMP_InputField _field;
         private TmpValidationProxy _validation;
-        private bool _keyboardOwned, _originalReadOnly;
+        private bool _keyboardOwned, _originalReadOnly, _focusRequested;
+        private readonly SkyKeyboardFocusObserver _focus;
         /// <summary>
         /// 绑定现有 TMP 输入框。
         /// </summary>
-        public TmpTextTarget(TMP_InputField field) : base(field) { _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged); }
+        public TmpTextTarget(TMP_InputField field) : base(field)
+        {
+            _field = field != null ? field : throw new ArgumentNullException(nameof(field)); _field.onValueChanged.AddListener(OnChanged);
+            _focus = field.GetComponent<SkyKeyboardFocusObserver>() ?? field.gameObject.AddComponent<SkyKeyboardFocusObserver>(); _focus.Requested += OnFocusRequested;
+        }
+        private void OnFocusRequested() { _focusRequested = true; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public bool TakeKeyboardFocusRequest() { bool value = _focusRequested; _focusRequested = false; return value; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public SkyTextInputType KeyboardTextType => SingleLine ? SkyTextInputType.SingleLine : SkyTextInputType.MultiLine;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public void RestoreKeyboardSelection(int anchor, int caret) => WriteSelection(anchor, caret);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override bool NativeAlive => _field != null;
         /// <inheritdoc>
         /// </inheritdoc>
         public override bool IsEditing => IsAlive && _field.isFocused;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public IDisposable CreateKeyboardView(ISkySession session) => new TmpKeyboardView(session, _field);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override int CharacterLimit => _field.characterLimit;
@@ -134,6 +153,7 @@ namespace SkyKeyYuyan.Unity.TMP
         /// </inheritdoc>
         protected override void DisposeNative()
         {
+            if (_focus != null) _focus.Requested -= OnFocusRequested;
             if (NativeAlive) _field.onValueChanged.RemoveListener(OnChanged);
             if (_validation != null) { if (Application.isPlaying) UnityEngine.Object.Destroy(_validation.gameObject); else UnityEngine.Object.DestroyImmediate(_validation.gameObject); }
         }

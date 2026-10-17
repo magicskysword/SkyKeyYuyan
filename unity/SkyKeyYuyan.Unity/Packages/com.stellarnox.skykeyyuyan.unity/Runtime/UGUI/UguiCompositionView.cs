@@ -4,23 +4,39 @@ using SkyKeyYuyan.Unity;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SkyKeyYuyan.UI.UGUI
+namespace SkyKeyYuyan.Unity.UGUI
 {
-    internal sealed class UguiCompositionView : IDisposable
+    /// <summary>
+    /// 在原生正文上绘制临时组字、下划线和光标。
+    /// </summary>
+    public sealed class UguiCompositionView : IDisposable
     {
-        private readonly SkyDraftInputField _field;
+        private readonly InputField _field;
         private readonly Text _label;
         private readonly UguiCompositionMarks _marks;
         private readonly TextGenerator _generator = new TextGenerator();
         private bool _active;
         private Color _color, _caretColor, _selectionColor;
-        internal Vector2 Caret { get; private set; }
-        internal float LineHeight { get; private set; }
+        /// <summary>
+        /// 光标在正文父级内的位置。
+        /// </summary>
+        public Vector2 Caret { get; private set; }
+        /// <summary>
+        /// 当前排版的行高。
+        /// </summary>
+        public float LineHeight { get; private set; }
+        /// <summary>
+        /// 组字光标的世界坐标。
+        /// </summary>
+        public Vector3 WorldCaret { get; private set; }
 
-        internal UguiCompositionView(SkyDraftInputField field)
+        /// <summary>
+        /// 为给定输入框创建独立显示，不修改其正文。
+        /// </summary>
+        public UguiCompositionView(InputField field)
         {
             _field = field;
-            var owner = new GameObject("CompositionPreview", typeof(RectTransform)); owner.transform.SetParent(field.transform, false);
+            var owner = new GameObject("CompositionPreview", typeof(RectTransform)); owner.transform.SetParent(field.textComponent.transform.parent, false);
             _label = owner.AddComponent<Text>(); _label.raycastTarget = false; _label.supportRichText = false;
             _label.alignment = TextAnchor.UpperLeft; _label.verticalOverflow = VerticalWrapMode.Overflow;
             var rect = _label.rectTransform; rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
@@ -30,7 +46,10 @@ namespace SkyKeyYuyan.UI.UGUI
             _marks = marks.AddComponent<UguiCompositionMarks>(); _marks.raycastTarget = false; _marks.color = SkyKeyboardStyle.Accent;
             owner.SetActive(false);
         }
-        internal void Render(SkyCompositionText composition)
+        /// <summary>
+        /// 更新当前组字显示。
+        /// </summary>
+        public void Render(SkyCompositionText composition)
         {
             var native = _field.textComponent;
             if (_active != composition.Active)
@@ -47,6 +66,7 @@ namespace SkyKeyYuyan.UI.UGUI
             }
             if (!_active) return;
             _label.font = native.font; _label.fontSize = native.fontSize; _label.fontStyle = native.fontStyle;
+            _label.alignment = native.alignment;
             _label.lineSpacing = native.lineSpacing; _label.color = _color; _label.text = composition.Text;
             _label.horizontalOverflow = _field.lineType == InputField.LineType.SingleLine ? HorizontalWrapMode.Overflow : HorizontalWrapMode.Wrap;
             var size = native.rectTransform.rect.size;
@@ -63,10 +83,13 @@ namespace SkyKeyYuyan.UI.UGUI
             var caret = Point(composition.Caret);
             float scrollX = _field.lineType == InputField.LineType.SingleLine ? Mathf.Max(0, caret.x + 2 - size.x) : 0;
             float scrollY = Mathf.Max(0, caret.y + LineHeight - size.y);
-            _label.rectTransform.anchoredPosition = native.rectTransform.anchoredPosition + new Vector2(-scrollX, scrollY);
+            _label.rectTransform.localRotation = native.rectTransform.localRotation; _label.rectTransform.localScale = native.rectTransform.localScale;
+            _label.rectTransform.position = native.rectTransform.TransformPoint(new Vector3(native.rectTransform.rect.xMin, native.rectTransform.rect.yMax));
+            _label.rectTransform.anchoredPosition += new Vector2(-scrollX, scrollY);
             var body = (RectTransform)_field.transform;
-            Caret = new Vector2(body.anchoredPosition.x + native.rectTransform.anchoredPosition.x + caret.x - scrollX,
-                -body.anchoredPosition.y - native.rectTransform.anchoredPosition.y + caret.y - scrollY);
+            var parent = (RectTransform)body.parent;
+            var caretPoint = parent.InverseTransformPoint(_label.rectTransform.TransformPoint(new Vector3(caret.x, -caret.y)));
+            Caret = new Vector2(caretPoint.x - parent.rect.xMin, parent.rect.yMax - caretPoint.y);
             _marks.Rects.Clear();
             for (int index = LineAt(composition.UnconvertedStart); index <= caretLine; index++)
             {
@@ -76,6 +99,8 @@ namespace SkyKeyYuyan.UI.UGUI
                 if (right > x) _marks.Rects.Add(new Rect(x, current.topY / units - current.height / units + 2, right - x, 2));
             }
             _marks.Rects.Add(new Rect(caret.x, -caret.y - LineHeight, 2, LineHeight)); _marks.SetVerticesDirty();
+            _marks.rectTransform.ForceUpdateRectTransforms();
+            WorldCaret = _marks.rectTransform.TransformPoint(new Vector3(caret.x, -caret.y - LineHeight));
         }
         private int LineAt(int offset)
         {
@@ -95,7 +120,12 @@ namespace SkyKeyYuyan.UI.UGUI
             if (characters.Count == 0) return 0;
             var item = characters[Math.Min(index, characters.Count - 1)]; return (item.cursorPos.x + item.charWidth) / _label.pixelsPerUnit;
         }
-        public void Dispose() { ((IDisposable)_generator).Dispose(); }
+        public void Dispose()
+        {
+            if (_active && _field != null) { _field.textComponent.color = _color; _field.caretColor = _caretColor; _field.selectionColor = _selectionColor; }
+            ((IDisposable)_generator).Dispose();
+            if (_label != null) { if (Application.isPlaying) UnityEngine.Object.Destroy(_label.gameObject); else UnityEngine.Object.DestroyImmediate(_label.gameObject); }
+        }
     }
     internal sealed class UguiCompositionMarks : MaskableGraphic
     {

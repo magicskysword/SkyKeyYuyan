@@ -44,6 +44,54 @@ public class UguiPanelTests
         return new UguiTextTarget(input);
     }
     [UnityTest]
+    public IEnumerator KeyboardFocusEditsTheOriginalFieldAndHidesTheVirtualPanel()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime })
+        using (var target = Target("AB", 1))
+        {
+            var player = host.AddPlayer(new SkyPlayerOptions { InitialLanguage = "en", KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme, initialLanguage: "zh-Hans") });
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("hello", "你好", "ni hao") }));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            host.Router.Bind("keyboard", SkyDeviceKind.Keyboard, player.PlayerId); host.RegisterTarget(player.PlayerId, new SkyTargetBinding(target));
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            var field = (InputField)target.Identity; var rect = (RectTransform)field.transform; rect.anchoredPosition = Vector2.zero; rect.sizeDelta = new Vector2(640, 130);
+            field.textComponent.fontSize = 26; field.textComponent.color = SkyKeyboardStyle.Text; field.GetComponent<Image>().color = SkyKeyboardStyle.Inset;
+            var label = field.textComponent.rectTransform; label.anchorMin = Vector2.zero; label.anchorMax = Vector2.one; label.offsetMin = new Vector2(8, 8); label.offsetMax = new Vector2(-8, -8);
+            field.ActivateInputField(); yield return null; yield return null;
+            field.selectionAnchorPosition = field.selectionFocusPosition = 1; field.ForceLabelUpdate();
+            player.Open(target, runtime); player.Handle(SkyControl.Text, text: "Q");
+            host.Tick(0);
+            field.GetComponent<SkyKeyYuyan.Unity.CanvasUI.SkyKeyboardFocusObserver>().OnPointerDown(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+            host.Tick(.1); yield return null;
+            Assert.That(player.KeyboardSession, Is.True); Assert.That(player.VirtualKeyboardVisible, Is.False); Assert.That(panel.gameObject.activeSelf, Is.False);
+            Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans")); Assert.That(field.text, Is.EqualTo("AQB"));
+            player.Handle(SkyControl.Text, text: "nihao");
+            float deadline = Time.realtimeSinceStartup + 5;
+            while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+            var preview = field.GetComponentsInChildren<Text>(true).Single(text => text.name == "CompositionPreview");
+            Assert.That(preview.text, Is.EqualTo("AQni'haoB")); Assert.That(field.text, Is.EqualTo("AQB"));
+            var popup = _root.GetComponentsInChildren<RectTransform>(true).Single(item => item.name == "SkyInlineCandidates");
+            Assert.That(popup.gameObject.activeSelf, Is.True); CapturePanels("ugui-keyboard-inline");
+            yield return null; Canvas.ForceUpdateCanvases();
+            Assert.That(Vector3.Distance(preview.rectTransform.position, label.TransformPoint(new Vector3(label.rect.xMin, label.rect.yMax))), Is.LessThan(.1f));
+            var marks = field.GetComponentsInChildren<MaskableGraphic>().Single(item => item.name == "CompositionMarks");
+            var mesh = marks.canvasRenderer.GetMesh();
+            var caretBottom = marks.rectTransform.TransformPoint(mesh.vertices[mesh.vertexCount - 4]);
+            var popupTop = _root.transform.InverseTransformPoint(popup.position); var caretPoint = _root.transform.InverseTransformPoint(caretBottom);
+            Assert.That(popupTop.y - caretPoint.y, Is.InRange(-8f, 0f));
+            host.Router.RouteKeyboardText(SkyInputBackend.Custom, "keyboard", " ", 1); services.Context.Drain();
+            Assert.That(field.text, Is.EqualTo("AQ你好B")); Assert.That(player.Session, Is.Not.Null);
+            player.ConfigureKeyboardInput(new SkyKeyboardInputOptions(SkyKeyboardInputMode.SystemIme));
+            field.GetComponent<SkyKeyYuyan.Unity.CanvasUI.SkyKeyboardFocusObserver>().OnPointerDown(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+            host.Tick(.15); yield return null;
+            Assert.That(player.Session, Is.Null); Assert.That(field.isFocused, Is.True); Assert.That(field.readOnly, Is.False);
+            field.DeactivateInputField(); host.Tick(.2); yield return null;
+            Assert.That(player.Session, Is.Null); Assert.That(field.readOnly, Is.False); Assert.That(field.textComponent.color.a, Is.EqualTo(1));
+        }
+    }
+    [UnityTest]
     public IEnumerator TwoPanelsRetainNativeCaretSelectionAndPointerFocus()
     {
         using (var runtime = new SkyRuntime())

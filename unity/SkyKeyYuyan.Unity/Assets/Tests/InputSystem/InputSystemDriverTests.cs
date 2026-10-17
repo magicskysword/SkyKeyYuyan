@@ -33,6 +33,55 @@ public class InputSystemDriverTests
         runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false }); return runtime;
     }
     [Test]
+    public void ShiftTapCyclesLanguagesButUppercaseAndSelectionKeepTheirLanguage()
+    {
+        var keyboard = InputSystem.AddDevice<Keyboard>();
+        try
+        {
+            using (var runtime = Runtime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme, initialLanguage: "en") }))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("ni", "你", "ni") })); runtime.InitializeLanguage("zh.full-pinyin");
+                router.Register(player); driver.Bind(keyboard, player.PlayerId); player.OpenKeyboard(new Target(), runtime); driver.Poll(0);
+                KeyboardFrame(keyboard, driver, new KeyboardState(Key.LeftShift), .1); KeyboardFrame(keyboard, driver, new KeyboardState(), .2);
+                Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
+                KeyboardFrame(keyboard, driver, new KeyboardState(Key.RightShift), .3); KeyboardFrame(keyboard, driver, new KeyboardState(), .4);
+                Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
+                InputSystem.QueueTextEvent(keyboard, 'A'); KeyboardFrame(keyboard, driver, new KeyboardState(Key.LeftShift, Key.A), .5);
+                KeyboardFrame(keyboard, driver, new KeyboardState(), .6); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("A"));
+                KeyboardFrame(keyboard, driver, new KeyboardState(Key.LeftShift, Key.LeftArrow), .7); KeyboardFrame(keyboard, driver, new KeyboardState(), .8);
+                Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en")); Assert.That(player.Session.Snapshot.Text.SelectionLength, Is.EqualTo(1));
+            }
+        }
+        finally { InputSystem.RemoveDevice(keyboard); }
+    }
+    private static void KeyboardFrame(Keyboard keyboard, SkyInputSystemDriver driver, KeyboardState state, double time)
+    { InputSystem.QueueStateEvent(keyboard, state); InputSystem.Update(); driver.Poll(time); }
+    [Test]
+    public void TextArrivingBeforeTheNewKeyboardSessionIsHandledInTheSameFrame()
+    {
+        var keyboard = InputSystem.AddDevice<Keyboard>();
+        try
+        {
+            using (var runtime = Runtime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme, initialLanguage: "en") }))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                router.Register(player); driver.Bind(keyboard, player.PlayerId);
+                InputSystem.QueueTextEvent(keyboard, 'A'); InputSystem.Update();
+                var target = new Target(); player.OpenKeyboard(target, runtime); driver.Poll(0);
+                Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A")); driver.Poll(.1); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A"));
+                player.Handle(SkyControl.Finish);
+                InputSystem.QueueTextEvent(keyboard, 'B'); InputSystem.Update(); driver.Poll(.2);
+                player.OpenKeyboard(target, runtime); driver.Poll(.3); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("A"));
+            }
+        }
+        finally { InputSystem.RemoveDevice(keyboard); }
+    }
+    [Test]
     public void VirtualGamepadsNavigateAndSaveIndependentDrafts()
     {
         var firstPad = InputSystem.AddDevice<Gamepad>(); var secondPad = InputSystem.AddDevice<Gamepad>();

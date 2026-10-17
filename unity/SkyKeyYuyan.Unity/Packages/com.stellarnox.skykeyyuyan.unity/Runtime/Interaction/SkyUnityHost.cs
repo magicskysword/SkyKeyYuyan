@@ -19,6 +19,7 @@ namespace SkyKeyYuyan.Unity
             internal SkyTargetBinding[] Discovered = Array.Empty<SkyTargetBinding>();
             internal readonly Dictionary<object, bool> Editing = new Dictionary<object, bool>();
             internal SkyTargetBinding Pending;
+            internal bool PendingKeyboard;
         }
         private readonly Dictionary<string, Player> _players = new Dictionary<string, Player>(StringComparer.Ordinal);
         private ISkyInputDriver _driver;
@@ -105,25 +106,36 @@ namespace SkyKeyYuyan.Unity
                 foreach (var binding in bindings)
                 {
                     var target = binding.Target; identities.Add(target.Identity); target.Poll();
-                    bool editing = player.Context.FollowEditing && target.IsAlive && Router.HasEnabledDevice(player.Context.PlayerId) && target.IsEditing;
-                    bool before = player.Editing.TryGetValue(target.Identity, out var was) && was;
+                    bool requested = target is ISkyInlineKeyboardTarget inline && inline.TakeKeyboardFocusRequest();
+                    if (requested) player.Context.LastDevice = SkyDeviceKind.Keyboard;
+                    bool editing = player.Context.FollowEditing && target.IsAlive && (Router.HasEnabledDevice(player.Context.PlayerId) || Router.HasConnectedDevice(player.Context.PlayerId, SkyDeviceKind.Keyboard)) && target.IsEditing;
+                    bool known = player.Editing.TryGetValue(target.Identity, out var was); bool before = known && was;
                     player.Editing[target.Identity] = editing;
-                    if (editing && !before && !ReferenceEquals(player.Context.Target?.Identity, target.Identity))
+                    bool same = ReferenceEquals(player.Context.Target?.Identity, target.Identity);
+                    bool keyboardEdge = requested || known && !before && Router.HasConnectedDevice(player.Context.PlayerId, SkyDeviceKind.Keyboard) && player.Context.LastDevice == SkyDeviceKind.Keyboard;
+                    var keyboardOptions = binding.KeyboardInput ?? player.Context.KeyboardInput;
+                    bool handoff = same && keyboardEdge && (player.Context.VirtualKeyboardVisible && !keyboardOptions.ForceVirtualKeyboard || player.Context.KeyboardSession && !player.Context.KeyboardSettingsMatch(keyboardOptions));
+                    if (editing && ((!before || requested) && !same || handoff))
                     {
-                        player.Pending = binding;
-                        if (player.Context.Session != null) player.Context.Handle(SkyControl.Cancel);
+                        player.Pending = binding; player.PendingKeyboard = keyboardEdge;
+                        if (handoff) player.Context.FinishForKeyboard();
+                        else if (player.Context.Session != null) player.Context.Handle(player.Context.KeyboardSession && !player.Context.VirtualKeyboardVisible ? SkyControl.Finish : SkyControl.Cancel);
                     }
                 }
                 foreach (var old in player.Editing.Keys.Where(identity => !identities.Contains(identity)).ToArray()) player.Editing.Remove(old);
                 if (player.Pending != null && player.Context.Session == null)
                 {
                     var target = player.Pending; player.Pending = null;
-                    if (target.Target.IsAlive && target.Target.IsEditing && Router.HasEnabledDevice(player.Context.PlayerId))
+                    if (target.Target.IsAlive && target.Target.IsEditing && (Router.HasEnabledDevice(player.Context.PlayerId) || Router.HasConnectedDevice(player.Context.PlayerId, SkyDeviceKind.Keyboard)))
                     {
-                        var result = player.Context.Open(target.Target, Runtime, target.Mode, target.InitialLanguage, target.TextInput);
+                        bool keyboard = player.PendingKeyboard || !Router.HasConnectedDevice(player.Context.PlayerId, SkyDeviceKind.Gamepad) || Router.HasConnectedDevice(player.Context.PlayerId, SkyDeviceKind.Keyboard) && player.Context.LastDevice != SkyDeviceKind.Gamepad;
+                        var result = keyboard ? player.Context.OpenKeyboard(target.Target, Runtime, target.InitialLanguage, target.TextInput, target.KeyboardInput)
+                            : player.Context.Open(target.Target, Runtime, target.Mode, target.InitialLanguage, target.TextInput);
                         if (!result.Succeeded) Report(result);
                     }
                 }
+                if (player.Context.KeyboardSession && !player.Context.VirtualKeyboardVisible && player.Context.Target != null && !player.Context.Target.IsEditing)
+                    player.Context.Handle(SkyControl.Finish);
             }
             _driver?.Poll(time);
         }

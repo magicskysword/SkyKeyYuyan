@@ -40,6 +40,67 @@ public class PlayerRoutingTests
         return runtime;
     }
     [Test]
+    [TestCase(SkyKeyboardInputMode.Automatic, true, false)]
+    [TestCase(SkyKeyboardInputMode.Automatic, false, true)]
+    [TestCase(SkyKeyboardInputMode.SystemIme, false, false)]
+    [TestCase(SkyKeyboardInputMode.SkyIme, true, true)]
+    public void KeyboardModeUsesTheOriginalTargetWithoutOpeningTheVirtualKeyboard(SkyKeyboardInputMode mode, bool supported, bool sky)
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(mode), SystemImeSupported = () => supported }))
+        using (var target = new Target())
+        {
+            player.DraftTargetFactory = _ => throw new InvalidOperationException("Unexpected draft");
+            Assert.That(player.OpenKeyboard(target, runtime).Succeeded, Is.True);
+            Assert.That(player.Session != null, Is.EqualTo(sky)); Assert.That(target.Owned, Is.EqualTo(sky));
+            if (sky)
+            {
+                Assert.That(player.VirtualKeyboardVisible, Is.False); Assert.That(player.Panel.State.TextFocused, Is.True);
+                player.Handle(SkyControl.Text, text: "abc"); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("abc"));
+            }
+            else { target.ExternalText("system"); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("system")); }
+        }
+    }
+    [TestCase(SkyKeyboardInputMode.SystemIme)]
+    [TestCase(SkyKeyboardInputMode.SkyIme)]
+    public void ForcedKeyboardInputUsesTheConfiguredLanguageAndDraft(SkyKeyboardInputMode mode)
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(mode, true, "en") }))
+        using (var target = new Target("old", 3))
+        using (var router = new SkyInputRouter(SkyInputBackend.Custom))
+        {
+            router.Register(player); router.Bind("keyboard", SkyDeviceKind.Keyboard, player.PlayerId);
+            Assert.That(player.OpenKeyboard(target, runtime).Succeeded, Is.True);
+            Assert.That(player.VirtualKeyboardVisible, Is.True); Assert.That(player.Panel.State.TextFocused, Is.True);
+            Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+            player.Handle(SkyControl.Text, text: "new"); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("old"));
+            player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("oldnew"));
+        }
+    }
+    [TestCase(true)]
+    [TestCase(false)]
+    public void KeyboardFocusUsesAutomaticPolicyAndFinishesInlineInputOnBlur(bool systemIme)
+    {
+        using (var runtime = Runtime())
+        using (var host = new SkyUnityHost(SkyInputBackend.Custom) { Runtime = runtime })
+        using (var target = new Target())
+        {
+            var player = host.AddPlayer(new SkyPlayerOptions { SystemImeSupported = () => systemIme });
+            host.Router.Bind("keyboard", SkyDeviceKind.Keyboard, player.PlayerId); host.RegisterTarget(player.PlayerId, new SkyTargetBinding(target));
+            host.Tick(0); Assert.That(player.Session == null, Is.EqualTo(systemIme));
+            if (!systemIme) { player.Handle(SkyControl.Text, text: "text"); target.Editing = false; host.Tick(.1); Assert.That(player.Session, Is.Null); }
+        }
+    }
+    [TestCase(false, .1, true)]
+    [TestCase(true, .1, false)]
+    [TestCase(false, .6, false)]
+    public void ShiftTapExcludesChordsAndLongHolds(bool chord, double duration, bool expected)
+    {
+        var tap = new SkyShiftTap(); tap.Update(true, false, 0); tap.Update(true, chord, .05);
+        Assert.That(tap.Update(false, false, duration), Is.EqualTo(expected)); Assert.That(tap.Update(false, false, duration + .1), Is.False);
+    }
+    [Test]
     public void ActivatingAKeyPreservesTheVerticalNavigationColumn()
     {
         using (var runtime = Runtime())
@@ -166,7 +227,7 @@ public class PlayerRoutingTests
             player.GamepadEnabled = false;
             Assert.That(router.Route(SkyInputBackend.Custom, "pad", SkyControl.Backspace), Is.False);
             player.KeyboardEnabled = false;
-            Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Paused));
+            Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
             Assert.That(target.Owned, Is.False);
             Assert.That(target.ReadSnapshot().Text, Is.EqualTo("enabled"));
         }

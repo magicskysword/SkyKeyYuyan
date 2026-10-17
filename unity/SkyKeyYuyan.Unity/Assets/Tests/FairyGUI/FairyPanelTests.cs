@@ -37,6 +37,37 @@ public class FairyPanelTests
         return new FairyTextTarget(field, caret, caret);
     }
     [UnityTest]
+    public IEnumerator KeyboardInputUsesNativeFieldAndCandidatePopupWithoutTheVirtualPanel()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme, initialLanguage: "zh-Hans") }))
+        using (var target = Target("AB", 1))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("hello", "你好", "ni hao") }));
+            var services = SkyUnityServices.Shared; runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
+            {
+                var field = (GTextInput)target.Identity; field.SetXY(100, 300); field.SetSize(640, 130);
+                var format = new TextFormat { font = "SkyPanelTest", size = 26, color = Color.white }; field.textFormat = format;
+                Stage.inst.SetFocus(field.displayObject); yield return null;
+                field.SetSelection(1, 0);
+                Assert.That(player.OpenKeyboard(target, runtime).Succeeded, Is.True); Assert.That(panel.View.visible, Is.False);
+                player.Handle(SkyControl.Text, text: "nihao");
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                Assert.That(field.text, Is.EqualTo("AB"));
+                Assert.That(field.parent.GetChild("compositionViewport").asCom.GetChild("SkyCompositionPreview").asTextField.text, Is.EqualTo("Ani'haoB"));
+                Assert.That(GRoot.inst.GetChild("SkyInlineCandidates").visible, Is.True); yield return CapturePanels("fairygui-keyboard-inline");
+                var candidate = GRoot.inst.GetChild("SkyInlineCandidates").asCom.GetChild("Candidate0").asCom;
+                var candidateText = candidate.GetChildAt(1).asTextField;
+                Assert.That(candidateText.textWidth, Is.LessThanOrEqualTo(candidateText.width)); Assert.That(candidateText.textHeight, Is.LessThanOrEqualTo(candidateText.height));
+                player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain();
+                Assert.That(field.text, Is.EqualTo("A你好B")); Assert.That(player.Session, Is.Not.Null);
+                player.Handle(SkyControl.Finish); Assert.That(field.editable, Is.True); Assert.That(field.inputTextField.alpha, Is.EqualTo(1));
+            }
+        }
+    }
+    [UnityTest]
     public IEnumerator IndependentDraftsPreserveReverseSelectionAcrossFocusAndSave()
     {
         using (var runtime = new SkyRuntime())

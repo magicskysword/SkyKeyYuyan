@@ -203,12 +203,39 @@ public class UnityTextTargetTests
         using (var runtime = new SkyRuntime())
         using (var first = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "first" }))
         using (var second = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "second" }))
+        using (var router = new SkyInputRouter(SkyInputBackend.Custom))
         {
             runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            router.Register(first); router.Register(second); router.Bind("pad-first", SkyDeviceKind.Gamepad, first.PlayerId); router.Bind("pad-second", SkyDeviceKind.Gamepad, second.PlayerId);
             first.Open(firstTarget, runtime); second.Open(secondTarget, runtime);
             Assert.That(system.sendNavigationEvents, Is.False);
             first.Dispose(); Assert.That(system.sendNavigationEvents, Is.False);
             second.Dispose(); Assert.That(system.sendNavigationEvents, Is.EqualTo(originalNavigation));
+        }
+    }
+    [TestCase(false)]
+    [TestCase(true)]
+    public void InlineKeyboardPreviewsAndCommitsAtTheOriginalSelection(bool tmp)
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme, initialLanguage: "zh-Hans") }))
+        using (var target = Target(tmp, "AB", 1, 1, 0))
+        {
+            runtime.RegisterLanguage(new SkyKeyYuyan.Languages.Chinese.ChinesePinyinModule(new[] { new LexiconWord("word", "OK", "ni hao") }));
+            var context = new PumpExecutionContext(); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false, ExecutionContext = context });
+            Assert.That(player.OpenKeyboard(target, runtime).Succeeded, Is.True); Assert.That(player.TextInput.Type, Is.EqualTo(SkyTextInputType.SingleLine));
+            player.Handle(SkyControl.Text, text: "nihao");
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            while (player.Session.Snapshot.Querying && timer.Elapsed.TotalSeconds < 5) { context.Drain(); System.Threading.Thread.Sleep(1); }
+            Assert.That(player.Session.Snapshot.Querying, Is.False); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AB"));
+            if (tmp)
+            {
+                var preview = _root.GetComponentsInChildren<TextMeshProUGUI>();
+                Assert.That(Array.Exists(preview, item => item.name == "SkyCompositionPreview" && item.text == "Ani'haoB"), Is.True);
+            }
+            else Assert.That(Array.Exists(_root.GetComponentsInChildren<Text>(), item => item.name == "CompositionPreview" && item.text == "Ani'haoB"), Is.True);
+            player.Handle(SkyControl.ConfirmCandidate); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("AOKB"));
+            Assert.That(player.Session, Is.Not.Null); player.Handle(SkyControl.Finish);
         }
     }
     [TestCase(false)]

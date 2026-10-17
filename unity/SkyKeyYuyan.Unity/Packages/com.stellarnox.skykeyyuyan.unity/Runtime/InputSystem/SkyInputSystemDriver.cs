@@ -22,6 +22,8 @@ namespace SkyKeyYuyan.Unity.InputSystem
             internal bool ImeOwned, ImeBefore;
             internal bool TextFocused, LeftReady = true, RightReady = true;
             internal int FocusButtons;
+            internal readonly SkyShiftTap Shift = new SkyShiftTap();
+            internal bool KeyboardOwned;
         }
         private readonly SkyInputRouter _router;
         private readonly Dictionary<int, Binding> _devices = new Dictionary<int, Binding>();
@@ -75,7 +77,9 @@ namespace SkyKeyYuyan.Unity.InputSystem
         }
         private void QueueText(Binding binding, char value)
         {
-            if (!_router.CanRoute(binding.Id)) { binding.HighSurrogate = '\0'; return; }
+            _router.ObserveActivity(binding.Id);
+            // 新焦点可能在本帧稍后才建立会话；未接管的文字会在 Poll 中丢弃。
+            if (!_router.TryGetPlayer(binding.Id, out var player) || player.Session != null && !_router.CanRoute(binding.Id)) { binding.HighSurrogate = '\0'; return; }
             if (char.IsHighSurrogate(value)) { binding.HighSurrogate = value; return; }
             if (char.IsLowSurrogate(value))
             {
@@ -142,19 +146,31 @@ namespace SkyKeyYuyan.Unity.InputSystem
             }
             else RestoreIme(binding);
             bool extend = keyboard.shiftKey.isPressed;
-            while (binding.Text.Count != 0) _router.Route(SkyInputBackend.InputSystem, binding.Id, SkyControl.Text, text: binding.Text.Dequeue(), sequence: ++_sequence);
+            bool other = binding.Text.Count > 0 || keyboard.allKeys.Any(key => key != keyboard.leftShiftKey && key != keyboard.rightShiftKey && key.isPressed);
+            if (extend || other || Mouse.current != null && Mouse.current.leftButton.isPressed) _router.ObserveActivity(binding.Id);
+            bool routing = _router.CanRoute(binding.Id);
+            if (routing != binding.KeyboardOwned) { binding.KeyboardOwned = routing; binding.Shift.Reset(extend); }
+            if (!routing) { binding.Text.Clear(); binding.HighSurrogate = '\0'; binding.Shift.Reset(extend); foreach (var gate in binding.Repeats.Values) gate.Reset(); return; }
+            if (binding.Shift.Update(extend, other, time)) _router.Route(SkyInputBackend.InputSystem, binding.Id, SkyControl.Language, sequence: ++_sequence);
+            while (binding.Text.Count != 0) _router.RouteKeyboardText(SkyInputBackend.InputSystem, binding.Id, binding.Text.Dequeue(), ++_sequence);
+            if (player.Session == null) return;
+            bool composing = player.KeyboardSession && !player.Session.Snapshot.Composition.IsEmpty && !extend;
             Emit(binding, SkyControl.TextLeft, keyboard.leftArrowKey.isPressed, time, true, extend);
             Emit(binding, SkyControl.TextRight, keyboard.rightArrowKey.isPressed, time, true, extend);
-            Emit(binding, SkyControl.TextUp, keyboard.upArrowKey.isPressed, time, true, extend);
-            Emit(binding, SkyControl.TextDown, keyboard.downArrowKey.isPressed, time, true, extend);
+            Emit(binding, SkyControl.TextUp, !composing && keyboard.upArrowKey.isPressed, time, true, extend);
+            Emit(binding, SkyControl.TextDown, !composing && keyboard.downArrowKey.isPressed, time, true, extend);
+            Emit(binding, SkyControl.PreviousCandidate, composing && keyboard.upArrowKey.isPressed, time, true);
+            Emit(binding, SkyControl.NextCandidate, composing && keyboard.downArrowKey.isPressed, time, true);
             Emit(binding, SkyControl.Backspace, keyboard.backspaceKey.isPressed, time, true);
             Emit(binding, SkyControl.Delete, keyboard.deleteKey.isPressed, time, true);
             bool enter = keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed;
             bool multiline = owned && player.Panel.State.TextFocused && player.TextInput.Type == SkyTextInputType.MultiLine;
-            Emit(binding, SkyControl.Newline, enter && multiline && !keyboard.ctrlKey.isPressed, time);
-            Emit(binding, SkyControl.Finish, enter && (!multiline || keyboard.ctrlKey.isPressed), time);
+            bool confirm = player.KeyboardSession && !player.Session.Snapshot.Composition.IsEmpty && !keyboard.ctrlKey.isPressed;
+            Emit(binding, SkyControl.ConfirmCandidate, enter && confirm, time);
+            Emit(binding, SkyControl.Newline, enter && !confirm && multiline && !keyboard.ctrlKey.isPressed, time);
+            Emit(binding, SkyControl.Finish, enter && !confirm && (!multiline || keyboard.ctrlKey.isPressed), time);
             Emit(binding, SkyControl.Cancel, keyboard.escapeKey.isPressed, time);
-            Emit(binding, SkyControl.Language, keyboard.tabKey.isPressed, time);
+            Emit(binding, SkyControl.Language, !player.KeyboardSession && keyboard.tabKey.isPressed, time);
             Emit(binding, SkyControl.SelectAll, keyboard.ctrlKey.isPressed && keyboard.aKey.isPressed, time);
         }
         private void Emit(Binding binding, SkyControl control, bool pressed, double time, bool repeat = false, bool extend = false)

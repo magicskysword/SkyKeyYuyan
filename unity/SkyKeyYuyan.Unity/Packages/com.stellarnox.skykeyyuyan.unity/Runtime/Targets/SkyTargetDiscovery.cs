@@ -34,6 +34,10 @@ namespace SkyKeyYuyan.Unity
         /// 该目标的正文输入配置覆盖。
         /// </summary>
         public SkyTextInputOptions TextInput { get; set; }
+        /// <summary>
+        /// 该目标的键盘输入配置覆盖。
+        /// </summary>
+        public SkyKeyboardInputOptions KeyboardInput { get; set; }
     }
     /// <summary>
     /// 在宿主指定的玩家 UI 根内发现和持有文本适配器。

@@ -44,6 +44,26 @@ public class LegacyDriverTests
         runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false }); return runtime;
     }
     [Test]
+    public void ShiftTapChangesLanguageWithoutConsumingShiftChords()
+    {
+        var source = new Source();
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "en", KeyboardInput = new SkyKeyboardInputOptions(SkyKeyboardInputMode.SkyIme) }))
+        using (var router = new SkyInputRouter(SkyInputBackend.Legacy))
+        using (var driver = new SkyLegacyInputDriver(router, source))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("ni", "你", "ni") })); runtime.InitializeLanguage("zh.full-pinyin");
+            router.Register(player); driver.BindKeyboard(player.PlayerId); player.OpenKeyboard(new Target(), runtime); driver.Poll(0);
+            source.Keys.Add(KeyCode.LeftShift); driver.Poll(.1); source.Keys.Clear(); driver.Poll(.2);
+            Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
+            source.Keys.Add(KeyCode.RightShift); driver.Poll(.3); source.Keys.Clear(); driver.Poll(.4);
+            Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
+            source.Keys.Add(KeyCode.LeftShift); source.Keys.Add(KeyCode.A); source.Text = "A"; source.Frame++; driver.Poll(.5);
+            source.Keys.Clear(); source.Text = ""; source.Frame++; driver.Poll(.6);
+            Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en")); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("A"));
+        }
+    }
+    [Test]
     public void LegacySlotsNavigateSeparateDraftsAndReconnectWithoutLosingText()
     {
         var source = new Source();

@@ -36,5 +36,21 @@ namespace SkyKeyYuyan.Unity
         /// 获取该目标的正文输入配置覆盖。
         /// </summary>
         public SkyTextInputOptions TextInput => UsePlayerTextInput ? null : new SkyTextInputOptions(InputType, MinimumVisibleLines);
+        /// <summary>
+        /// 使用玩家默认键盘配置。
+        /// </summary>
+        public bool UsePlayerKeyboardInput = true;
+        /// <summary>
+        /// 该目标的键盘输入法来源。
+        /// </summary>
+        public SkyKeyboardInputMode KeyboardMode = SkyKeyboardInputMode.Automatic;
+        /// <summary>
+        /// 键盘进入时显示完整虚拟键盘。
+        /// </summary>
+        public bool ForceVirtualKeyboard;
+        /// <summary>
+        /// 获取目标的键盘输入配置覆盖。
+        /// </summary>
+        public SkyKeyboardInputOptions KeyboardInput => UsePlayerKeyboardInput ? null : new SkyKeyboardInputOptions(KeyboardMode, ForceVirtualKeyboard, InitialLanguage);
     }
 }

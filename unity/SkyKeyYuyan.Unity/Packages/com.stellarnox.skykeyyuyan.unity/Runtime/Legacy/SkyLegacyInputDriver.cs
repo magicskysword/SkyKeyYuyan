@@ -149,6 +149,8 @@ namespace SkyKeyYuyan.Unity.Legacy
             internal LegacyGamepadProfile Profile;
             internal bool TextFocused, LeftReady = true, RightReady = true;
             internal int FocusButtons;
+            internal readonly SkyShiftTap Shift = new SkyShiftTap();
+            internal bool KeyboardOwned;
             internal readonly Dictionary<SkyControl, SkyInputRepeat> Repeats = new Dictionary<SkyControl, SkyInputRepeat>();
         }
         private readonly SkyInputRouter _router;
@@ -159,6 +161,7 @@ namespace SkyKeyYuyan.Unity.Legacy
         private bool _disposed;
         private long _sequence;
         private long _textFrame = long.MinValue;
+        private static readonly KeyCode[] KeyboardKeys = ((KeyCode[])Enum.GetValues(typeof(KeyCode))).Where(key => key >= KeyCode.Backspace && key < KeyCode.Mouse0 && key != KeyCode.LeftShift && key != KeyCode.RightShift).Distinct().ToArray();
         /// <summary>
         /// 使用所选 Legacy 后端和可替换的采样入口。
         /// </summary>
@@ -272,25 +275,37 @@ namespace SkyKeyYuyan.Unity.Legacy
         {
             string text = _textFrame != _source.Frame ? _source.Text ?? "" : "";
             _textFrame = _source.Frame;
+            bool extend = _source.Key(KeyCode.LeftShift) || _source.Key(KeyCode.RightShift);
+            bool other = text.Length > 0 || KeyboardKeys.Any(_source.Key);
+            if (extend || other || _source.Key(KeyCode.Mouse0)) _router.ObserveActivity(binding.Id);
+            bool owned = _router.CanRoute(binding.Id);
+            if (owned != binding.KeyboardOwned) { binding.KeyboardOwned = owned; binding.Shift.Reset(extend); }
+            if (!owned) { binding.Shift.Reset(extend); foreach (var gate in binding.Repeats.Values) gate.Reset(); return; }
+            if (binding.Shift.Update(extend, other, time)) _router.Route(SkyInputBackend.Legacy, binding.Id, SkyControl.Language, sequence: ++_sequence);
             if (text.Length != 0)
             {
                 string printable = new string(text.Where(value => !char.IsControl(value)).ToArray());
-                if (printable.Length != 0) _router.Route(SkyInputBackend.Legacy, binding.Id, SkyControl.Text, text: printable, sequence: ++_sequence);
+                if (printable.Length != 0) _router.RouteKeyboardText(SkyInputBackend.Legacy, binding.Id, printable, ++_sequence);
             }
-            bool extend = _source.Key(KeyCode.LeftShift) || _source.Key(KeyCode.RightShift);
+            if (!_router.TryGetPlayer(binding.Id, out var player) || player.Session == null) return;
+            bool composing = player.KeyboardSession && !player.Session.Snapshot.Composition.IsEmpty && !extend;
             Emit(binding, SkyControl.TextLeft, _source.Key(KeyCode.LeftArrow), time, true, extend);
             Emit(binding, SkyControl.TextRight, _source.Key(KeyCode.RightArrow), time, true, extend);
-            Emit(binding, SkyControl.TextUp, _source.Key(KeyCode.UpArrow), time, true, extend);
-            Emit(binding, SkyControl.TextDown, _source.Key(KeyCode.DownArrow), time, true, extend);
+            Emit(binding, SkyControl.TextUp, !composing && _source.Key(KeyCode.UpArrow), time, true, extend);
+            Emit(binding, SkyControl.TextDown, !composing && _source.Key(KeyCode.DownArrow), time, true, extend);
+            Emit(binding, SkyControl.PreviousCandidate, composing && _source.Key(KeyCode.UpArrow), time, true);
+            Emit(binding, SkyControl.NextCandidate, composing && _source.Key(KeyCode.DownArrow), time, true);
             Emit(binding, SkyControl.Backspace, _source.Key(KeyCode.Backspace), time, true);
             Emit(binding, SkyControl.Delete, _source.Key(KeyCode.Delete), time, true);
             bool enter = _source.Key(KeyCode.Return) || _source.Key(KeyCode.KeypadEnter);
             bool control = _source.Key(KeyCode.LeftControl) || _source.Key(KeyCode.RightControl);
-            bool multiline = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused && player.TextInput.Type == SkyTextInputType.MultiLine;
-            Emit(binding, SkyControl.Newline, enter && multiline && !control, time);
-            Emit(binding, SkyControl.Finish, enter && (!multiline || control), time);
+            bool multiline = player.Panel != null && player.Panel.State.TextFocused && player.TextInput.Type == SkyTextInputType.MultiLine;
+            bool confirm = player.KeyboardSession && !player.Session.Snapshot.Composition.IsEmpty && !control;
+            Emit(binding, SkyControl.ConfirmCandidate, enter && confirm, time);
+            Emit(binding, SkyControl.Newline, enter && !confirm && multiline && !control, time);
+            Emit(binding, SkyControl.Finish, enter && !confirm && (!multiline || control), time);
             Emit(binding, SkyControl.Cancel, _source.Key(KeyCode.Escape), time);
-            Emit(binding, SkyControl.Language, _source.Key(KeyCode.Tab), time);
+            Emit(binding, SkyControl.Language, !player.KeyboardSession && _source.Key(KeyCode.Tab), time);
             Emit(binding, SkyControl.SelectAll, (_source.Key(KeyCode.LeftControl) || _source.Key(KeyCode.RightControl)) && _source.Key(KeyCode.A), time);
         }
         private void Emit(Binding binding, SkyControl control, bool pressed, double time, bool repeat = false, bool extend = false)

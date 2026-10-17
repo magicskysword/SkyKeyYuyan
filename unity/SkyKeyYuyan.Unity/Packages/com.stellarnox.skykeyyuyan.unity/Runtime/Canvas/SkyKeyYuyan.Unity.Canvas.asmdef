@@ -1,0 +1,6 @@
+{
+  "name": "SkyKeyYuyan.Unity.Canvas",
+  "references": ["SkyKeyYuyan.Unity", "UnityEngine.UI"],
+  "defineConstraints": ["SKY_UGUI_AVAILABLE", "!SKY_DISABLE_UGUI || !SKY_DISABLE_TMP"],
+  "versionDefines": [{ "name": "com.unity.ugui", "expression": "1.0.0", "define": "SKY_UGUI_AVAILABLE" }]
+}

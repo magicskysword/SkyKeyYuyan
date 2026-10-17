@@ -81,7 +81,38 @@ namespace SkyKeyYuyan.Unity
         /// 玩家当前是否具有已连接且启用的设备，并且应用处于前台。
         /// </summary>
         public bool HasEnabledDevice(string playerId) => !_disposed && _focused && _players.TryGetValue(playerId, out var player)
-            && _bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding));
+            && _bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Available(binding));
+        /// <summary>
+        /// 查询一位玩家绑定的指定设备是否连接。
+        /// </summary>
+        public bool HasConnectedDevice(string playerId, SkyDeviceKind kind) => _bindings.Values.Any(binding => binding.Player.PlayerId == playerId && binding.Kind == kind && binding.Connected);
+        /// <summary>
+        /// 记录原生输入活动，供焦点发现选择对应的输入入口。
+        /// </summary>
+        public void ObserveActivity(string deviceId)
+        { if (_bindings.TryGetValue(deviceId, out var binding) && binding.Connected) binding.Player.LastDevice = binding.Kind; }
+        /// <summary>
+        /// 路由物理键盘文字，并处理行内中文的空格与数字选词。
+        /// </summary>
+        public void RouteKeyboardText(SkyInputBackend backend, string deviceId, string text, long sequence)
+        {
+            if (!CanRoute(deviceId) || !_bindings.TryGetValue(deviceId, out var binding)) return;
+            var player = binding.Player; var snapshot = player.Session.Snapshot;
+            var language = player.Session.Languages.FirstOrDefault(item => item.LanguageId == snapshot.LanguageId);
+            bool converting = player.KeyboardSession && !snapshot.Composition.IsEmpty && language != null && (language.Capabilities & Core.LanguageCapabilities.ConvertOnCommit) != 0;
+            if (converting && text == " ") { Route(backend, deviceId, SkyControl.ConfirmCandidate, sequence: sequence); return; }
+            if (converting && text.Length == 1 && text[0] >= '1' && text[0] <= '9' && !snapshot.Querying && snapshot.Candidates != null)
+            {
+                int index = text[0] - '1';
+                if (index < snapshot.Candidates.Candidates.Count)
+                {
+                    if (backend != Backend || sequence <= binding.LastSequence) return;
+                    binding.LastSequence = sequence; ObserveActivity(deviceId);
+                    player.Session.Process(Core.InputOperation.ConfirmCandidate(snapshot.Candidates.Query.Id, snapshot.Candidates.Candidates[index].Id)); return;
+                }
+            }
+            Route(backend, deviceId, SkyControl.Text, text: text, sequence: sequence);
+        }
         /// <summary>
         /// 解除玩家及其设备绑定，不释放玩家对象。
         /// </summary>
@@ -148,6 +179,7 @@ namespace SkyKeyYuyan.Unity
         {
             if (_disposed || backend != Backend || !_bindings.TryGetValue(deviceId, out var binding) || !binding.Connected || !Enabled(binding)) return false;
             if (sequence > 0) { if (sequence <= binding.LastSequence) return false; binding.LastSequence = sequence; }
+            binding.Player.LastDevice = binding.Kind;
             return binding.Player.Handle(control, extend, text);
         }
         /// <summary>
@@ -155,10 +187,11 @@ namespace SkyKeyYuyan.Unity
         /// </summary>
         public void SetApplicationFocused(bool focused) { _focused = focused; foreach (var player in _players.Values) player.SetPaused("application-focus", !focused); }
         private static bool Enabled(Binding binding) => binding.Kind == SkyDeviceKind.Pointer || (binding.Kind == SkyDeviceKind.Keyboard ? binding.Player.KeyboardEnabled : binding.Player.GamepadEnabled);
+        private static bool Available(Binding binding) => binding.Kind == SkyDeviceKind.Keyboard || Enabled(binding);
         private void UpdateAvailability(SkyPlayerContext player)
         {
             player.SetGamepadConnected(_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Kind == SkyDeviceKind.Gamepad && binding.Connected));
-            player.SetPaused("devices", !_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding)));
+            player.SetPaused("devices", !_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Available(binding)));
         }
         /// <inheritdoc>
         /// </inheritdoc>

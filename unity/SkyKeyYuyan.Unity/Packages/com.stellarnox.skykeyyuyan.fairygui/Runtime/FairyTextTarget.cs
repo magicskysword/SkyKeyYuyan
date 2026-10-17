@@ -10,7 +10,7 @@ namespace SkyKeyYuyan.FairyGUI
     /// <summary>
     /// 将 FairyGUI 的字符坐标和长度限制映射到 UTF-16 文本契约。
     /// </summary>
-    public sealed class FairyTextTarget : UnityTextTarget
+    public sealed class FairyTextTarget : UnityTextTarget, ISkyInlineKeyboardTarget
     {
         private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
         private static readonly FieldInfo AnchorField = typeof(InputTextField).GetField("_selectionStart", PrivateInstance);
@@ -19,6 +19,17 @@ namespace SkyKeyYuyan.FairyGUI
         private static readonly MethodInfo ValidateMethod = typeof(InputTextField).GetMethod("ValidateInput", PrivateInstance);
         private readonly GTextInput _field;
         private bool _keyboardOwned, _originalEditable, _originalKeyboardInput, _originalDisableIme;
+        private bool _focusRequested;
+        private void OnFocusRequested(EventContext context) { _focusRequested = true; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public bool TakeKeyboardFocusRequest() { bool value = _focusRequested; _focusRequested = false; return value; }
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public SkyTextInputType KeyboardTextType => SingleLine ? SkyTextInputType.SingleLine : SkyTextInputType.MultiLine;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public void RestoreKeyboardSelection(int anchor, int caret) => WriteSelection(anchor, caret);
         /// <summary>
         /// 绑定已有文本框；SDK 必须保留双向选区和原生验证所需成员。
         /// </summary>
@@ -28,6 +39,7 @@ namespace SkyKeyYuyan.FairyGUI
             if (AnchorField == null || CaretField == null || UpdateCaretMethod == null || ValidateMethod == null)
                 throw new NotSupportedException("当前 FairyGUI 版本的选区或验证成员不兼容");
             _field.onChanged.Add(OnChanged);
+            _field.onTouchBegin.AddCapture(OnFocusRequested);
             _field.inputTextField.onKeyDown.AddCapture(OnNativeKey);
         }
         /// <summary>
@@ -40,6 +52,9 @@ namespace SkyKeyYuyan.FairyGUI
         /// <inheritdoc>
         /// </inheritdoc>
         public override bool IsEditing => IsAlive && _field.inputTextField.focused;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public IDisposable CreateKeyboardView(ISkySession session) => new FairyKeyboardView(session, _field);
         /// <inheritdoc>
         /// </inheritdoc>
         protected override int CharacterLimit => _field.maxLength;
@@ -143,6 +158,7 @@ namespace SkyKeyYuyan.FairyGUI
         {
             if (!NativeAlive) return;
             _field.onChanged.Remove(OnChanged);
+            _field.onTouchBegin.RemoveCapture(OnFocusRequested);
             _field.inputTextField.onKeyDown.RemoveCapture(OnNativeKey);
         }
         private static int Utf16Offset(string text, int characters)

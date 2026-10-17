@@ -4,9 +4,12 @@ using FairyGUI;
 using SkyKeyYuyan.Unity;
 using UnityEngine;
 
-namespace SkyKeyYuyan.UI.FairyGUI
+namespace SkyKeyYuyan.FairyGUI
 {
-    internal sealed class FairyCompositionView : IDisposable
+    /// <summary>
+    /// 在原生正文上绘制临时组字、下划线和光标。
+    /// </summary>
+    public sealed class FairyCompositionView : IDisposable
     {
         private readonly GTextInput _field;
         private readonly GTextField _label;
@@ -16,10 +19,23 @@ namespace SkyKeyYuyan.UI.FairyGUI
         private readonly List<Rect> _rects = new List<Rect>();
         private float _nativeAlpha;
         private bool _active;
-        internal Vector2 Caret { get; private set; }
-        internal float LineHeight { get; private set; }
+        /// <summary>
+        /// 光标在正文父级内的位置。
+        /// </summary>
+        public Vector2 Caret { get; private set; }
+        /// <summary>
+        /// 当前排版行高。
+        /// </summary>
+        public float LineHeight { get; private set; }
+        /// <summary>
+        /// 光标在 Stage 中的位置。
+        /// </summary>
+        public Vector2 GlobalCaret { get; private set; }
 
-        internal FairyCompositionView(GTextInput field, GTextField label)
+        /// <summary>
+        /// 为原输入框创建临时显示。
+        /// </summary>
+        public FairyCompositionView(GTextInput field, GTextField label)
         {
             _field = field; _label = label;
             _viewport = new GComponent { name = "compositionViewport", touchable = false }; field.parent.AddChild(_viewport);
@@ -27,13 +43,19 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _label.touchable = false; _label.UBBEnabled = false; _label.autoSize = AutoSizeType.None; ((TextField)_label.displayObject).EnableCharPositionSupport();
             _viewport.visible = false;
         }
-        internal float Measure(string text)
+        /// <summary>
+        /// 测量当前输入框样式中的文字高度。
+        /// </summary>
+        public float Measure(string text)
         {
             _label.textFormat = _field.textFormat; _label.singleLine = _field.singleLine;
             _label.autoSize = _field.singleLine ? AutoSizeType.Both : AutoSizeType.Height;
             _label.SetSize(_field.width, _field.height); _label.text = text; return _label.textHeight;
         }
-        internal void Render(SkyCompositionText composition)
+        /// <summary>
+        /// 更新组字与滚动位置。
+        /// </summary>
+        public void Render(SkyCompositionText composition)
         {
             if (_active != composition.Active)
             {
@@ -56,6 +78,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             float scrollX = _field.singleLine ? Mathf.Max(0, last.offsetX + 2 - _field.width) : 0;
             float scrollY = Mathf.Max(0, line.y + LineHeight - _field.height);
             _label.SetXY(-scrollX, -scrollY);
+            GlobalCaret = _label.LocalToGlobal(new Vector2(last.offsetX, line.y + LineHeight));
             Caret = new Vector2(_field.x + last.offsetX - scrollX, _field.y + line.y - scrollY);
             _rects.Clear(); text.GetLinesShape(first.lineIndex, first.offsetX, last.lineIndex, last.offsetX, false, _rects);
             while (_marks.Count < _rects.Count) { var mark = new GGraph { touchable = false }; _viewport.AddChild(mark); _marks.Add(mark); }
@@ -75,6 +98,6 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) index++;
             return result;
         }
-        public void Dispose() { if (!_viewport.isDisposed) _viewport.Dispose(); }
+        public void Dispose() { if (_active && !_field.isDisposed) _field.inputTextField.alpha = _nativeAlpha; if (!_viewport.isDisposed) _viewport.Dispose(); }
     }
 }

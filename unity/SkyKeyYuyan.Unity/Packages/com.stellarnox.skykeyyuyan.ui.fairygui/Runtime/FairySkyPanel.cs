@@ -107,6 +107,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
         }
         private void OnOpened(SkyPlayerContext player)
         {
+            if (!player.VirtualKeyboardVisible) return;
             _controller = player.Panel; _controller.Changed += Render; View.visible = true; Fit(); Render(_controller.State);
         }
         private void OnClosed(SkyPlayerContext player)

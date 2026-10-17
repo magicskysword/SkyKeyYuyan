@@ -1,6 +1,6 @@
 {
   "name": "SkyKeyYuyan.Unity.UGUI",
-  "references": ["SkyKeyYuyan.Unity", "UnityEngine.UI"],
+  "references": ["SkyKeyYuyan.Unity", "SkyKeyYuyan.Unity.Canvas", "UnityEngine.UI"],
   "defineConstraints": ["SKY_UGUI_AVAILABLE", "!SKY_DISABLE_UGUI"],
   "versionDefines": [{ "name": "com.unity.ugui", "expression": "1.0.0", "define": "SKY_UGUI_AVAILABLE" }]
 }
