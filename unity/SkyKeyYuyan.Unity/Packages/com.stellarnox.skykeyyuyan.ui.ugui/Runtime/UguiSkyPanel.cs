@@ -19,6 +19,9 @@ namespace SkyKeyYuyan.UI.UGUI
         private readonly Dictionary<string, Font> _languageFonts = new Dictionary<string, Font>(StringComparer.Ordinal);
         private readonly List<KeyView> _keys = new List<KeyView>();
         private readonly List<SkyPanelButton> _candidateButtons = new List<SkyPanelButton>();
+        private readonly List<float> _candidateWidths = new List<float>();
+        private CandidatePage _candidatePage;
+        private Font _candidateFont;
         private SkyPlayerContext _player;
         private SkyPanelController _controller;
         private UguiTextTarget _draftTarget;
@@ -175,20 +178,35 @@ namespace SkyKeyYuyan.UI.UGUI
                     _player.Session.Process(InputOperation.ConfirmCandidate(current.Candidates.Query.Id, current.Candidates.Candidates[index].Id));
                 }));
             }
+            if (!ReferenceEquals(_candidatePage, page) || _candidateFont != font)
+            {
+                _candidatePage = page; _candidateFont = font; _candidateWidths.Clear();
+                for (int index = 0; index < count; index++)
+                {
+                    var label = _candidateButtons[index].GetComponentInChildren<Text>(true);
+                    label.font = font; label.text = page.Candidates[index].Text; label.resizeTextForBestFit = false;
+                    _candidateWidths.Add(SkyKeyboardStyle.CandidateWidth(label.preferredWidth));
+                    label.resizeTextForBestFit = true;
+                }
+            }
+            SkyKeyboardStyle.CandidateRange(_candidateWidths, snapshot.SelectedCandidate, out int first, out int end);
+            float x = 0;
             for (int index = 0; index < _candidateButtons.Count; index++)
             {
-                var button = _candidateButtons[index]; button.gameObject.SetActive(index < count);
-                if (index >= count) continue;
-                float width = 860f / count;
+                var button = _candidateButtons[index]; bool visible = index >= first && index < end;
+                button.gameObject.SetActive(visible);
+                if (!visible) continue;
+                float width = _candidateWidths[index];
                 var rect = (RectTransform)button.transform;
-                rect.anchoredPosition = new Vector2(index * width, 0); rect.sizeDelta = new Vector2(width - 7, 52);
+                rect.anchoredPosition = new Vector2(x, 0); rect.sizeDelta = new Vector2(width, 52);
                 var textRect = (RectTransform)button.GetComponentInChildren<Text>().transform;
-                textRect.sizeDelta = new Vector2(width - 19, 44);
+                textRect.sizeDelta = new Vector2(width - 12, 44);
                 var label = button.GetComponentInChildren<Text>(); label.font = font; label.text = page.Candidates[index].Text;
                 bool selected = index == snapshot.SelectedCandidate;
                 ((SkyPanelGraphic)button.targetGraphic).Configure(selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Function, selected ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border);
                 label.color = selected ? SkyKeyboardStyle.DarkText : SkyKeyboardStyle.Text;
                 button.interactable = !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution;
+                x += width + SkyKeyboardStyle.CandidateGap;
             }
             _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
             _previousCandidate.gameObject.SetActive(count > 0); _nextCandidate.gameObject.SetActive(count > 0);

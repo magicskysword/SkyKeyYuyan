@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using FairyGUI;
 using NUnit.Framework;
 using SkyKeyYuyan.Core;
@@ -87,6 +88,49 @@ public class FairyPanelTests
                 Assert.That(letter.GetChild("focusOutline").visible, Is.True); Assert.That(letter.GetChild("focusBadge").visible, Is.True);
                 player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("b"));
                 player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("b"));
+            }
+        }
+    }
+    [UnityTest]
+    public IEnumerator CandidatesUseNativeTextWidthsAndFollowGamepadSelection()
+    {
+        var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(words.Select((word, index) => new LexiconWord("candidate-" + index, word, "hen", 100 - index))));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
+            {
+                player.Open(target, runtime); yield return null;
+                player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                Assert.That(player.Session.Snapshot.Candidates.Candidates.Count, Is.EqualTo(20));
+                var candidates = panel.View.GetChild("candidates").asCom;
+                var first = candidates.GetChild("candidate0").asButton; var phrase = candidates.GetChild("candidate7").asButton;
+                Assert.That(first.width, Is.LessThan(70)); Assert.That(phrase.width, Is.GreaterThan(first.width));
+                foreach (var button in candidates.GetChildren().Where(button => button.visible).Select(button => button.asButton))
+                {
+                    Assert.That(button.GetTextField().width, Is.GreaterThanOrEqualTo(button.GetTextField().textWidth));
+                    Assert.That(button.x + button.width, Is.LessThanOrEqualTo(SkyKeyboardStyle.CandidateStripWidth));
+                }
+                yield return CapturePanels("fairygui-compact-candidates");
+                for (int index = 0; index < 19; index++) player.Handle(SkyControl.NextCandidate);
+                Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(19));
+                var last = candidates.GetChild("candidate19").asButton;
+                Assert.That(first.visible, Is.False); Assert.That(last.visible, Is.True);
+                Assert.That(last.GetTextField().width, Is.GreaterThanOrEqualTo(last.GetTextField().textWidth));
+                Assert.That(last.x + last.width, Is.LessThanOrEqualTo(SkyKeyboardStyle.CandidateStripWidth));
+                yield return CapturePanels("fairygui-long-candidate");
+                player.Handle(SkyControl.Backspace); services.Context.Drain(); deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                Assert.That(first.visible, Is.True);
+                for (int index = 0; index < 19; index++) player.Handle(SkyControl.NextCandidate);
+                string expected = last.title; last.FireClick(false, true); services.Context.Drain();
+                Assert.That(panel.DraftField.text, Is.EqualTo(expected));
             }
         }
     }

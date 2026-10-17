@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SkyKeyYuyan.Core;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace SkyKeyYuyan.Unity
     public static class SkyKeyboardStyle
     {
         public const float Width = 1120, Height = 700, ContentWidth = 1072, KeyboardHeight = 336;
+        public const float CandidateStripWidth = 860, CandidateGap = 8;
         public static readonly Color32 Panel = new Color32(30, 37, 44, 252), Inset = new Color32(23, 30, 37, 255);
         public static readonly Color32 Key = new Color32(54, 63, 74, 255), Function = new Color32(44, 53, 63, 255);
         public static readonly Color32 Border = new Color32(79, 91, 103, 255), Accent = new Color32(100, 230, 204, 255);
@@ -35,6 +37,33 @@ namespace SkyKeyYuyan.Unity
             if (key.Action == "shift") return shift ? "Shift ↑" : key.Label;
             if (key.Action == "completion") return completion ? "补全 开" : "补全 关";
             return key.Action == "input" && key.Output != " " && shift ? key.Alternate : key.Label;
+        }
+        /// <summary>
+        /// 根据字体测得的文字宽度保留两侧留白，并限制在候选区内。
+        /// </summary>
+        public static float CandidateWidth(float textWidth) => Mathf.Clamp(Mathf.Ceil(textWidth) + 24, 48, CandidateStripWidth);
+        /// <summary>
+        /// 取得包含选中项且所有按钮均完整位于候选区的连续区间。
+        /// </summary>
+        public static void CandidateRange(IReadOnlyList<float> widths, int selected, out int first, out int end)
+        {
+            first = end = 0;
+            if (widths.Count == 0) return;
+            selected = Mathf.Clamp(selected, 0, widths.Count - 1);
+            float used = 0;
+            for (int index = 0; index <= selected; index++)
+            {
+                used += widths[index] + CandidateGap;
+                while (first < index && used - CandidateGap > CandidateStripWidth)
+                    used -= widths[first++] + CandidateGap;
+            }
+            used = 0;
+            for (end = first; end < widths.Count; end++)
+            {
+                float next = widths[end] + (end == first ? 0 : CandidateGap);
+                if (used + next > CandidateStripWidth) break;
+                used += next;
+            }
         }
     }
 }

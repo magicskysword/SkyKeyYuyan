@@ -31,6 +31,9 @@ namespace SkyKeyYuyan.UI.FairyGUI
         private readonly Dictionary<string, string> _fonts = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<KeyView> _keys = new List<KeyView>();
         private readonly List<GButton> _candidateButtons = new List<GButton>();
+        private readonly List<float> _candidateWidths = new List<float>();
+        private CandidatePage _candidatePage;
+        private string _candidateFont;
         private readonly Func<TextSnapshot, ITextTarget> _factory, _previousFactory;
         private FairyTextTarget _draft;
         private SkyPanelController _controller;
@@ -150,12 +153,26 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 });
                 _candidateButtons.Add(button);
             }
+            if (!ReferenceEquals(_candidatePage, page) || _candidateFont != font)
+            {
+                _candidatePage = page; _candidateFont = font; _candidateWidths.Clear();
+                for (int index = 0; index < count; index++)
+                {
+                    var label = _candidateButtons[index].GetTextField(); SetFont(label, font);
+                    label.autoSize = AutoSizeType.None; label.singleLine = true; label.text = page.Candidates[index].Text;
+                    _candidateWidths.Add(SkyKeyboardStyle.CandidateWidth(label.textWidth));
+                    label.autoSize = AutoSizeType.Shrink;
+                }
+            }
+            SkyKeyboardStyle.CandidateRange(_candidateWidths, snapshot.SelectedCandidate, out int first, out int end);
+            float x = 0;
             for (int index = 0; index < _candidateButtons.Count; index++)
             {
-                var button = _candidateButtons[index]; button.visible = index < count;
-                if (index >= count) continue;
-                float width = 860f / count; button.SetXY(index * width, 0); button.SetSize(width - 7, 52); button.title = page.Candidates[index].Text;
+                var button = _candidateButtons[index]; button.visible = index >= first && index < end;
+                if (!button.visible) continue;
+                float width = _candidateWidths[index]; button.SetXY(x, 0); button.SetSize(width, 52); button.title = page.Candidates[index].Text;
                 Style(button, font, index == snapshot.SelectedCandidate, !snapshot.Querying && snapshot.Lifecycle == SessionLifecycle.Active && !snapshot.NeedsResolution);
+                x += width + SkyKeyboardStyle.CandidateGap;
             }
             SetFont(_selection, font); _selection.text = count == 0 ? "" : page.Candidates[snapshot.SelectedCandidate].Text;
             foreach (string name in new[] { "previousCandidate", "nextCandidate" })

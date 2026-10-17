@@ -99,6 +99,52 @@ public class UguiPanelTests
         }
     }
     [UnityTest]
+    public IEnumerator CandidatesFitTheirTextAndKeepGamepadSelectionVisible()
+    {
+        var words = new[] { "很", "狠", "痕", "很好", "很多", "很快", "很慢", "很高兴", "很有趣", "很漂亮", "很方便", "很久以前", "很久很久以前", "很长时间以后", "很高兴认识你", "很久没有见面了", "很想和你聊聊天", "很高兴今天能见到你", "很久没有收到你的来信", "很高兴能在这里和大家一起交流" };
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(words.Select((word, index) => new LexiconWord("candidate-" + index, word, "hen", 100 - index))));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            player.Open(target, runtime); yield return null; yield return null;
+            player.Handle(SkyControl.Text, text: "hen"); services.Context.Drain();
+            float deadline = Time.realtimeSinceStartup + 5;
+            while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+            Assert.That(player.Session.Snapshot.Candidates.Candidates.Count, Is.EqualTo(20));
+            var buttons = panel.GetComponentsInChildren<SkyPanelButton>(true).Where(button => button.transform.parent.name == "Candidates").ToArray();
+            var first = buttons.Single(button => button.name == "Candidate0");
+            var phrase = buttons.Single(button => button.name == "Candidate7");
+            Assert.That(first.GetComponent<RectTransform>().rect.width, Is.LessThan(70));
+            Assert.That(phrase.GetComponent<RectTransform>().rect.width, Is.GreaterThan(first.GetComponent<RectTransform>().rect.width));
+            foreach (var button in buttons.Where(button => button.gameObject.activeSelf))
+            {
+                var rect = button.GetComponent<RectTransform>(); var label = button.GetComponentInChildren<Text>();
+                Assert.That(label.rectTransform.rect.width, Is.GreaterThanOrEqualTo(label.preferredWidth));
+                Assert.That(rect.anchoredPosition.x + rect.rect.width, Is.LessThanOrEqualTo(SkyKeyboardStyle.CandidateStripWidth));
+            }
+            CapturePanels("ugui-compact-candidates");
+            for (int index = 0; index < 19; index++) player.Handle(SkyControl.NextCandidate);
+            Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(19));
+            var last = buttons.Single(button => button.name == "Candidate19");
+            Assert.That(first.gameObject.activeSelf, Is.False); Assert.That(last.gameObject.activeSelf, Is.True);
+            var lastRect = last.GetComponent<RectTransform>(); var lastText = last.GetComponentInChildren<Text>();
+            Assert.That(lastText.rectTransform.rect.width, Is.GreaterThanOrEqualTo(lastText.preferredWidth));
+            Assert.That(lastRect.anchoredPosition.x + lastRect.rect.width, Is.LessThanOrEqualTo(SkyKeyboardStyle.CandidateStripWidth));
+            CapturePanels("ugui-long-candidate");
+            player.Handle(SkyControl.Backspace); services.Context.Drain(); deadline = Time.realtimeSinceStartup + 5;
+            while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+            Assert.That(first.gameObject.activeSelf, Is.True);
+            for (int index = 0; index < 19; index++) player.Handle(SkyControl.NextCandidate);
+            var pointer = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left };
+            last.OnPointerClick(pointer); services.Context.Drain();
+            Assert.That(panel.DraftField.text, Is.EqualTo(lastText.text));
+        }
+    }
+    [UnityTest]
     public IEnumerator PinyinCandidateAndRejectedDraftFillCanBeCorrected()
     {
         using (var runtime = new SkyRuntime())
