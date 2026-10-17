@@ -8,4 +8,16 @@
 
 `MixedFont` 可配置宿主混合语言字体；为空时示例尝试系统字体。`Mode` 可切换原框和独立草稿模式。双玩家使用独立的用户标识保存词频。
 
+选中场景中的 `SkyKeyYuyan Example`，在示例组件的 Inspector 中配置正文：
+
+| 配置 | 含义 |
+| --- | --- |
+| `InputType` | `SingleLine` 单行或 `MultiLine` 多行 |
+| `MinimumVisibleLines` | 多行视口的最低显示行数，一至五，默认三；单行固定为一行 |
+| `InitialText` | 启动时填入原框和草稿的文本，单行模式将换行转为空格 |
+
+修改后进入 Play，配置同时应用于原框与输入面板。单人场景预填三行文本，双玩家场景可检查独立焦点。按 L3 或 R3 进入正文，左摇杆移动光标，右摇杆扩展选区，再按任一摇杆回到键盘。可分别以单行和多行一、三、五行运行，检查视口高度及跨行光标、选区。
+
+键盘模式中左摇杆选键、A 输入、B 回退、右摇杆浏览候选、X 确认选词、Y 切换语言；Start 保存并关闭面板，在正文编辑中也可使用。
+
 场景由 `Tools/SkyKeyYuyan/示例` 菜单生成。核心接入流程位于 `SkyQuickStart`，后端绑定分别位于 `SkyLegacyQuickStart` 与 `SkyInputSystemQuickStart`。

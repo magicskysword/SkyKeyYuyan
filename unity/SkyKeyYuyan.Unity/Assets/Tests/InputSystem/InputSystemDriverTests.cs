@@ -53,7 +53,8 @@ public class InputSystemDriverTests
                 InputSystem.QueueStateEvent(secondPad, new GamepadState().WithButton(GamepadButton.South)); InputSystem.Update(); driver.Poll(0.02); driver.Poll(0.03);
                 Assert.That(first.Session.Snapshot.Text.Text, Is.EqualTo("q"));
                 Assert.That(second.Session.Snapshot.Text.Text, Is.EqualTo("1"));
-                InputSystem.QueueStateEvent(firstPad, new GamepadState().WithButton(GamepadButton.West)); InputSystem.Update(); driver.Poll(0.04);
+                first.Handle(SkyControl.ToggleTextFocus);
+                InputSystem.QueueStateEvent(firstPad, new GamepadState().WithButton(GamepadButton.Start)); InputSystem.Update(); driver.Poll(0.04);
                 Assert.That(firstTarget.ReadSnapshot().Text, Is.EqualTo("q"));
                 Assert.That(first.Session, Is.Null); Assert.That(second.Session, Is.Not.Null);
                 Assert.That(secondTarget.ReadSnapshot().Text, Is.Empty);
@@ -100,7 +101,7 @@ public class InputSystemDriverTests
         finally { InputSystem.RemoveDevice(pad); }
     }
     [Test]
-    public void RightStickBrowsesCandidatesAndYConfirmsBeforeSelectChangesLanguage()
+    public void RightStickBrowsesCandidatesAndXConfirmsBeforeYChangesLanguage()
     {
         var pad = InputSystem.AddDevice<Gamepad>();
         try
@@ -120,10 +121,10 @@ public class InputSystemDriverTests
                 InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.right }); InputSystem.Update(); driver.Poll(0); driver.Poll(.01);
                 Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(1));
                 InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.02);
-                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.North)); InputSystem.Update(); driver.Poll(.03);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.West)); InputSystem.Update(); driver.Poll(.03);
                 Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
                 InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.04);
-                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.Select)); InputSystem.Update(); driver.Poll(.05);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.North)); InputSystem.Update(); driver.Poll(.05);
                 Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
             }
         }

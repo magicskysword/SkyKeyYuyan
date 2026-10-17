@@ -35,6 +35,7 @@ namespace SkyKeyYuyan.Samples.Editor
             if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var owner = new GameObject("SkyKeyYuyan Example"); var demo = (SkyQuickStart)owner.AddComponent(type); demo.PlayerCount = count;
+            if (count == 1) demo.InitialText = "Hello，世界！\n用左摇杆移动光标。\n用右摇杆框选文本。";
             string script = AssetDatabase.GetAssetPath(MonoScript.FromMonoBehaviour(demo));
             string directory = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Application.dataPath), Path.GetDirectoryName(script), "../Scenes"));
             Directory.CreateDirectory(directory);

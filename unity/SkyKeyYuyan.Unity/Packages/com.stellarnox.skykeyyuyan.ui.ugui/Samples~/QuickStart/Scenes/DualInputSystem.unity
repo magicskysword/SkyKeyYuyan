@@ -157,6 +157,9 @@ MonoBehaviour:
   KeyboardEnabled: 0
   EnglishCompletion: 0
   Mode: 1
+  InputType: 1
+  MinimumVisibleLines: 3
+  InitialText: "Hello，世界！"
 --- !u!4 &766417521
 Transform:
   m_ObjectHideFlags: 0

@@ -131,7 +131,7 @@ public class UguiPanelTests
             CapturePanels("ugui-multiline-focus");
             player.Handle(SkyControl.ToggleTextFocus); yield return null;
             Assert.That(panel.DraftField.isFocused, Is.False); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(selected.Caret));
-            var glyph = panel.GetComponentsInChildren<Text>().Single(text => text.name == "Glyph" && text.text == "Select");
+            var glyph = panel.GetComponentsInChildren<Text>().Single(text => text.name == "Glyph" && text.text == "Start");
             Assert.That(glyph.alignment, Is.EqualTo(TextAnchor.MiddleCenter)); Assert.That(glyph.alignByGeometry, Is.True);
             player.Handle(SkyControl.Cancel); player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.SingleLine)); yield return null;
             Assert.That(panel.DraftField.lineType, Is.EqualTo(InputField.LineType.SingleLine));

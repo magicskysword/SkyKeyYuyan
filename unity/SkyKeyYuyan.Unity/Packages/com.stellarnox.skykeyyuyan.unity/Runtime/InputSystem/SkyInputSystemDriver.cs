@@ -113,11 +113,11 @@ namespace SkyKeyYuyan.Unity.InputSystem
             Directions(binding, focused ? right : Vector2.zero, time, true, true);
             Emit(binding, SkyControl.Activate, pad.buttonSouth.isPressed, time);
             Emit(binding, SkyControl.Backspace, pad.buttonEast.isPressed, time, true);
-            Emit(binding, SkyControl.Finish, pad.buttonWest.isPressed, time);
-            Emit(binding, SkyControl.Language, pad.selectButton.isPressed, time);
+            Emit(binding, SkyControl.Finish, pad.startButton.isPressed, time);
+            Emit(binding, SkyControl.Language, pad.buttonNorth.isPressed, time);
             Emit(binding, SkyControl.PreviousCandidate, pad.leftShoulder.isPressed || !focused && (right.x < -Threshold || right.y > Threshold), time, true);
             Emit(binding, SkyControl.NextCandidate, pad.rightShoulder.isPressed || !focused && (right.x > Threshold || right.y < -Threshold), time, true);
-            Emit(binding, SkyControl.ConfirmCandidate, pad.buttonNorth.isPressed, time);
+            Emit(binding, SkyControl.ConfirmCandidate, pad.buttonWest.isPressed, time);
         }
         private Vector2 Ready(Vector2 value, ref bool ready)
         {

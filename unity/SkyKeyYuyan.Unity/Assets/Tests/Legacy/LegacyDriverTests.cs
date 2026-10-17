@@ -59,7 +59,8 @@ public class LegacyDriverTests
             source.Axes.Clear(); driver.Poll(0.01);
             source.Keys.Add(KeyCode.Joystick1Button0); source.Keys.Add(KeyCode.Joystick2Button0); driver.Poll(0.02); driver.Poll(0.03);
             Assert.That(first.Session.Snapshot.Text.Text, Is.EqualTo("q")); Assert.That(second.Session.Snapshot.Text.Text, Is.EqualTo("1"));
-            source.Names[0] = ""; source.Keys.Clear(); source.Keys.Add(KeyCode.Joystick2Button2); driver.Poll(0.04);
+            second.Handle(SkyControl.ToggleTextFocus);
+            source.Names[0] = ""; source.Keys.Clear(); source.Keys.Add(KeyCode.Joystick2Button7); driver.Poll(0.04);
             Assert.That(first.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Paused));
             Assert.That(secondTarget.ReadSnapshot().Text, Is.EqualTo("1"));
             source.Names[0] = "one"; source.Keys.Clear(); driver.Poll(0.05);
@@ -92,7 +93,7 @@ public class LegacyDriverTests
         }
     }
     [Test]
-    public void RightStickBrowsesCandidatesAndYConfirmsBeforeSelectChangesLanguage()
+    public void RightStickBrowsesCandidatesAndXConfirmsBeforeYChangesLanguage()
     {
         var source = new Source();
         using (var runtime = Runtime())
@@ -108,9 +109,9 @@ public class LegacyDriverTests
             Assert.That(player.Session.Snapshot.Querying, Is.False);
             string expected = player.Session.Snapshot.Candidates.Candidates[1].Text;
             source.Axes["SkyPad1.RX"] = 1; driver.Poll(0); driver.Poll(.01); Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(1));
-            source.Axes.Clear(); driver.Poll(.02); source.Keys.Add(KeyCode.Joystick1Button3); driver.Poll(.03);
+            source.Axes.Clear(); driver.Poll(.02); source.Keys.Add(KeyCode.Joystick1Button2); driver.Poll(.03);
             Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
-            source.Keys.Clear(); driver.Poll(.04); source.Keys.Add(KeyCode.Joystick1Button6); driver.Poll(.05);
+            source.Keys.Clear(); driver.Poll(.04); source.Keys.Add(KeyCode.Joystick1Button3); driver.Poll(.05);
             Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
         }
     }

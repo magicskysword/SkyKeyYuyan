@@ -159,7 +159,7 @@ namespace SkyKeyYuyan.UI.UGUI
             var result = state.LastResult;
             _status.text = snapshot.NeedsResolution ? "请确认正文是否已写入，再选择继续方式" : snapshot.Querying ? "正在查找候选…"
                 : state.Problem != null ? "键盘暂不可用，可取消或完成编辑" : result?.Edit?.Status == TextEditStatus.Truncated ? "已按长度上限接受可容纳的文本"
-                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : state.TextFocused ? "左摇杆移动光标 · 右摇杆框选 · 按摇杆返回键盘" : "右摇杆选择候选 · Y 选词 · 按摇杆编辑正文";
+                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : state.TextFocused ? "左摇杆移动光标 · 右摇杆框选 · 按摇杆返回键盘" : "右摇杆选择候选 · X 选词 · 按摇杆编辑正文";
             _hintLabels[0].text = state.TextFocused ? "光标" : "选键"; _hintLabels[3].text = state.TextFocused ? "框选" : "候选"; _hintLabels[4].text = state.TextFocused ? "键盘" : "正文";
             _activationHint.alpha = state.TextFocused ? .35f : 1;
         }
@@ -264,8 +264,8 @@ namespace SkyKeyYuyan.UI.UGUI
         }
         private void BuildHints()
         {
-            var glyphs = new[] { "L", "A", "B", "R", "L3/R3", "Y", "X", "Select" };
-            var labels = new[] { "选键", "输入", "回退", "候选", "正文", "选词", "保存", "语言" };
+            var glyphs = new[] { "L", "A", "B", "R", "L3/R3", "X", "Y", "Start" };
+            var labels = new[] { "选键", "输入", "回退", "候选", "正文", "选词", "语言", "保存" };
             var widths = new[] { 120, 100, 110, 142, 190, 110, 110, 190 };
             float x = 24;
             for (int index = 0; index < glyphs.Length; index++)
@@ -277,7 +277,7 @@ namespace SkyKeyYuyan.UI.UGUI
                 {
                     var graphic = group.gameObject.AddComponent<Image>(); graphic.color = Color.clear;
                     var button = group.gameObject.AddComponent<SkyPanelButton>(); button.targetGraphic = graphic; button.navigation = new Navigation { mode = Navigation.Mode.None };
-                    var control = index == 5 ? SkyControl.ConfirmCandidate : index == 6 ? SkyControl.Finish : SkyControl.Language;
+                    var control = index == 5 ? SkyControl.ConfirmCandidate : index == 6 ? SkyControl.Language : SkyControl.Finish;
                     button.onClick.AddListener(() => _player?.Handle(control));
                 }
                 var glyph = Rect("Hint" + index, group, 0, 0, glyphWidth, 30);

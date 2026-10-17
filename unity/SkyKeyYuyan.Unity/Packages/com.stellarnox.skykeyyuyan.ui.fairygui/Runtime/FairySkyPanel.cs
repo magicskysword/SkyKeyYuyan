@@ -135,7 +135,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             var result = state.LastResult;
             _status.text = snapshot.NeedsResolution ? "请确认正文是否已写入，再选择继续方式" : snapshot.Querying ? "正在查找候选…"
                 : state.Problem != null ? "键盘暂不可用，可取消或完成编辑" : result?.Edit?.Status == TextEditStatus.Truncated ? "已按长度上限接受可容纳的文本"
-                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : state.TextFocused ? "左摇杆移动光标 · 右摇杆框选 · 按摇杆返回键盘" : "右摇杆选择候选 · Y 选词 · 按摇杆编辑正文";
+                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : state.TextFocused ? "左摇杆移动光标 · 右摇杆框选 · 按摇杆返回键盘" : "右摇杆选择候选 · X 选词 · 按摇杆编辑正文";
             View.GetChild("hintLabel0").asTextField.text = state.TextFocused ? "光标" : "选键";
             View.GetChild("hintLabel3").asTextField.text = state.TextFocused ? "框选" : "候选";
             View.GetChild("hintLabel4").asTextField.text = state.TextFocused ? "键盘" : "正文";

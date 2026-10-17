@@ -110,17 +110,17 @@ namespace SkyKeyYuyan.Unity.Legacy
         /// </summary>
         public int Backspace = 1;
         /// <summary>
-        /// X 按钮索引。
+        /// Start 按钮索引。
         /// </summary>
-        public int Finish = 2;
+        public int Finish = 7;
         /// <summary>
-        /// Select 按钮索引。
+        /// Y 按钮索引。
         /// </summary>
-        public int Language = 6;
+        public int Language = 3;
         /// <summary>
-        /// 确认候选的 Y 按钮索引。
+        /// 确认候选的 X 按钮索引。
         /// </summary>
-        public int ConfirmCandidate = 3;
+        public int ConfirmCandidate = 2;
         /// <summary>
         /// LB 按钮索引。
         /// </summary>

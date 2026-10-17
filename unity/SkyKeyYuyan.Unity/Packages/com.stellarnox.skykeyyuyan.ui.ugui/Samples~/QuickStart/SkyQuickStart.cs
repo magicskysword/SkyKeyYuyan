@@ -20,6 +20,9 @@ namespace SkyKeyYuyan.Samples
         public bool KeyboardEnabled;
         public bool EnglishCompletion;
         public EditingMode Mode = EditingMode.Draft;
+        public SkyTextInputType InputType = SkyTextInputType.MultiLine;
+        [Range(1, 5)] public int MinimumVisibleLines = 3;
+        [TextArea(1, 5)] public string InitialText = "Hello，世界！";
         private readonly List<UguiTextTarget> _targets = new List<UguiTextTarget>();
         private SkyRuntime _runtime;
         private SkyUnityHost _host;
@@ -55,16 +58,17 @@ namespace SkyKeyYuyan.Samples
                 if (EventSystem.current == null) _events = new GameObject("Event System", typeof(EventSystem));
                 _host = gameObject.AddComponent<SkyInputHost>().Configure(Backend); _host.Runtime = _runtime;
                 var players = new SkyPlayerContext[Mathf.Clamp(PlayerCount, 1, 2)];
+                var textInput = new SkyTextInputOptions(InputType, MinimumVisibleLines);
                 for (int index = 0; index < players.Length; index++)
                 {
                     int number = index;
                     var parent = Rect("Player " + (index + 1), _canvas.transform, 0, 0, 0, 0);
                     parent.anchorMin = new Vector2((float)index / players.Length, 0); parent.anchorMax = new Vector2((float)(index + 1) / players.Length, 1); parent.offsetMin = parent.offsetMax = Vector2.zero;
-                    var player = players[index] = _host.AddPlayer(new SkyPlayerOptions { PlayerId = "玩家" + (index + 1), UserId = "sample-" + (index + 1), InitialLanguage = "en", EditingMode = Mode }, new UguiTargetDiscovery(parent));
+                    var player = players[index] = _host.AddPlayer(new SkyPlayerOptions { PlayerId = "玩家" + (index + 1), UserId = "sample-" + (index + 1), InitialLanguage = "en", EditingMode = Mode, TextInput = textInput }, new UguiTargetDiscovery(parent));
                     player.KeyboardEnabled = KeyboardEnabled && index == 0;
                     _host.Router.Bind("sample-pointer-" + index, SkyDeviceKind.Pointer, player.PlayerId);
                     Label("Title", parent, 24, 18, 450, 32, "玩家 " + (index + 1) + " · " + Backend);
-                    var target = CreateTarget(parent, players.Length == 1 ? 1872 : 912); _targets.Add(target);
+                    var target = CreateTarget(parent, players.Length == 1 ? 1872 : 912, textInput); _targets.Add(target);
                     var open = Button(parent, 600 / players.Length, 18, 132, "打开输入", () => { if (player.Session == null) player.Open(target, _runtime); });
                     if (index == 0)
                     {
@@ -79,12 +83,16 @@ namespace SkyKeyYuyan.Samples
             }
             catch (Exception ex) { if (!_destroyed) Debug.LogException(ex); }
         }
-        private UguiTextTarget CreateTarget(Transform parent, float width)
+        private UguiTextTarget CreateTarget(Transform parent, float width, SkyTextInputOptions options)
         {
-            var owner = Rect("Original", parent, 24, 62, width, 50); owner.gameObject.AddComponent<Image>().color = new Color32(36, 46, 62, 255);
-            var label = Label("Text", owner, 10, 7, width - 20, 36, "");
-            var field = owner.gameObject.AddComponent<InputField>(); field.textComponent = label; field.lineType = InputField.LineType.MultiLineNewline;
-            field.text = "Hello，世界！"; field.selectionAnchorPosition = field.selectionFocusPosition = field.text.Length;
+            float height = SkyKeyboardStyle.BodyHeight(options, 0);
+            var owner = Rect("Original", parent, 24, 62, width, height); owner.gameObject.AddComponent<Image>().color = new Color32(36, 46, 62, 255);
+            var label = Label("Text", owner, 10, 7, width - 20, height - 14, "");
+            var field = owner.gameObject.AddComponent<InputField>(); field.textComponent = label;
+            field.lineType = options.Type == SkyTextInputType.SingleLine ? InputField.LineType.SingleLine : InputField.LineType.MultiLineNewline;
+            string text = InitialText ?? "";
+            field.text = options.Type == SkyTextInputType.SingleLine ? text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ') : text;
+            field.selectionAnchorPosition = field.selectionFocusPosition = field.text.Length;
             return new UguiTextTarget(field);
         }
         private Text Label(string name, Transform parent, float x, float y, float width, float height, string value)
