@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Languages.Chinese;
 using SkyKeyYuyan.Unity;
 using SkyKeyYuyan.Unity.InputSystem;
 using UnityEngine;
@@ -59,6 +61,69 @@ public class InputSystemDriverTests
             }
         }
         finally { InputSystem.RemoveDevice(firstPad); InputSystem.RemoveDevice(secondPad); }
+    }
+    [Test]
+    public void StickButtonsToggleTextFocusAndSticksMoveCaretAndSelection()
+    {
+        var pad = InputSystem.AddDevice<Gamepad>();
+        try
+        {
+            using (var runtime = Runtime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                router.Register(player); driver.Bind(pad, "player"); player.Open(new Target(), runtime);
+                player.Handle(SkyControl.Text, text: "A😀BC");
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick)); InputSystem.Update(); driver.Poll(0); driver.Poll(.01);
+                Assert.That(player.Panel.State.TextFocused, Is.True);
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.02);
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.left }); InputSystem.Update(); driver.Poll(.03);
+                Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(4));
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.04);
+                InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.left }); InputSystem.Update(); driver.Poll(.05); driver.Poll(.06);
+                Assert.That(player.Session.Snapshot.Text.Anchor, Is.EqualTo(4)); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(3));
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.RightStick)); InputSystem.Update(); driver.Poll(.07);
+                Assert.That(player.Panel.State.TextFocused, Is.False);
+                Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(3));
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.08);
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(.7f, -1) }); InputSystem.Update(); driver.Poll(.09);
+                Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-1-0"));
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up }); InputSystem.Update(); driver.Poll(.1);
+                Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-0-0"));
+            }
+        }
+        finally { InputSystem.RemoveDevice(pad); }
+    }
+    [Test]
+    public void RightStickBrowsesCandidatesAndYConfirmsBeforeSelectChangesLanguage()
+    {
+        var pad = InputSystem.AddDevice<Gamepad>();
+        try
+        {
+            using (var runtime = Runtime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10) }));
+                runtime.InitializeLanguage("zh.full-pinyin");
+                router.Register(player); driver.Bind(pad, "player"); player.Open(new Target(), runtime); player.Handle(SkyControl.Text, text: "hen");
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                while (player.Session.Snapshot.Querying && timer.Elapsed.TotalSeconds < 5) System.Threading.Thread.Sleep(1);
+                Assert.That(player.Session.Snapshot.Querying, Is.False);
+                string expected = player.Session.Snapshot.Candidates.Candidates[1].Text;
+                InputSystem.QueueStateEvent(pad, new GamepadState { rightStick = Vector2.right }); InputSystem.Update(); driver.Poll(0); driver.Poll(.01);
+                Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(1));
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.02);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.North)); InputSystem.Update(); driver.Poll(.03);
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.04);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.Select)); InputSystem.Update(); driver.Poll(.05);
+                Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
+            }
+        }
+        finally { InputSystem.RemoveDevice(pad); }
     }
     [Test]
     public void KeyboardTextWaitsForEnableAndKeepsCompleteUnicodeCharacters()

@@ -35,6 +35,10 @@ namespace SkyKeyYuyan.Unity
         /// 英语补全初始开关。
         /// </summary>
         public bool CompletionEnabled { get; set; } = true;
+        /// <summary>
+        /// 默认正文输入类型和最低可见行数。
+        /// </summary>
+        public SkyTextInputOptions TextInput { get; set; } = new SkyTextInputOptions();
     }
     /// <summary>
     /// 管理一位玩家的独立会话、面板状态和暂停原因。
@@ -51,7 +55,8 @@ namespace SkyKeyYuyan.Unity
         public SkyPlayerContext(SkyPlayerOptions options)
         {
             if (options == null || string.IsNullOrWhiteSpace(options.PlayerId)) throw new ArgumentException("玩家配置及身份不能为空", nameof(options));
-            _options = new SkyPlayerOptions { PlayerId = options.PlayerId, UserId = options.UserId, Languages = options.Languages?.ToArray(), InitialLanguage = options.InitialLanguage, EditingMode = options.EditingMode, CompletionEnabled = options.CompletionEnabled };
+            _options = new SkyPlayerOptions { PlayerId = options.PlayerId, UserId = options.UserId, Languages = options.Languages?.ToArray(), InitialLanguage = options.InitialLanguage, EditingMode = options.EditingMode, CompletionEnabled = options.CompletionEnabled, TextInput = options.TextInput ?? new SkyTextInputOptions() };
+            TextInput = _options.TextInput;
         }
         /// <summary>
         /// 固定的玩家身份。
@@ -69,6 +74,10 @@ namespace SkyKeyYuyan.Unity
         /// 原输入目标。
         /// </summary>
         public IUnityTextTarget Target => _target;
+        /// <summary>
+        /// 当前输入使用的正文视口配置。
+        /// </summary>
+        public SkyTextInputOptions TextInput { get; private set; }
         /// <summary>
         /// 为默认表现提供原生草稿目标，由表现持有其生命周期。
         /// </summary>
@@ -109,13 +118,14 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 在指定目标打开输入，可按次覆盖原框或草稿模式。
         /// </summary>
-        public ServiceResult Open(IUnityTextTarget target, ISkyRuntime runtime = null, EditingMode? mode = null, string language = null)
+        public ServiceResult Open(IUnityTextTarget target, ISkyRuntime runtime = null, EditingMode? mode = null, string language = null, SkyTextInputOptions textInput = null)
         {
             if (_disposed || Session != null) return new ServiceResult(false, "session", "玩家已经打开输入或已释放");
             runtime = runtime ?? SkyRuntime.Default;
             if (runtime == null || target == null || !target.IsAlive) return new ServiceResult(false, "session", "运行时或文本目标不可用");
             try
             {
+                TextInput = textInput ?? _options.TextInput;
                 var options = new SessionOptions { PlayerId = _options.PlayerId, UserId = _options.UserId, Languages = _options.Languages, InitialLanguage = language ?? _options.InitialLanguage, EditingMode = mode ?? _options.EditingMode, CompletionEnabled = _options.CompletionEnabled };
                 if (DraftTargetFactory != null) options.DraftTargetFactory = initial =>
                 {
@@ -124,7 +134,7 @@ namespace SkyKeyYuyan.Unity
                 var opened = runtime.OpenSession(options, target);
                 if (!opened.Succeeded) { _draft = null; return new ServiceResult(false, "session", opened.Reason); }
                 Session = opened.Session; _target = target; Session.Completed += OnCompleted;
-                Panel = new SkyPanelController(Session);
+                Panel = new SkyPanelController(Session, TextInput);
                 _target.SetKeyboardOwned(KeyboardEnabled); _draft?.SetKeyboardOwned(KeyboardEnabled);
                 UpdateNativePolicy();
                 if (_pauses.Count != 0) Session.Process(InputOperation.Pause());

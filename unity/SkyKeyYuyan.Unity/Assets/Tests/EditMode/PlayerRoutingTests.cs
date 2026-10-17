@@ -40,6 +40,29 @@ public class PlayerRoutingTests
         return runtime;
     }
     [Test]
+    public void PerOpenTextInputOverridesPlayerDefaultsAndSingleLineDisablesNewline()
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { TextInput = new SkyTextInputOptions(SkyTextInputType.MultiLine, 4) }))
+        using (var target = new Target())
+        {
+            player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.SingleLine));
+            Assert.That(player.TextInput.MinimumVisibleLines, Is.EqualTo(1));
+            Assert.That(player.Panel.IsKeyEnabled(player.Panel.State.Layout["newline"]), Is.False);
+            Assert.That(player.Handle(SkyControl.Newline), Is.False); player.Handle(SkyControl.Cancel);
+            player.Open(target, runtime);
+            Assert.That(player.TextInput.MinimumVisibleLines, Is.EqualTo(4));
+            Assert.That(player.Handle(SkyControl.Newline), Is.True); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("\n"));
+        }
+    }
+    [TestCase(-1, 1)]
+    [TestCase(1, 1)]
+    [TestCase(3, 3)]
+    [TestCase(5, 5)]
+    [TestCase(6, 5)]
+    public void MultilineMinimumVisibleLinesRemainWithinViewportLimits(int configured, int expected)
+    { Assert.That(new SkyTextInputOptions(SkyTextInputType.MultiLine, configured).MinimumVisibleLines, Is.EqualTo(expected)); }
+    [Test]
     public void PointerBindingKeepsThePanelAvailableWhenHardwareInputIsDisabled()
     {
         using (var runtime = Runtime())

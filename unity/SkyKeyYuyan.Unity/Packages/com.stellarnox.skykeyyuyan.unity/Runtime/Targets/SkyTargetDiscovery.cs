@@ -12,8 +12,8 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 绑定文本框，未指定的配置沿用玩家默认值。
         /// </summary>
-        public SkyTargetBinding(IUnityTextTarget target, EditingMode? mode = null, string language = null)
-        { Target = target ?? throw new ArgumentNullException(nameof(target)); Mode = mode; InitialLanguage = language; }
+        public SkyTargetBinding(IUnityTextTarget target, EditingMode? mode = null, string language = null, SkyTextInputOptions textInput = null)
+        { Target = target ?? throw new ArgumentNullException(nameof(target)); Mode = mode; InitialLanguage = language; TextInput = textInput; }
         /// <summary>
         /// 原生文本目标。
         /// </summary>
@@ -26,6 +26,10 @@ namespace SkyKeyYuyan.Unity
         /// 目标初始语言覆盖。
         /// </summary>
         public string InitialLanguage { get; set; }
+        /// <summary>
+        /// 该目标的正文输入配置覆盖。
+        /// </summary>
+        public SkyTextInputOptions TextInput { get; set; }
     }
     /// <summary>
     /// 在宿主指定的玩家 UI 根内发现和持有文本适配器。

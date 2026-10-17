@@ -40,6 +40,7 @@ namespace SkyKeyYuyan.FairyGUI
                 seen.Add(control); var settings = control.displayObject.gameObject.GetComponent<SkyTextTargetSettings>();
                 binding.Mode = settings != null && !settings.UsePlayerEditingMode ? settings.EditingMode : (EditingMode?)null;
                 binding.InitialLanguage = settings != null && !string.IsNullOrWhiteSpace(settings.InitialLanguage) ? settings.InitialLanguage : null;
+                binding.TextInput = settings?.TextInput;
             }
             if (node is GComponent container) foreach (var child in container.GetChildren()) Visit(child, seen);
         }

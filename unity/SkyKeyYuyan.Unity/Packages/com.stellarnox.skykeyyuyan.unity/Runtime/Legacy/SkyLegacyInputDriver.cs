@@ -114,9 +114,13 @@ namespace SkyKeyYuyan.Unity.Legacy
         /// </summary>
         public int Finish = 2;
         /// <summary>
-        /// Y 按钮索引。
+        /// Select 按钮索引。
         /// </summary>
-        public int Language = 3;
+        public int Language = 6;
+        /// <summary>
+        /// 确认候选的 Y 按钮索引。
+        /// </summary>
+        public int ConfirmCandidate = 3;
         /// <summary>
         /// LB 按钮索引。
         /// </summary>
@@ -128,11 +132,11 @@ namespace SkyKeyYuyan.Unity.Legacy
         /// <summary>
         /// L3 按钮索引。
         /// </summary>
-        public int ConfirmLeft = 8;
+        public int FocusLeft = 8;
         /// <summary>
         /// R3 按钮索引。
         /// </summary>
-        public int ConfirmRight = 9;
+        public int FocusRight = 9;
     }
     /// <summary>
     /// 将 Legacy Input 的明确设备绑定转换为统一操作。
@@ -143,6 +147,7 @@ namespace SkyKeyYuyan.Unity.Legacy
         {
             internal string Id;
             internal LegacyGamepadProfile Profile;
+            internal bool TextFocused, LeftReady = true, RightReady = true;
             internal readonly Dictionary<SkyControl, SkyInputRepeat> Repeats = new Dictionary<SkyControl, SkyInputRepeat>();
         }
         private readonly SkyInputRouter _router;
@@ -213,17 +218,22 @@ namespace SkyKeyYuyan.Unity.Legacy
                 bool connected = profile.Joystick <= names.Length && !string.IsNullOrEmpty(names[profile.Joystick - 1]);
                 _router.SetConnected(binding.Id, connected);
                 if (!connected) { foreach (var repeat in binding.Repeats.Values) repeat.Reset(); continue; }
+                Emit(binding, SkyControl.ToggleTextFocus, Button(profile, profile.FocusLeft) || Button(profile, profile.FocusRight), time);
+                bool focused = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused;
+                if (binding.TextFocused != focused) { binding.TextFocused = focused; binding.LeftReady = binding.RightReady = false; }
                 var direction = new Vector2(Axis(profile.DpadX), Axis(profile.DpadY));
                 if (direction.sqrMagnitude < 0.1f) direction = new Vector2(Axis(profile.LeftX), Axis(profile.LeftY));
-                Directions(binding, direction, time, false, false);
-                Directions(binding, new Vector2(Axis(profile.RightX), Axis(profile.RightY)), time, true, Axis(profile.LeftTrigger) >= Threshold);
+                direction = Ready(direction, ref binding.LeftReady); var right = Ready(new Vector2(Axis(profile.RightX), Axis(profile.RightY)), ref binding.RightReady);
+                Directions(binding, !focused ? direction : Vector2.zero, time, false, false);
+                Directions(binding, focused ? direction : Vector2.zero, time, true, false);
+                Directions(binding, focused ? right : Vector2.zero, time, true, true);
                 Emit(binding, SkyControl.Activate, Button(profile, profile.Activate), time);
                 Emit(binding, SkyControl.Backspace, Button(profile, profile.Backspace), time, true);
                 Emit(binding, SkyControl.Finish, Button(profile, profile.Finish), time);
                 Emit(binding, SkyControl.Language, Button(profile, profile.Language), time);
-                Emit(binding, SkyControl.PreviousCandidate, Button(profile, profile.PreviousCandidate), time, true);
-                Emit(binding, SkyControl.NextCandidate, Button(profile, profile.NextCandidate), time, true);
-                Emit(binding, SkyControl.ConfirmCandidate, Button(profile, profile.ConfirmLeft) || Button(profile, profile.ConfirmRight), time);
+                Emit(binding, SkyControl.PreviousCandidate, Button(profile, profile.PreviousCandidate) || !focused && (right.x < -Threshold || right.y > Threshold), time, true);
+                Emit(binding, SkyControl.NextCandidate, Button(profile, profile.NextCandidate) || !focused && (right.x > Threshold || right.y < -Threshold), time, true);
+                Emit(binding, SkyControl.ConfirmCandidate, Button(profile, profile.ConfirmCandidate), time);
             }
             if (_keyboard != null) PollKeyboard(_keyboard, time);
         }
@@ -241,12 +251,18 @@ namespace SkyKeyYuyan.Unity.Legacy
             }
         }
         private bool Button(LegacyGamepadProfile profile, int button) => button >= 0 && button < 20 && _source.Key((KeyCode)((int)KeyCode.Joystick1Button0 + (profile.Joystick - 1) * 20 + button));
+        private Vector2 Ready(Vector2 value, ref bool ready)
+        {
+            if (Mathf.Abs(value.x) <= Threshold && Mathf.Abs(value.y) <= Threshold) ready = true;
+            if (!ready) return Vector2.zero;
+            return Mathf.Abs(value.x) > Mathf.Abs(value.y) ? new Vector2(value.x, 0) : new Vector2(0, value.y);
+        }
         private void Directions(Binding binding, Vector2 value, double time, bool text, bool extend)
         {
-            Emit(binding, text ? SkyControl.TextLeft : SkyControl.KeyLeft, value.x < -Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextRight : SkyControl.KeyRight, value.x > Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextUp : SkyControl.KeyUp, value.y > Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextDown : SkyControl.KeyDown, value.y < -Threshold, time, true, extend);
+            Emit(binding, !text ? SkyControl.KeyLeft : extend ? SkyControl.SelectLeft : SkyControl.TextLeft, value.x < -Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyRight : extend ? SkyControl.SelectRight : SkyControl.TextRight, value.x > Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyUp : extend ? SkyControl.SelectUp : SkyControl.TextUp, value.y > Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyDown : extend ? SkyControl.SelectDown : SkyControl.TextDown, value.y < -Threshold, time, true);
         }
         private void PollKeyboard(Binding binding, double time)
         {

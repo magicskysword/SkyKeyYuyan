@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Languages.Chinese;
 using SkyKeyYuyan.Unity;
 using SkyKeyYuyan.Unity.Editor;
 using SkyKeyYuyan.Unity.Legacy;
@@ -64,6 +65,51 @@ public class LegacyDriverTests
             source.Names[0] = "one"; source.Keys.Clear(); driver.Poll(0.05);
             Assert.That(first.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
             Assert.That(first.Session.Snapshot.Text.Text, Is.EqualTo("q")); Assert.That(firstTarget.ReadSnapshot().Text, Is.Empty);
+        }
+    }
+    [Test]
+    public void StickFocusSeparatesCaretMovementFromSelectionAndKeyboardNavigation()
+    {
+        var source = new Source();
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+        using (var router = new SkyInputRouter(SkyInputBackend.Legacy))
+        using (var driver = new SkyLegacyInputDriver(router, source))
+        {
+            router.Register(player); driver.BindGamepad(1, "player"); player.Open(new Target(), runtime); player.Handle(SkyControl.Text, text: "A😀BC");
+            source.Keys.Add(KeyCode.Joystick1Button8); driver.Poll(0); driver.Poll(.01); Assert.That(player.Panel.State.TextFocused, Is.True);
+            source.Keys.Clear(); driver.Poll(.02); source.Axes["SkyPad1.LX"] = -1; driver.Poll(.03);
+            Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(4));
+            source.Axes.Clear(); driver.Poll(.04); source.Axes["SkyPad1.RX"] = -1; driver.Poll(.05); driver.Poll(.06);
+            Assert.That(player.Session.Snapshot.Text.Anchor, Is.EqualTo(4)); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(3));
+            source.Axes.Clear(); source.Keys.Add(KeyCode.Joystick1Button9); driver.Poll(.07); Assert.That(player.Panel.State.TextFocused, Is.False);
+            source.Keys.Clear(); driver.Poll(.08); source.Axes["SkyPad1.LX"] = .7f; source.Axes["SkyPad1.LY"] = -1; driver.Poll(.09);
+            Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-1-0"));
+            source.Axes.Clear(); source.Axes["SkyPad1.LY"] = 1; driver.Poll(.1);
+            Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-0-0"));
+        }
+    }
+    [Test]
+    public void RightStickBrowsesCandidatesAndYConfirmsBeforeSelectChangesLanguage()
+    {
+        var source = new Source();
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var router = new SkyInputRouter(SkyInputBackend.Legacy))
+        using (var driver = new SkyLegacyInputDriver(router, source))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("very", "很", "hen", 100), new LexiconWord("fierce", "狠", "hen", 10) }));
+            runtime.InitializeLanguage("zh.full-pinyin");
+            router.Register(player); driver.BindGamepad(1, "player"); player.Open(new Target(), runtime); player.Handle(SkyControl.Text, text: "hen");
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            while (player.Session.Snapshot.Querying && timer.Elapsed.TotalSeconds < 5) System.Threading.Thread.Sleep(1);
+            Assert.That(player.Session.Snapshot.Querying, Is.False);
+            string expected = player.Session.Snapshot.Candidates.Candidates[1].Text;
+            source.Axes["SkyPad1.RX"] = 1; driver.Poll(0); driver.Poll(.01); Assert.That(player.Session.Snapshot.SelectedCandidate, Is.EqualTo(1));
+            source.Axes.Clear(); driver.Poll(.02); source.Keys.Add(KeyCode.Joystick1Button3); driver.Poll(.03);
+            Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
+            source.Keys.Clear(); driver.Poll(.04); source.Keys.Add(KeyCode.Joystick1Button6); driver.Poll(.05);
+            Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
         }
     }
     [Test]

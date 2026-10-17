@@ -120,7 +120,7 @@ namespace SkyKeyYuyan.Unity
                     var target = player.Pending; player.Pending = null;
                     if (target.Target.IsAlive && target.Target.IsEditing && Router.HasEnabledDevice(player.Context.PlayerId))
                     {
-                        var result = player.Context.Open(target.Target, Runtime, target.Mode, target.InitialLanguage);
+                        var result = player.Context.Open(target.Target, Runtime, target.Mode, target.InitialLanguage, target.TextInput);
                         if (!result.Succeeded) Report(result);
                     }
                 }

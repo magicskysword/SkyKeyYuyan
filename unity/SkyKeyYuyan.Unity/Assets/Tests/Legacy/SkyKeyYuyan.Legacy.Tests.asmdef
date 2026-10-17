@@ -4,6 +4,6 @@
   "includePlatforms": ["Editor"],
   "defineConstraints": ["ENABLE_LEGACY_INPUT_MANAGER"],
   "overrideReferences": true,
-  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "nunit.framework.dll"],
+  "precompiledReferences": ["SkyKeyYuyan.Core.dll", "SkyKeyYuyan.Languages.Chinese.dll", "nunit.framework.dll"],
   "optionalUnityReferences": ["TestAssemblies"]
 }

@@ -113,15 +113,35 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 显式重试未知写入。
         /// </summary>
-        RetryWrite
+        RetryWrite,
+        /// <summary>
+        /// 切换正文编辑焦点。
+        /// </summary>
+        ToggleTextFocus,
+        /// <summary>
+        /// 向左扩展正文选区。
+        /// </summary>
+        SelectLeft,
+        /// <summary>
+        /// 向右扩展正文选区。
+        /// </summary>
+        SelectRight,
+        /// <summary>
+        /// 向上扩展正文选区。
+        /// </summary>
+        SelectUp,
+        /// <summary>
+        /// 向下扩展正文选区。
+        /// </summary>
+        SelectDown
     }
     /// <summary>
     /// 默认表现层使用的完整面板状态。
     /// </summary>
     public sealed class SkyPanelState
     {
-        internal SkyPanelState(SessionSnapshot session, KeyboardLayout layout, string focusedKey, bool shift, OperationResult result, string problem)
-        { Session = session; Layout = layout; FocusedKey = focusedKey; Shift = shift; LastResult = result; Problem = problem; }
+        internal SkyPanelState(SessionSnapshot session, KeyboardLayout layout, string focusedKey, bool shift, OperationResult result, string problem, bool textFocused)
+        { Session = session; Layout = layout; FocusedKey = focusedKey; Shift = shift; LastResult = result; Problem = problem; TextFocused = textFocused; }
         /// <summary>
         /// 会话的权威快照。
         /// </summary>
@@ -139,6 +159,10 @@ namespace SkyKeyYuyan.Unity
         /// </summary>
         public bool Shift { get; }
         /// <summary>
+        /// 手柄当前是否编辑正文。
+        /// </summary>
+        public bool TextFocused { get; }
+        /// <summary>
         /// 最近一次操作的执行结果。
         /// </summary>
         public OperationResult LastResult { get; }
@@ -153,19 +177,23 @@ namespace SkyKeyYuyan.Unity
     public sealed class SkyPanelController : IDisposable
     {
         private readonly ISkySession _session;
+        private readonly SkyTextInputOptions _textInput;
         private KeyboardLayout _layout, _normalLayout;
         private KeyboardLayout _navigationSource, _navigationLayout;
         private SessionLifecycle _navigationLifecycle;
         private bool _navigationLiteral, _navigationResolving;
         private string _language, _focus = "", _problem;
         private bool _shift, _disposed, _resolving;
+        private bool _textFocused;
+        private double? _navigationColumn;
         private OperationResult _lastResult;
         /// <summary>
         /// 绑定已打开的会话。
         /// </summary>
-        public SkyPanelController(ISkySession session)
+        public SkyPanelController(ISkySession session, SkyTextInputOptions textInput = null)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _textInput = textInput ?? new SkyTextInputOptions();
             _session.StateChanged += OnState; _session.OperationCompleted += OnOperation;
             OnState(session.Snapshot);
         }
@@ -188,6 +216,7 @@ namespace SkyKeyYuyan.Unity
             if (key.Action == "completion") return _session.Languages.Any(language => language.LanguageId == snapshot.LanguageId && (language.Capabilities & LanguageCapabilities.CompletionSwitch) != 0);
             if (key.Action == "retry") return snapshot.Literal;
             if (key.Action == "language") return _session.Languages.Count > 1;
+            if (key.Action == "newline") return _textInput.Type == SkyTextInputType.MultiLine;
             return true;
         }
         private KeyboardLayout NavigationLayout(SessionSnapshot snapshot)
@@ -205,7 +234,7 @@ namespace SkyKeyYuyan.Unity
         {
             if (_language != snapshot.LanguageId)
             {
-                _language = snapshot.LanguageId; _shift = false; _problem = null;
+                _language = snapshot.LanguageId; _shift = false; _problem = null; _navigationColumn = null;
                 try { _normalLayout = _session.GetKeyboard(); _focus = _normalLayout.Keys[0].Id; }
                 catch (Exception ex) { _normalLayout = null; _focus = ""; _problem = ex.Message; }
                 _layout = _normalLayout;
@@ -213,6 +242,7 @@ namespace SkyKeyYuyan.Unity
             if (_resolving != snapshot.NeedsResolution)
             {
                 _resolving = snapshot.NeedsResolution;
+                _navigationColumn = null; if (_resolving) _textFocused = false;
                 _layout = _resolving ? new KeyboardLayout(snapshot.LanguageId, "resolution.1", new[]
                 {
                     new KeyboardKey("cancel", "取消", "", "", 0, 0, "cancel"),
@@ -226,7 +256,7 @@ namespace SkyKeyYuyan.Unity
         private void OnOperation(OperationResult result) { _lastResult = result; Publish(_session.Snapshot); }
         private void Publish(SessionSnapshot snapshot)
         {
-            State = new SkyPanelState(snapshot, _layout, _focus, _shift, _lastResult, _problem);
+            State = new SkyPanelState(snapshot, _layout, _focus, _shift, _lastResult, _problem, _textFocused);
             if (Changed == null) return;
             foreach (Action<SkyPanelState> handler in Changed.GetInvocationList())
                 try { handler(State); } catch (Exception ex) { Debug.LogWarning("SKY panel: " + ex.Message); }
@@ -240,7 +270,7 @@ namespace SkyKeyYuyan.Unity
             KeyboardKey key;
             try { key = _layout[id]; } catch (System.Collections.Generic.KeyNotFoundException) { return false; }
             if (!IsKeyEnabled(key)) return false;
-            _focus = id;
+            _focus = id; _textFocused = false; _navigationColumn = null;
             switch (key.Action)
             {
                 case "input": return Handle(SkyControl.Text, text: _shift ? key.Alternate : key.Output);
@@ -265,6 +295,16 @@ namespace SkyKeyYuyan.Unity
             }
         }
         /// <summary>
+        /// 将交互焦点切换到正文或虚拟键盘，并保留各自的位置。
+        /// </summary>
+        public bool SetTextFocused(bool focused)
+        {
+            var snapshot = _session.Snapshot;
+            if (_disposed || snapshot.Lifecycle != SessionLifecycle.Active || snapshot.NeedsResolution) return false;
+            if (_textFocused != focused) { _textFocused = focused; Publish(snapshot); }
+            return true;
+        }
+        /// <summary>
         /// 处理设备动作；正文导航可同时扩展选区。
         /// </summary>
         public bool Handle(SkyControl control, bool extend = false, string text = "")
@@ -275,12 +315,19 @@ namespace SkyKeyYuyan.Unity
             switch (control)
             {
                 case SkyControl.KeyLeft: case SkyControl.KeyRight: case SkyControl.KeyUp: case SkyControl.KeyDown:
-                    if (_layout == null) return false;
+                    if (_layout == null || _textFocused) return false;
                     var navigation = NavigationLayout(snapshot);
                     if (navigation == null) return false;
-                    _focus = navigation.Navigate(_focus, control == SkyControl.KeyLeft ? TextNavigation.Left : control == SkyControl.KeyRight ? TextNavigation.Right : control == SkyControl.KeyUp ? TextNavigation.Up : TextNavigation.Down);
+                    var direction = control == SkyControl.KeyLeft ? TextNavigation.Left : control == SkyControl.KeyRight ? TextNavigation.Right : control == SkyControl.KeyUp ? TextNavigation.Up : TextNavigation.Down;
+                    if (direction == TextNavigation.Up || direction == TextNavigation.Down)
+                    {
+                        if (!_navigationColumn.HasValue) { var current = _layout.Keys.FirstOrDefault(key => key.Id == _focus) ?? _layout.Keys[0]; _navigationColumn = current.Column + current.ColumnSpan / 2d; }
+                        _focus = navigation.Navigate(_focus, direction, _navigationColumn.Value);
+                    }
+                    else { _focus = navigation.Navigate(_focus, direction); _navigationColumn = null; }
                     Publish(snapshot); return true;
-                case SkyControl.Activate: return ActivateKey(_focus);
+                case SkyControl.Activate: return !_textFocused && ActivateKey(_focus);
+                case SkyControl.ToggleTextFocus: return SetTextFocused(!_textFocused);
                 case SkyControl.Shift: _shift = !_shift; Publish(snapshot); return true;
                 case SkyControl.Text: operation = InputOperation.Insert(text); break;
                 case SkyControl.Backspace: operation = InputOperation.Backspace(); break;
@@ -297,10 +344,16 @@ namespace SkyKeyYuyan.Unity
                 case SkyControl.TextRight: operation = InputOperation.Navigate(TextNavigation.Right, extend); break;
                 case SkyControl.TextUp: operation = InputOperation.Navigate(TextNavigation.Up, extend); break;
                 case SkyControl.TextDown: operation = InputOperation.Navigate(TextNavigation.Down, extend); break;
+                case SkyControl.SelectLeft: operation = InputOperation.Navigate(TextNavigation.Left, true); break;
+                case SkyControl.SelectRight: operation = InputOperation.Navigate(TextNavigation.Right, true); break;
+                case SkyControl.SelectUp: operation = InputOperation.Navigate(TextNavigation.Up, true); break;
+                case SkyControl.SelectDown: operation = InputOperation.Navigate(TextNavigation.Down, true); break;
                 case SkyControl.Delete: operation = InputOperation.DeleteForward(); break;
                 case SkyControl.SelectAll: operation = InputOperation.SelectAll(); break;
                 case SkyControl.Clear: operation = InputOperation.Clear(); break;
-                case SkyControl.Newline: operation = InputOperation.Newline(); break;
+                case SkyControl.Newline:
+                    if (_textInput.Type == SkyTextInputType.SingleLine) return false;
+                    operation = InputOperation.Newline(); break;
                 case SkyControl.Completion: operation = InputOperation.SetCompletion(!snapshot.CompletionEnabled); break;
                 case SkyControl.Retry: operation = InputOperation.RetryConversion(); break;
                 case SkyControl.AcceptCurrentText: operation = InputOperation.ResolveWrite(false); break;

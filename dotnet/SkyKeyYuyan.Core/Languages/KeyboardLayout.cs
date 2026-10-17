@@ -66,6 +66,8 @@ namespace SkyKeyYuyan.Core
     {
         private readonly Dictionary<string, KeyboardKey> _byId;
         private readonly Dictionary<string, string[]> _neighbors;
+        private readonly KeyboardKey[][] _rows;
+        private readonly Dictionary<int, int> _rowIndexes;
         /// <summary>
         /// 复制布局数据，并检查身份和位置唯一性。
         /// </summary>
@@ -81,6 +83,8 @@ namespace SkyKeyYuyan.Core
             RowCount = (long)entries[entries.Length - 1].Row + 1;
             _neighbors = new Dictionary<string, string[]>(StringComparer.Ordinal);
             var rows = entries.GroupBy(key => key.Row).Select(group => group.ToArray()).ToArray();
+            _rows = rows; _rowIndexes = new Dictionary<int, int>();
+            for (int row = 0; row < rows.Length; row++) _rowIndexes.Add(rows[row][0].Row, row);
             for (int row = 0; row < rows.Length; row++)
             {
                 var keysInRow = rows[row];
@@ -92,8 +96,8 @@ namespace SkyKeyYuyan.Core
                     {
                         keysInRow[(column + keysInRow.Length - 1) % keysInRow.Length].Id,
                         keysInRow[(column + 1) % keysInRow.Length].Id,
-                        Nearest(rows[(row + rows.Length - 1) % rows.Length], key),
-                        Nearest(rows[(row + 1) % rows.Length], key)
+                        Nearest(rows[(row + rows.Length - 1) % rows.Length], key.Column + key.ColumnSpan / 2d),
+                        Nearest(rows[(row + 1) % rows.Length], key.Column + key.ColumnSpan / 2d)
                     });
                 }
             }
@@ -137,13 +141,24 @@ namespace SkyKeyYuyan.Core
                 default: throw new ArgumentOutOfRangeException(nameof(direction));
             }
         }
-        private static string Nearest(KeyboardKey[] row, KeyboardKey current)
+        /// <summary>
+        /// 按指定的逻辑列中心进行竖向导航，连续移动时可保持同一垂直轴。
+        /// </summary>
+        public string Navigate(string currentId, TextNavigation direction, double preferredColumn)
         {
-            long center = (long)current.Column * 2 + current.ColumnSpan, distance = long.MaxValue;
+            if (double.IsNaN(preferredColumn) || double.IsInfinity(preferredColumn)) throw new ArgumentOutOfRangeException(nameof(preferredColumn));
+            if (direction != TextNavigation.Up && direction != TextNavigation.Down) return Navigate(currentId, direction);
+            if (!_byId.TryGetValue(currentId, out var current)) return Keys[0].Id;
+            int row = _rowIndexes[current.Row];
+            return Nearest(_rows[(row + (direction == TextNavigation.Up ? _rows.Length - 1 : 1)) % _rows.Length], preferredColumn);
+        }
+        private static string Nearest(KeyboardKey[] row, double center)
+        {
+            double distance = double.MaxValue;
             string best = row[0].Id;
             foreach (var key in row)
             {
-                long candidate = Math.Abs((long)key.Column * 2 + key.ColumnSpan - center);
+                double candidate = Math.Abs(key.Column + key.ColumnSpan / 2d - center);
                 if (candidate < distance) { best = key.Id; distance = candidate; }
             }
             return best;

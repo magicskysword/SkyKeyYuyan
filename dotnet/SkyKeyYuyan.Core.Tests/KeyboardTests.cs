@@ -41,6 +41,19 @@ namespace SkyKeyYuyan.Core.Tests
             Assert.That(layout.Navigate("space", TextNavigation.Up), Is.EqualTo("key-3-4"));
         }
         [Test]
+        public void VerticalAnchorReturnsToTheSameKeyAcrossStaggeredRows()
+        {
+            var layout = KeyboardLayout.BasicEnglish;
+            foreach (var key in layout.Keys)
+            {
+                double column = key.Column + key.ColumnSpan / 2d;
+                var below = layout.Navigate(key.Id, TextNavigation.Down, column);
+                Assert.That(layout.Navigate(below, TextNavigation.Up, column), Is.EqualTo(key.Id));
+                var above = layout.Navigate(key.Id, TextNavigation.Up, column);
+                Assert.That(layout.Navigate(above, TextNavigation.Down, column), Is.EqualTo(key.Id));
+            }
+        }
+        [Test]
         public void RuntimeFixesCustomLayoutAndSharesItAcrossSessions()
         {
             var layout = new KeyboardLayout("en", "custom.1", new[] { new KeyboardKey("x", "X", "x", "X", 0, 0) });

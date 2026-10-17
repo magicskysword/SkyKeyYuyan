@@ -20,6 +20,7 @@ namespace SkyKeyYuyan.Unity.InputSystem
             internal Action<char> TextHandler;
             internal char HighSurrogate;
             internal bool ImeOwned, ImeBefore;
+            internal bool TextFocused, LeftReady = true, RightReady = true;
         }
         private readonly SkyInputRouter _router;
         private readonly Dictionary<int, Binding> _devices = new Dictionary<int, Binding>();
@@ -99,23 +100,34 @@ namespace SkyKeyYuyan.Unity.InputSystem
         }
         private void PollGamepad(Binding binding, Gamepad pad, double time)
         {
+            Emit(binding, SkyControl.ToggleTextFocus, pad.leftStickButton.isPressed || pad.rightStickButton.isPressed, time);
+            bool focused = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused;
+            if (binding.TextFocused != focused) { binding.TextFocused = focused; binding.LeftReady = binding.RightReady = false; }
             Vector2 direction = pad.dpad.ReadValue(); if (direction.sqrMagnitude < 0.1f) direction = pad.leftStick.ReadValue();
-            Directions(binding, direction, time, false, false);
-            Directions(binding, pad.rightStick.ReadValue(), time, true, pad.leftTrigger.ReadValue() >= Threshold);
+            direction = Ready(direction, ref binding.LeftReady); var right = Ready(pad.rightStick.ReadValue(), ref binding.RightReady);
+            Directions(binding, !focused ? direction : Vector2.zero, time, false, false);
+            Directions(binding, focused ? direction : Vector2.zero, time, true, false);
+            Directions(binding, focused ? right : Vector2.zero, time, true, true);
             Emit(binding, SkyControl.Activate, pad.buttonSouth.isPressed, time);
             Emit(binding, SkyControl.Backspace, pad.buttonEast.isPressed, time, true);
             Emit(binding, SkyControl.Finish, pad.buttonWest.isPressed, time);
-            Emit(binding, SkyControl.Language, pad.buttonNorth.isPressed, time);
-            Emit(binding, SkyControl.PreviousCandidate, pad.leftShoulder.isPressed, time, true);
-            Emit(binding, SkyControl.NextCandidate, pad.rightShoulder.isPressed, time, true);
-            Emit(binding, SkyControl.ConfirmCandidate, pad.leftStickButton.isPressed || pad.rightStickButton.isPressed, time);
+            Emit(binding, SkyControl.Language, pad.selectButton.isPressed, time);
+            Emit(binding, SkyControl.PreviousCandidate, pad.leftShoulder.isPressed || !focused && (right.x < -Threshold || right.y > Threshold), time, true);
+            Emit(binding, SkyControl.NextCandidate, pad.rightShoulder.isPressed || !focused && (right.x > Threshold || right.y < -Threshold), time, true);
+            Emit(binding, SkyControl.ConfirmCandidate, pad.buttonNorth.isPressed, time);
+        }
+        private Vector2 Ready(Vector2 value, ref bool ready)
+        {
+            if (Mathf.Abs(value.x) <= Threshold && Mathf.Abs(value.y) <= Threshold) ready = true;
+            if (!ready) return Vector2.zero;
+            return Mathf.Abs(value.x) > Mathf.Abs(value.y) ? new Vector2(value.x, 0) : new Vector2(0, value.y);
         }
         private void Directions(Binding binding, Vector2 value, double time, bool text, bool extend)
         {
-            Emit(binding, text ? SkyControl.TextLeft : SkyControl.KeyLeft, value.x < -Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextRight : SkyControl.KeyRight, value.x > Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextUp : SkyControl.KeyUp, value.y > Threshold, time, true, extend);
-            Emit(binding, text ? SkyControl.TextDown : SkyControl.KeyDown, value.y < -Threshold, time, true, extend);
+            Emit(binding, !text ? SkyControl.KeyLeft : extend ? SkyControl.SelectLeft : SkyControl.TextLeft, value.x < -Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyRight : extend ? SkyControl.SelectRight : SkyControl.TextRight, value.x > Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyUp : extend ? SkyControl.SelectUp : SkyControl.TextUp, value.y > Threshold, time, true);
+            Emit(binding, !text ? SkyControl.KeyDown : extend ? SkyControl.SelectDown : SkyControl.TextDown, value.y < -Threshold, time, true);
         }
         private void PollKeyboard(Binding binding, Keyboard keyboard, double time)
         {
