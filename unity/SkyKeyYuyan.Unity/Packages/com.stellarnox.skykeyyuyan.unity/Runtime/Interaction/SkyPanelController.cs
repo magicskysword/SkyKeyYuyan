@@ -356,8 +356,10 @@ namespace SkyKeyYuyan.Unity
                         _confirmationVersion = snapshot.Composition.Version; _confirmationLanguage = snapshot.LanguageId; return true;
                     }
                     var page = snapshot.Candidates;
-                    if (page == null || page.Candidates.Count == 0) return false;
-                    operation = InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[snapshot.SelectedCandidate].Id); break;
+                    if (page == null && !snapshot.Literal) return false;
+                    operation = page != null && page.Candidates.Count > 0
+                        ? InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[snapshot.SelectedCandidate].Id)
+                        : InputOperation.CommitComposition(); break;
                 case SkyControl.Finish: operation = InputOperation.Finish(); break;
                 case SkyControl.Cancel: operation = InputOperation.Cancel(); break;
                 case SkyControl.Language: operation = InputOperation.SwitchLanguage(); break;

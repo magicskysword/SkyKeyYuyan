@@ -199,6 +199,49 @@ public class InputSystemDriverTests
         while (!condition() && timer.Elapsed.TotalSeconds < 5) { context.Drain(); System.Threading.Thread.Sleep(1); }
         Assert.That(condition(), Is.True);
     }
+    [TestCase("qqq", "qqq", true)]
+    [TestCase("qqq", "qqq", false)]
+    [TestCase("niqqq", "你qqq", true)]
+    [TestCase("niqqq", "你qqq", false)]
+    public void XCommitsUnmatchedLettersAndStartSavesTheContinuingSession(string spelling, string expected, bool waitForQuery)
+    {
+        var pad = InputSystem.AddDevice<Gamepad>(); var context = new PumpExecutionContext();
+        try
+        {
+            using (var runtime = new SkyRuntime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("ni", "你", "ni"), new LexiconWord("very", "很", "hen") }));
+                runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false, ExecutionContext = context });
+                var target = new Target(); router.Register(player); driver.Bind(pad, "player"); player.Open(target, runtime);
+                player.Handle(SkyControl.Text, text: spelling);
+                if (spelling.StartsWith("ni"))
+                {
+                    DrainUntil(context, () => !player.Session.Snapshot.Querying);
+                    player.Handle(SkyControl.ConfirmCandidate);
+                    Assert.That(player.Session.Snapshot.Composition.SelectedText, Is.EqualTo("你"));
+                }
+                if (waitForQuery)
+                {
+                    DrainUntil(context, () => !player.Session.Snapshot.Querying);
+                    Assert.That(player.Session.Snapshot.Candidates.Candidates, Is.Empty);
+                }
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.West)); InputSystem.Update(); driver.Poll(0);
+                DrainUntil(context, () => player.Session.Snapshot.Composition.IsEmpty);
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
+                Assert.That(target.ReadSnapshot().Text, Is.Empty);
+                InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.02);
+                player.Handle(SkyControl.Text, text: "hen"); player.Handle(SkyControl.ConfirmCandidate);
+                DrainUntil(context, () => player.Session.Snapshot.Composition.IsEmpty);
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected + "很"));
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.Start)); InputSystem.Update(); driver.Poll(.04);
+                Assert.That(player.Session, Is.Null); Assert.That(target.ReadSnapshot().Text, Is.EqualTo(expected + "很"));
+            }
+        }
+        finally { InputSystem.RemoveDevice(pad); }
+    }
     [Test]
     public void FocusedMultilineEnterAddsNewlineAndControlEnterSaves()
     {
