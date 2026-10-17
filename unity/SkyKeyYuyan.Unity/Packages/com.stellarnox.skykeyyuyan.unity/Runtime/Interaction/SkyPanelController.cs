@@ -190,7 +190,11 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 绑定已打开的会话。
         /// </summary>
-        public SkyPanelController(ISkySession session, SkyTextInputOptions textInput = null)
+        public SkyPanelController(ISkySession session) : this(session, null) { }
+        /// <summary>
+        /// 绑定会话及固定的正文输入配置。
+        /// </summary>
+        public SkyPanelController(ISkySession session, SkyTextInputOptions textInput)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _textInput = textInput ?? new SkyTextInputOptions();
@@ -265,12 +269,14 @@ namespace SkyKeyYuyan.Unity
         /// 以指针或宿主代码激活指定虚拟按键。
         /// </summary>
         public bool ActivateKey(string id)
+        { return ActivateKey(id, false); }
+        private bool ActivateKey(string id, bool retainNavigationColumn)
         {
             if (_disposed || _layout == null || _session.Snapshot.Lifecycle != SessionLifecycle.Active) return false;
             KeyboardKey key;
             try { key = _layout[id]; } catch (System.Collections.Generic.KeyNotFoundException) { return false; }
             if (!IsKeyEnabled(key)) return false;
-            _focus = id; _textFocused = false; _navigationColumn = null;
+            _focus = id; _textFocused = false; if (!retainNavigationColumn) _navigationColumn = null;
             switch (key.Action)
             {
                 case "input": return Handle(SkyControl.Text, text: _shift ? key.Alternate : key.Output);
@@ -326,7 +332,7 @@ namespace SkyKeyYuyan.Unity
                     }
                     else { _focus = navigation.Navigate(_focus, direction); _navigationColumn = null; }
                     Publish(snapshot); return true;
-                case SkyControl.Activate: return !_textFocused && ActivateKey(_focus);
+                case SkyControl.Activate: return !_textFocused && ActivateKey(_focus, true);
                 case SkyControl.ToggleTextFocus: return SetTextFocused(!_textFocused);
                 case SkyControl.Shift: _shift = !_shift; Publish(snapshot); return true;
                 case SkyControl.Text: operation = InputOperation.Insert(text); break;

@@ -11,6 +11,7 @@ namespace SkyKeyYuyan.Unity
     {
         public const float Width = 1120, Height = 700, ContentWidth = 1072, KeyboardHeight = 336;
         public const float CandidateStripWidth = 860, CandidateGap = 8;
+        public const float BodyLineHeight = 36;
         public static readonly Color32 Panel = new Color32(30, 37, 44, 252), Inset = new Color32(23, 30, 37, 255);
         public static readonly Color32 Key = new Color32(54, 63, 74, 255), Function = new Color32(44, 53, 63, 255);
         public static readonly Color32 Border = new Color32(79, 91, 103, 255), Accent = new Color32(100, 230, 204, 255);
@@ -42,6 +43,14 @@ namespace SkyKeyYuyan.Unity
         /// 根据字体测得的文字宽度保留两侧留白，并限制在候选区内。
         /// </summary>
         public static float CandidateWidth(float textWidth) => Mathf.Clamp(Mathf.Ceil(textWidth) + 24, 48, CandidateStripWidth);
+        /// <summary>
+        /// 按最低行数及当前内容计算正文视口高度，超出五行的内容由原生控件滚动。
+        /// </summary>
+        public static float BodyHeight(SkyTextInputOptions options, float preferredTextHeight)
+        {
+            int lines = options.Type == SkyTextInputType.SingleLine ? 1 : Mathf.Clamp(Mathf.CeilToInt(preferredTextHeight / BodyLineHeight), options.MinimumVisibleLines, 5);
+            return lines * BodyLineHeight + 16;
+        }
         /// <summary>
         /// 取得包含选中项且所有按钮均完整位于候选区的连续区间。
         /// </summary>

@@ -21,6 +21,7 @@ namespace SkyKeyYuyan.Unity.InputSystem
             internal char HighSurrogate;
             internal bool ImeOwned, ImeBefore;
             internal bool TextFocused, LeftReady = true, RightReady = true;
+            internal int FocusButtons;
         }
         private readonly SkyInputRouter _router;
         private readonly Dictionary<int, Binding> _devices = new Dictionary<int, Binding>();
@@ -93,14 +94,16 @@ namespace SkyKeyYuyan.Unity.InputSystem
             {
                 bool connected = binding.Device.added && binding.Device.enabled;
                 _router.SetConnected(binding.Id, connected);
-                if (!connected) { foreach (var repeat in binding.Repeats.Values) repeat.Reset(); binding.Text.Clear(); continue; }
+                if (!connected) { foreach (var repeat in binding.Repeats.Values) repeat.Reset(); binding.FocusButtons = 0; binding.Text.Clear(); continue; }
                 if (binding.Device is Gamepad pad) PollGamepad(binding, pad, time);
                 else if (binding.Device is Keyboard keyboard) PollKeyboard(binding, keyboard, time);
             }
         }
         private void PollGamepad(Binding binding, Gamepad pad, double time)
         {
-            Emit(binding, SkyControl.ToggleTextFocus, pad.leftStickButton.isPressed || pad.rightStickButton.isPressed, time);
+            int clicks = (pad.leftStickButton.isPressed ? 1 : 0) | (pad.rightStickButton.isPressed ? 2 : 0);
+            if ((clicks & ~binding.FocusButtons) != 0) _router.Route(SkyInputBackend.InputSystem, binding.Id, SkyControl.ToggleTextFocus, sequence: ++_sequence);
+            binding.FocusButtons = clicks;
             bool focused = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused;
             if (binding.TextFocused != focused) { binding.TextFocused = focused; binding.LeftReady = binding.RightReady = false; }
             Vector2 direction = pad.dpad.ReadValue(); if (direction.sqrMagnitude < 0.1f) direction = pad.leftStick.ReadValue();
@@ -146,7 +149,10 @@ namespace SkyKeyYuyan.Unity.InputSystem
             Emit(binding, SkyControl.TextDown, keyboard.downArrowKey.isPressed, time, true, extend);
             Emit(binding, SkyControl.Backspace, keyboard.backspaceKey.isPressed, time, true);
             Emit(binding, SkyControl.Delete, keyboard.deleteKey.isPressed, time, true);
-            Emit(binding, SkyControl.Finish, keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed, time);
+            bool enter = keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed;
+            bool multiline = owned && player.Panel.State.TextFocused && player.TextInput.Type == SkyTextInputType.MultiLine;
+            Emit(binding, SkyControl.Newline, enter && multiline && !keyboard.ctrlKey.isPressed, time);
+            Emit(binding, SkyControl.Finish, enter && (!multiline || keyboard.ctrlKey.isPressed), time);
             Emit(binding, SkyControl.Cancel, keyboard.escapeKey.isPressed, time);
             Emit(binding, SkyControl.Language, keyboard.tabKey.isPressed, time);
             Emit(binding, SkyControl.SelectAll, keyboard.ctrlKey.isPressed && keyboard.aKey.isPressed, time);

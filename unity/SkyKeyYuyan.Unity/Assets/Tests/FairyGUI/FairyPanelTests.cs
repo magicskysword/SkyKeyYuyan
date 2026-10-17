@@ -84,10 +84,49 @@ public class FairyPanelTests
                 Assert.That(keys.GetChild("language").touchable, Is.False); Assert.That(keys.GetChild("completion").touchable, Is.False);
                 var letter = keys.GetChild("key-3-4").asButton;
                 Assert.That(keys.GetChild("space").width, Is.GreaterThan(letter.width * 5));
-                player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-4"));
-                Assert.That(letter.GetChild("focusOutline").visible, Is.True); Assert.That(letter.GetChild("focusBadge").visible, Is.True);
-                player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("b"));
-                player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("b"));
+                player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("shift"));
+                player.Handle(SkyControl.KeyRight); var selected = keys.GetChild("key-3-0").asButton;
+                Assert.That(selected.GetChild("focusOutline").visible, Is.True); Assert.That(selected.GetChild("focusBadge").visible, Is.True);
+                player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
+                player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));
+            }
+        }
+    }
+    [UnityTest]
+    public IEnumerator TextViewportRespectsLineOptionsAndFocusPreservesCaretAndSelection()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            using (var panel = FairySkyPanel.Create(_root, player, "SkyPanelTest"))
+            {
+                foreach (int minimum in new[] { 1, 3, 5 })
+                {
+                    player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.MultiLine, minimum)); yield return null;
+                    Assert.That(panel.View.GetChild("bodyBackground").height, Is.EqualTo(minimum * 36 + 16)); player.Handle(SkyControl.Cancel);
+                }
+                player.Open(target, runtime); yield return null; Assert.That(panel.View.GetChild("bodyBackground").height, Is.EqualTo(124));
+                player.Handle(SkyControl.Text, text: "第一行\n第二行\n第三行\n第四行\n第五行");
+                Assert.That(panel.View.GetChild("bodyBackground").height, Is.EqualTo(196));
+                int caret = player.Session.Snapshot.Text.Caret;
+                player.Handle(SkyControl.ToggleTextFocus); yield return null;
+                Assert.That(panel.DraftField.inputTextField.focused, Is.True); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret));
+                player.Handle(SkyControl.TextUp); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret - 4));
+                player.Handle(SkyControl.SelectUp); Assert.That(player.Session.Snapshot.Text.Anchor, Is.EqualTo(caret - 4)); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret - 8));
+                player.Handle(SkyControl.TextDown); player.Handle(SkyControl.TextDown);
+                Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret));
+                player.Handle(SkyControl.TextLeft); player.Handle(SkyControl.SelectLeft);
+                var selected = player.Session.Snapshot.Text;
+                Assert.That(selected.Anchor, Is.EqualTo(caret - 1)); Assert.That(selected.Caret, Is.EqualTo(caret - 2));
+                yield return CapturePanels("fairygui-multiline-focus");
+                player.Handle(SkyControl.ToggleTextFocus); yield return null;
+                Assert.That(panel.DraftField.inputTextField.focused, Is.False); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(selected.Caret));
+                Assert.That(panel.View.GetChild("hintGlyph4").asTextField.verticalAlign, Is.EqualTo(VertAlignType.Middle));
+                player.Handle(SkyControl.Cancel); player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.SingleLine)); yield return null;
+                Assert.That(panel.DraftField.singleLine, Is.True); Assert.That(panel.View.GetChild("bodyBackground").height, Is.EqualTo(52));
+                Assert.That(player.Handle(SkyControl.Newline), Is.False); yield return CapturePanels("fairygui-single-line");
             }
         }
     }

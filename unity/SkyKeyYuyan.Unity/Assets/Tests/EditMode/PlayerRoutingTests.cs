@@ -40,6 +40,19 @@ public class PlayerRoutingTests
         return runtime;
     }
     [Test]
+    public void ActivatingAKeyPreservesTheVerticalNavigationColumn()
+    {
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+        using (var target = new Target())
+        {
+            player.Open(target, runtime); player.Panel.ActivateKey("key-1-1");
+            player.Handle(SkyControl.KeyDown); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-2-0"));
+            player.Handle(SkyControl.Activate); player.Handle(SkyControl.KeyUp);
+            Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-1-1")); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("wa"));
+        }
+    }
+    [Test]
     public void PerOpenTextInputOverridesPlayerDefaultsAndSingleLineDisablesNewline()
     {
         using (var runtime = Runtime())

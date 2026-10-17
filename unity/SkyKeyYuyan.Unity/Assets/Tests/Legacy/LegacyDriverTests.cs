@@ -78,6 +78,8 @@ public class LegacyDriverTests
         {
             router.Register(player); driver.BindGamepad(1, "player"); player.Open(new Target(), runtime); player.Handle(SkyControl.Text, text: "A😀BC");
             source.Keys.Add(KeyCode.Joystick1Button8); driver.Poll(0); driver.Poll(.01); Assert.That(player.Panel.State.TextFocused, Is.True);
+            source.Keys.Add(KeyCode.Joystick1Button9); driver.Poll(.011); Assert.That(player.Panel.State.TextFocused, Is.False);
+            source.Keys.Remove(KeyCode.Joystick1Button9); driver.Poll(.012); source.Keys.Add(KeyCode.Joystick1Button9); driver.Poll(.013); Assert.That(player.Panel.State.TextFocused, Is.True);
             source.Keys.Clear(); driver.Poll(.02); source.Axes["SkyPad1.LX"] = -1; driver.Poll(.03);
             Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(4));
             source.Axes.Clear(); driver.Poll(.04); source.Axes["SkyPad1.RX"] = -1; driver.Poll(.05); driver.Poll(.06);
@@ -110,6 +112,22 @@ public class LegacyDriverTests
             Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo(expected)); Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("zh-Hans"));
             source.Keys.Clear(); driver.Poll(.04); source.Keys.Add(KeyCode.Joystick1Button6); driver.Poll(.05);
             Assert.That(player.Session.Snapshot.LanguageId, Is.EqualTo("en"));
+        }
+    }
+    [Test]
+    public void FocusedMultilineEnterAddsNewlineAndControlEnterSaves()
+    {
+        var source = new Source { Text = "a", Frame = 1 };
+        using (var runtime = Runtime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()) { KeyboardEnabled = true })
+        using (var router = new SkyInputRouter(SkyInputBackend.Legacy))
+        using (var driver = new SkyLegacyInputDriver(router, source))
+        {
+            var target = new Target(); router.Register(player); driver.BindKeyboard("player"); player.Open(target, runtime); player.Handle(SkyControl.ToggleTextFocus);
+            source.Keys.Add(KeyCode.Return); driver.Poll(0); Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("a\n"));
+            source.Keys.Clear(); source.Text = ""; source.Frame++; driver.Poll(.01);
+            source.Keys.Add(KeyCode.LeftControl); source.Keys.Add(KeyCode.Return); driver.Poll(.02);
+            Assert.That(player.Session, Is.Null); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("a\n"));
         }
     }
     [Test]

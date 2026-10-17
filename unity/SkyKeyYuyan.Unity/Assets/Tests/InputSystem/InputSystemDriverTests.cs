@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using NUnit.Framework;
 using SkyKeyYuyan.Core;
 using SkyKeyYuyan.Languages.Chinese;
@@ -77,6 +76,11 @@ public class InputSystemDriverTests
                 player.Handle(SkyControl.Text, text: "A😀BC");
                 InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick)); InputSystem.Update(); driver.Poll(0); driver.Poll(.01);
                 Assert.That(player.Panel.State.TextFocused, Is.True);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick).WithButton(GamepadButton.RightStick)); InputSystem.Update(); driver.Poll(.011);
+                Assert.That(player.Panel.State.TextFocused, Is.False);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick)); InputSystem.Update(); driver.Poll(.012);
+                InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick).WithButton(GamepadButton.RightStick)); InputSystem.Update(); driver.Poll(.013);
+                Assert.That(player.Panel.State.TextFocused, Is.True);
                 InputSystem.QueueStateEvent(pad, new GamepadState()); InputSystem.Update(); driver.Poll(.02);
                 InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.left }); InputSystem.Update(); driver.Poll(.03);
                 Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(4));
@@ -124,6 +128,27 @@ public class InputSystemDriverTests
             }
         }
         finally { InputSystem.RemoveDevice(pad); }
+    }
+    [Test]
+    public void FocusedMultilineEnterAddsNewlineAndControlEnterSaves()
+    {
+        var keyboard = InputSystem.AddDevice<Keyboard>();
+        try
+        {
+            using (var runtime = Runtime())
+            using (var player = new SkyPlayerContext(new SkyPlayerOptions()) { KeyboardEnabled = true })
+            using (var router = new SkyInputRouter(SkyInputBackend.InputSystem))
+            using (var driver = new SkyInputSystemDriver(router))
+            {
+                var target = new Target(); router.Register(player); driver.Bind(keyboard, "player"); player.Open(target, runtime); player.Handle(SkyControl.ToggleTextFocus);
+                InputSystem.QueueTextEvent(keyboard, 'a'); InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter)); InputSystem.Update(); driver.Poll(0);
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("a\n"));
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.Update(); driver.Poll(.01);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.LeftCtrl, Key.Enter)); InputSystem.Update(); driver.Poll(.02);
+                Assert.That(player.Session, Is.Null); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("a\n"));
+            }
+        }
+        finally { InputSystem.RemoveDevice(keyboard); }
     }
     [Test]
     public void KeyboardTextWaitsForEnableAndKeepsCompleteUnicodeCharacters()

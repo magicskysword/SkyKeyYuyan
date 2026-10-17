@@ -55,7 +55,8 @@ public class UguiPanelTests
             runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
             var firstPanel = UguiSkyPanel.Create(PlayerRoot("One", 0, 0.5f), first, _font);
             var secondPanel = UguiSkyPanel.Create(PlayerRoot("Two", 0.5f, 1), second, _font);
-            first.Open(firstTarget, runtime); second.Open(secondTarget, runtime); yield return null; yield return null;
+            first.Open(firstTarget, runtime); second.Open(secondTarget, runtime);
+            first.Handle(SkyControl.ToggleTextFocus); second.Handle(SkyControl.ToggleTextFocus); yield return null; yield return null;
             Assert.That(firstPanel.DraftField.isFocused, Is.True); Assert.That(secondPanel.DraftField.isFocused, Is.True);
             Assert.That(firstPanel.DraftField.caretPosition, Is.EqualTo(2)); Assert.That(secondPanel.DraftField.caretPosition, Is.EqualTo(1));
             first.Handle(SkyControl.Text, text: "qq"); first.Handle(SkyControl.TextLeft, true); second.Handle(SkyControl.SelectAll);
@@ -92,10 +93,50 @@ public class UguiPanelTests
             var space = buttons.Single(button => button.name == "space").GetComponent<RectTransform>();
             var letter = buttons.Single(button => button.name == "key-3-4").GetComponent<RectTransform>();
             Assert.That(space.rect.width, Is.GreaterThan(letter.rect.width * 5));
-            player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-4"));
-            Assert.That(letter.Find("FocusBadge").gameObject.activeSelf, Is.True);
-            player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("b"));
-            player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("b"));
+            player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("shift"));
+            player.Handle(SkyControl.KeyRight); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
+            Assert.That(buttons.Single(button => button.name == "key-3-0").transform.Find("FocusBadge").gameObject.activeSelf, Is.True);
+            player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
+            player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));
+        }
+    }
+    [UnityTest]
+    public IEnumerator TextViewportRespectsLineOptionsAndFocusPreservesCaretAndSelection()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
+            foreach (int minimum in new[] { 1, 3, 5 })
+            {
+                player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.MultiLine, minimum)); yield return null;
+                Assert.That(((RectTransform)panel.DraftField.transform).rect.height, Is.EqualTo(minimum * 36 + 16)); player.Handle(SkyControl.Cancel);
+            }
+            player.Open(target, runtime); yield return null;
+            Assert.That(((RectTransform)panel.DraftField.transform).rect.height, Is.EqualTo(124));
+            player.Handle(SkyControl.Text, text: "第一行\n第二行\n第三行\n第四行\n第五行");
+            Assert.That(((RectTransform)panel.DraftField.transform).rect.height, Is.EqualTo(196));
+            int caret = player.Session.Snapshot.Text.Caret;
+            player.Handle(SkyControl.ToggleTextFocus); yield return null; yield return null;
+            Assert.That(panel.DraftField.isFocused, Is.True); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret));
+            player.Handle(SkyControl.TextUp); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret - 4));
+            player.Handle(SkyControl.SelectUp); Assert.That(player.Session.Snapshot.Text.Anchor, Is.EqualTo(caret - 4)); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret - 8));
+            player.Handle(SkyControl.TextDown); player.Handle(SkyControl.TextDown);
+            Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(caret));
+            player.Handle(SkyControl.TextLeft); player.Handle(SkyControl.SelectLeft);
+            var selected = player.Session.Snapshot.Text;
+            Assert.That(selected.Anchor, Is.EqualTo(caret - 1)); Assert.That(selected.Caret, Is.EqualTo(caret - 2));
+            CapturePanels("ugui-multiline-focus");
+            player.Handle(SkyControl.ToggleTextFocus); yield return null;
+            Assert.That(panel.DraftField.isFocused, Is.False); Assert.That(player.Session.Snapshot.Text.Caret, Is.EqualTo(selected.Caret));
+            var glyph = panel.GetComponentsInChildren<Text>().Single(text => text.name == "Glyph" && text.text == "Select");
+            Assert.That(glyph.alignment, Is.EqualTo(TextAnchor.MiddleCenter)); Assert.That(glyph.alignByGeometry, Is.True);
+            player.Handle(SkyControl.Cancel); player.Open(target, runtime, textInput: new SkyTextInputOptions(SkyTextInputType.SingleLine)); yield return null;
+            Assert.That(panel.DraftField.lineType, Is.EqualTo(InputField.LineType.SingleLine));
+            Assert.That(((RectTransform)panel.DraftField.transform).rect.height, Is.EqualTo(52)); Assert.That(player.Handle(SkyControl.Newline), Is.False);
+            CapturePanels("ugui-single-line");
         }
     }
     [UnityTest]

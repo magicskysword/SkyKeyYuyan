@@ -39,6 +39,11 @@ namespace SkyKeyYuyan.UI.FairyGUI
         private SkyPanelController _controller;
         private KeyboardLayout _layout;
         private bool _disposed, _draftActive;
+        private bool _bodyFocused;
+        private float _bodyHeight;
+        private string _measuredBodyText;
+        private SkyTextInputOptions _bodyOptions;
+        private readonly GGraph _bodyBackground;
         /// <summary>
         /// 完整面板的原生根组件。
         /// </summary>
@@ -66,11 +71,13 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _title = View.GetChild("title").asTextField; _composition = View.GetChild("composition").asTextField;
             _selection = View.GetChild("selection").asTextField; _status = View.GetChild("status").asTextField;
             _body = (GTextInput)View.GetChild("body"); _body.maxLength = 0;
+            _bodyBackground = View.GetChild("bodyBackground").asGraph; _bodyHeight = _bodyBackground.height;
+            _body.onTouchBegin.Add(() => _controller?.SetTextFocused(true));
             _keyboard = View.GetChild("keyboard").asCom; _candidates = View.GetChild("candidates").asCom;
             _keyboard.RemoveChildren(0, -1, true); _candidates.RemoveChildren(0, -1, true);
             if (!string.IsNullOrEmpty(mixedFont)) SetFont(View, mixedFont);
             _draftSelection = new FairyDraftSelection(_body);
-            Wire("cancel", SkyControl.Cancel); Wire("finish", SkyControl.Finish); Wire("language", SkyControl.Language);
+            Wire("cancel", SkyControl.Cancel); Wire("finish", SkyControl.Finish); Wire("language", SkyControl.Language); Wire("confirm", SkyControl.ConfirmCandidate);
             Wire("previousCandidate", SkyControl.PreviousCandidate); Wire("nextCandidate", SkyControl.NextCandidate);
             _factory = CreateDraft; _previousFactory = player.DraftTargetFactory; player.DraftTargetFactory = _factory;
             player.Opened += OnOpened; player.Closed += OnClosed; parent.onSizeChanged.Add(Fit);
@@ -85,6 +92,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
         private ITextTarget CreateDraft(TextSnapshot initial)
         {
             _draft?.Dispose(); _draftActive = true; _body.editable = true; _body.text = initial.Text;
+            _body.singleLine = _player.TextInput.Type == SkyTextInputType.SingleLine;
             _draft = new FairyTextTarget(_body, initial.Anchor, initial.Caret);
             return _draft;
         }
@@ -97,6 +105,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             if (_controller != null) _controller.Changed -= Render; _controller = null;
             if (_body.inputTextField.focused) Stage.inst.SetFocus(null);
             _draftActive = false; View.visible = false;
+            _bodyFocused = false;
         }
         private void Wire(string name, SkyControl control)
         {
@@ -112,6 +121,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             SetFont(_composition, font); _composition.text = snapshot.Composition.IsEmpty ? "请输入" : snapshot.Composition.DisplayText;
             if (!_draftActive) { _body.editable = false; _body.touchable = false; _body.text = snapshot.Text.Text; }
             else _body.touchable = true;
+            RenderBody(state);
             if (!ReferenceEquals(_layout, state.Layout)) { _layout = state.Layout; BuildKeys(); }
             foreach (var key in _keys)
             {
@@ -119,14 +129,38 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 bool active = enabled && (key.Key.Action == "shift" && state.Shift || key.Key.Action == "completion" && snapshot.CompletionEnabled);
                 key.Button.title = SkyKeyboardStyle.KeyLabel(key.Key, state.Shift, snapshot.CompletionEnabled);
                 if (key.Key.Action == "completion" && (language == null || (language.Capabilities & LanguageCapabilities.CompletionSwitch) == 0)) key.Button.title = key.Key.Label;
-                Style(key.Button, font, key.Key.Id == state.FocusedKey, enabled, key.Key, active);
+                Style(key.Button, font, !state.TextFocused && key.Key.Id == state.FocusedKey, enabled, key.Key, active);
             }
             RenderCandidates(snapshot, font);
             var result = state.LastResult;
             _status.text = snapshot.NeedsResolution ? "请确认正文是否已写入，再选择继续方式" : snapshot.Querying ? "正在查找候选…"
                 : state.Problem != null ? "键盘暂不可用，可取消或完成编辑" : result?.Edit?.Status == TextEditStatus.Truncated ? "已按长度上限接受可容纳的文本"
-                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : "右摇杆移动正文光标  ·  LT 扩展选区";
-            _draftSelection.Render(snapshot.Text);
+                : result?.Status == OperationStatus.Rejected ? "操作未被接受，请修正内容后重试" : state.TextFocused ? "左摇杆移动光标 · 右摇杆框选 · 按摇杆返回键盘" : "右摇杆选择候选 · Y 选词 · 按摇杆编辑正文";
+            View.GetChild("hintLabel0").asTextField.text = state.TextFocused ? "光标" : "选键";
+            View.GetChild("hintLabel3").asTextField.text = state.TextFocused ? "框选" : "候选";
+            View.GetChild("hintLabel4").asTextField.text = state.TextFocused ? "键盘" : "正文";
+            foreach (string name in new[] { "hint1", "hintGlyph1", "hintLabel1" }) View.GetChild(name).alpha = state.TextFocused ? .35f : 1;
+            _draftSelection.Render(snapshot.Text, state.TextFocused);
+        }
+        private void RenderBody(SkyPanelState state)
+        {
+            if (_bodyFocused != state.TextFocused)
+            {
+                _bodyFocused = state.TextFocused;
+                if (_draftActive) { if (_bodyFocused) _body.RequestFocus(); else if (_body.inputTextField.focused) Stage.inst.SetFocus(null); }
+                _bodyBackground.shape.DrawRoundRect(state.TextFocused ? 3 : 1, state.TextFocused ? SkyKeyboardStyle.Accent : SkyKeyboardStyle.Border, SkyKeyboardStyle.Inset, 10, 10, 10, 10);
+            }
+            var options = _player.TextInput; string text = state.Session.Text.Text;
+            if (_measuredBodyText == text && ReferenceEquals(_bodyOptions, options)) return;
+            _measuredBodyText = text; _bodyOptions = options; _body.singleLine = options.Type == SkyTextInputType.SingleLine;
+            float height = SkyKeyboardStyle.BodyHeight(options, _body.textHeight), delta = height - _bodyHeight;
+            if (delta == 0) return;
+            _bodyHeight = height; View.SetSize(View.width, View.height + delta);
+            View.GetChild("background").SetSize(View.width, View.height);
+            _bodyBackground.SetSize(_bodyBackground.width, height); _body.SetSize(_body.width, height - 16);
+            foreach (var child in View.GetChildren())
+                if (child.name != "background" && child.name != "title" && child.name != "cancel" && child.name != "bodyBackground" && child.name != "body") child.y += delta;
+            Fit();
         }
         private void BuildKeys()
         {
@@ -214,14 +248,14 @@ namespace SkyKeyYuyan.UI.FairyGUI
         private void Fit()
         {
             if (_disposed || View.isDisposed) return;
-            float scale = Mathf.Max(0.01f, Mathf.Min(1, _parent.width / (SkyKeyboardStyle.Width + 32), _parent.height / (SkyKeyboardStyle.Height + 32))); View.SetScale(scale, scale);
-            View.SetXY((_parent.width - SkyKeyboardStyle.Width * scale) / 2, (_parent.height - SkyKeyboardStyle.Height * scale) / 2);
+            float scale = Mathf.Max(0.01f, Mathf.Min(1, _parent.width / (SkyKeyboardStyle.Width + 32), _parent.height / (View.height + 32))); View.SetScale(scale, scale);
+            View.SetXY((_parent.width - SkyKeyboardStyle.Width * scale) / 2, (_parent.height - View.height * scale) / 2);
         }
         internal void Tick()
         {
             if (_disposed) return;
             if (View.isDisposed) { Dispose(); return; }
-            if (_player.Session != null && View.visible) _draftSelection.Render(_player.Session.Snapshot.Text);
+            if (_player.Session != null && View.visible) _draftSelection.Render(_player.Session.Snapshot.Text, _player.Panel.State.TextFocused);
         }
         /// <inheritdoc>
         /// </inheritdoc>

@@ -12,6 +12,10 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 绑定文本框，未指定的配置沿用玩家默认值。
         /// </summary>
+        public SkyTargetBinding(IUnityTextTarget target, EditingMode? mode, string language) : this(target, mode, language, null) { }
+        /// <summary>
+        /// 绑定文本框及其模式、语言和正文输入配置。
+        /// </summary>
         public SkyTargetBinding(IUnityTextTarget target, EditingMode? mode = null, string language = null, SkyTextInputOptions textInput = null)
         { Target = target ?? throw new ArgumentNullException(nameof(target)); Mode = mode; InitialLanguage = language; TextInput = textInput; }
         /// <summary>

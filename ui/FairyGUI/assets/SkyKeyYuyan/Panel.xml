@@ -1,48 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<component size="1120,700" idnum="37">
+<component size="1120,752" idnum="38">
   <displayList>
-    <graph id="n0" name="background" xy="0,0" size="1120,700" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#1e252c" corner="16,16,16,16"/>
-    <graph id="n19" name="candidateBackground" xy="24,192" size="1072,52" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#171e25" corner="8,8,8,8"/>
-    <graph id="n18" name="compositionBackground" xy="108,140" size="988,40" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#171e25" corner="8,8,8,8"/>
+    <graph id="n0" name="background" xy="0,0" size="1120,752" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#1e252c" corner="16,16,16,16"/>
+    <graph id="n19" name="candidateBackground" xy="24,244" size="1072,52" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#171e25" corner="8,8,8,8"/>
+    <graph id="n18" name="compositionBackground" xy="108,192" size="988,40" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#171e25" corner="8,8,8,8"/>
     <text id="n1" name="title" xy="24,16" size="1000,32" touchable="false" text="玩家一  ·  简体中文" fontSize="23" color="#ecf2f6" autoSize="none"/>
-    <graph id="n2" name="bodyBackground" xy="24,56" size="1072,72" touchable="false" type="rect" lineColor="#64e6cc" fillColor="#171e25" corner="10,10,10,10"/>
-    <inputtext id="n3" name="body" xy="36,64" size="1048,56" text="你好，世界！" fontSize="26" color="#ecf2f6" autoSize="none"/>
-    <text id="n4" name="composition" xy="120,145" size="964,30" touchable="false" text="nihao" fontSize="24" color="#ecf2f6" autoSize="none"/>
-    <component id="n5" name="candidates" src="yepuf" xy="108,192" size="860,52" pkg="7b0bbb69"/>
-    <text id="n6" name="selection" xy="24,600" size="1072,24" touchable="false" text="你好" fontSize="19" color="#64e6cc" autoSize="none"/>
-    <component id="n7" name="previousCandidate" src="167ta" xy="976,192" size="56,52" pkg="7b0bbb69">
+    <graph id="n2" name="bodyBackground" xy="24,56" size="1072,124" touchable="false" type="rect" lineColor="#4f5b67" fillColor="#171e25" corner="10,10,10,10"/>
+    <inputtext id="n3" name="body" xy="36,64" size="1048,108" text="你好，世界！" fontSize="26" color="#ecf2f6" autoSize="none"/>
+    <text id="n4" name="composition" xy="120,197" size="964,30" touchable="false" text="nihao" fontSize="24" color="#ecf2f6" autoSize="none"/>
+    <component id="n5" name="candidates" src="yepuf" xy="108,244" size="860,52" pkg="7b0bbb69"/>
+    <text id="n6" name="selection" xy="24,652" size="1072,24" touchable="false" text="你好" fontSize="19" color="#64e6cc" autoSize="none"/>
+    <component id="n7" name="previousCandidate" src="167ta" xy="976,244" size="56,52" pkg="7b0bbb69">
       <Button title="‹"/>
     </component>
-    <component id="n8" name="nextCandidate" src="167ta" xy="1040,192" size="56,52" pkg="7b0bbb69">
+    <component id="n8" name="nextCandidate" src="167ta" xy="1040,244" size="56,52" pkg="7b0bbb69">
       <Button title="›"/>
     </component>
-    <component id="n9" name="keyboard" src="e9lp1" xy="24,262" size="1072,336" pkg="7b0bbb69"/>
-    <text id="n10" name="status" xy="24,628" size="1072,24" touchable="false" text="右摇杆移动正文光标  ·  LT 扩展选区" fontSize="17" color="#9babb8" autoSize="none"/>
+    <component id="n9" name="keyboard" src="e9lp1" xy="24,314" size="1072,336" pkg="7b0bbb69"/>
+    <text id="n10" name="status" xy="24,680" size="1072,24" touchable="false" text="右摇杆选择候选 · Y 选词 · 按摇杆编辑正文" fontSize="17" color="#9babb8" autoSize="none"/>
     <component id="n11" name="cancel" src="167ta" xy="1052,12" size="44,36" pkg="7b0bbb69">
       <Button title="×"/>
     </component>
-    <component id="n12" name="language" src="167ta" xy="920,660" size="144,30" pkg="7b0bbb69">
-      <Button title="[Y] 语言" titleFontSize="18"/>
+    <component id="n12" name="language" src="167ta" xy="906,712" size="190,30" pkg="7b0bbb69">
+      <Button title="[Select] 语言" titleFontSize="18"/>
     </component>
-    <component id="n17" name="finish" src="167ta" xy="776,660" size="144,30" pkg="7b0bbb69">
+    <component id="n17" name="finish" src="167ta" xy="796,712" size="110,30" pkg="7b0bbb69">
       <Button title="[X] 保存" titleFontSize="18"/>
     </component>
-    <text id="n20" name="compositionCaption" xy="24,148" size="78,28" touchable="false" text="组字" fontSize="19" color="#9babb8" autoSize="none"/>
-    <text id="n21" name="candidateCaption" xy="34,204" size="68,28" touchable="false" text="候选" fontSize="19" color="#9babb8" autoSize="none"/>
-    <graph id="n22" name="hint0" xy="24,660" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
-    <text id="n23" name="hintGlyph0" xy="24,660" size="30,30" touchable="false" text="+" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none"/>
-    <text id="n24" name="hintLabel0" xy="62,663" size="90,26" touchable="false" text="移动" fontSize="18" color="#ecf2f6" autoSize="none"/>
-    <graph id="n25" name="hint1" xy="152,660" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
-    <text id="n26" name="hintGlyph1" xy="152,660" size="30,30" touchable="false" text="A" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none"/>
-    <text id="n27" name="hintLabel1" xy="190,663" size="90,26" touchable="false" text="输入" fontSize="18" color="#ecf2f6" autoSize="none"/>
-    <graph id="n28" name="hint2" xy="280,660" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
-    <text id="n29" name="hintGlyph2" xy="280,660" size="30,30" touchable="false" text="B" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none"/>
-    <text id="n30" name="hintLabel2" xy="318,663" size="90,26" touchable="false" text="回退" fontSize="18" color="#ecf2f6" autoSize="none"/>
-    <graph id="n31" name="hint3" xy="408,660" size="64,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="6,6,6,6"/>
-    <text id="n32" name="hintGlyph3" xy="408,660" size="64,30" touchable="false" text="LB/RB" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none"/>
-    <text id="n33" name="hintLabel3" xy="480,663" size="112,26" touchable="false" text="候选" fontSize="18" color="#ecf2f6" autoSize="none"/>
-    <graph id="n34" name="hint4" xy="592,660" size="64,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="6,6,6,6"/>
-    <text id="n35" name="hintGlyph4" xy="592,660" size="64,30" touchable="false" text="L3/R3" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none"/>
-    <text id="n36" name="hintLabel4" xy="664,663" size="112,26" touchable="false" text="确认" fontSize="18" color="#ecf2f6" autoSize="none"/>
+    <text id="n20" name="compositionCaption" xy="24,200" size="78,28" touchable="false" text="组字" fontSize="19" color="#9babb8" autoSize="none"/>
+    <text id="n21" name="candidateCaption" xy="34,256" size="68,28" touchable="false" text="候选" fontSize="19" color="#9babb8" autoSize="none"/>
+    <graph id="n22" name="hint0" xy="24,712" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
+    <text id="n23" name="hintGlyph0" xy="24,712" size="30,30" touchable="false" text="L" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <text id="n24" name="hintLabel0" xy="62,712" size="82,30" touchable="false" text="选键" fontSize="18" color="#ecf2f6" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <graph id="n25" name="hint1" xy="144,712" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
+    <text id="n26" name="hintGlyph1" xy="144,712" size="30,30" touchable="false" text="A" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <text id="n27" name="hintLabel1" xy="182,712" size="62,30" touchable="false" text="输入" fontSize="18" color="#ecf2f6" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <graph id="n28" name="hint2" xy="244,712" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
+    <text id="n29" name="hintGlyph2" xy="244,712" size="30,30" touchable="false" text="B" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <text id="n30" name="hintLabel2" xy="282,712" size="72,30" touchable="false" text="回退" fontSize="18" color="#ecf2f6" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <graph id="n31" name="hint3" xy="354,712" size="30,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="15,15,15,15"/>
+    <text id="n32" name="hintGlyph3" xy="354,712" size="30,30" touchable="false" text="R" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <text id="n33" name="hintLabel3" xy="392,712" size="104,30" touchable="false" text="候选" fontSize="18" color="#ecf2f6" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <graph id="n34" name="hint4" xy="496,712" size="64,30" touchable="false" type="rect" lineColor="#9babb8" fillColor="#171e25" corner="6,6,6,6"/>
+    <text id="n35" name="hintGlyph4" xy="496,712" size="64,30" touchable="false" text="L3/R3" fontSize="16" color="#ecf2f6" align="center" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <text id="n36" name="hintLabel4" xy="568,712" size="118,30" touchable="false" text="正文" fontSize="18" color="#ecf2f6" vAlign="middle" autoSize="none" singleLine="true" leading="0"/>
+    <component id="n37" name="confirm" src="167ta" xy="686,712" size="110,30" pkg="7b0bbb69">
+      <Button title="[Y] 选词" titleFontSize="18"/>
+    </component>
   </displayList>
 </component>

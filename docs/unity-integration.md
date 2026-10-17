@@ -95,7 +95,7 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 宿主支持鼠标或触摸操作时，可绑定 `SkyDeviceKind.Pointer` 维持对应面板的输入可用状态。指针绑定独立于键盘与手柄开关，通过解除绑定停用。
 
-安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 扩展选区，Enter 完成，Escape 取消，Tab 切换语言，Ctrl+A 全选。键盘默认仍需显式启用。
+安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 扩展选区，Escape 取消，Tab 切换语言，Ctrl+A 全选。正文焦点中的多行输入使用 Enter 换行、Ctrl+Enter 完成，其余状态使用 Enter 完成。Legacy 键盘使用相同约定。键盘默认仍需显式启用。
 
 启用 Legacy Input 时，`SkyLegacyInputDriver` 按一到八号手柄槽位绑定玩家。`LegacyGamepadProfile` 指定摇杆、方向键、扳机的轴名称和按钮索引，`ILegacyInputSource` 可替换平台采样。开发工程包含 `SkyPad1` 至 `SkyPad8` 的默认轴；其他工程可通过 `Tools/SkyKeyYuyan/添加 Legacy 默认输入轴` 补齐。默认轴采用 Windows 手柄配置，宿主可以在 Input Manager 中调整实际轴映射。菜单保留已有的同名轴设置。键盘由系统文本帧提供字符，同一帧重复采样保持一次输入。
 

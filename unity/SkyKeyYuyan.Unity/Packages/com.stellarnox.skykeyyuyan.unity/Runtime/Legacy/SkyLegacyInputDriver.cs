@@ -148,6 +148,7 @@ namespace SkyKeyYuyan.Unity.Legacy
             internal string Id;
             internal LegacyGamepadProfile Profile;
             internal bool TextFocused, LeftReady = true, RightReady = true;
+            internal int FocusButtons;
             internal readonly Dictionary<SkyControl, SkyInputRepeat> Repeats = new Dictionary<SkyControl, SkyInputRepeat>();
         }
         private readonly SkyInputRouter _router;
@@ -217,8 +218,10 @@ namespace SkyKeyYuyan.Unity.Legacy
                 var profile = binding.Profile;
                 bool connected = profile.Joystick <= names.Length && !string.IsNullOrEmpty(names[profile.Joystick - 1]);
                 _router.SetConnected(binding.Id, connected);
-                if (!connected) { foreach (var repeat in binding.Repeats.Values) repeat.Reset(); continue; }
-                Emit(binding, SkyControl.ToggleTextFocus, Button(profile, profile.FocusLeft) || Button(profile, profile.FocusRight), time);
+                if (!connected) { foreach (var repeat in binding.Repeats.Values) repeat.Reset(); binding.FocusButtons = 0; continue; }
+                int clicks = (Button(profile, profile.FocusLeft) ? 1 : 0) | (Button(profile, profile.FocusRight) ? 2 : 0);
+                if ((clicks & ~binding.FocusButtons) != 0) _router.Route(SkyInputBackend.Legacy, binding.Id, SkyControl.ToggleTextFocus, sequence: ++_sequence);
+                binding.FocusButtons = clicks;
                 bool focused = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused;
                 if (binding.TextFocused != focused) { binding.TextFocused = focused; binding.LeftReady = binding.RightReady = false; }
                 var direction = new Vector2(Axis(profile.DpadX), Axis(profile.DpadY));
@@ -280,7 +283,11 @@ namespace SkyKeyYuyan.Unity.Legacy
             Emit(binding, SkyControl.TextDown, _source.Key(KeyCode.DownArrow), time, true, extend);
             Emit(binding, SkyControl.Backspace, _source.Key(KeyCode.Backspace), time, true);
             Emit(binding, SkyControl.Delete, _source.Key(KeyCode.Delete), time, true);
-            Emit(binding, SkyControl.Finish, _source.Key(KeyCode.Return) || _source.Key(KeyCode.KeypadEnter), time);
+            bool enter = _source.Key(KeyCode.Return) || _source.Key(KeyCode.KeypadEnter);
+            bool control = _source.Key(KeyCode.LeftControl) || _source.Key(KeyCode.RightControl);
+            bool multiline = _router.TryGetPlayer(binding.Id, out var player) && player.Panel != null && player.Panel.State.TextFocused && player.TextInput.Type == SkyTextInputType.MultiLine;
+            Emit(binding, SkyControl.Newline, enter && multiline && !control, time);
+            Emit(binding, SkyControl.Finish, enter && (!multiline || control), time);
             Emit(binding, SkyControl.Cancel, _source.Key(KeyCode.Escape), time);
             Emit(binding, SkyControl.Language, _source.Key(KeyCode.Tab), time);
             Emit(binding, SkyControl.SelectAll, (_source.Key(KeyCode.LeftControl) || _source.Key(KeyCode.RightControl)) && _source.Key(KeyCode.A), time);

@@ -16,10 +16,11 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _field = field; _caret.DrawRect(0, Color.clear, new Color32(102, 222, 212, 255));
             field.inputTextField.AddChildAt(_selection, 0); field.inputTextField.AddChild(_caret);
         }
-        internal void Render(TextSnapshot snapshot)
+        internal void Render(TextSnapshot snapshot, bool focused)
         {
             var input = _field.inputTextField; var text = input.textField; text.Redraw();
             _caret.visible = false; _selection.Clear();
+            if (!focused) return;
             if (text.charPositions.Count == 0 || text.lines.Count == 0) return;
             int anchor = ScalarIndex(snapshot.Text, snapshot.Anchor), caret = ScalarIndex(snapshot.Text, snapshot.Caret);
             var active = text.charPositions[Math.Min(caret, text.charPositions.Count - 1)];

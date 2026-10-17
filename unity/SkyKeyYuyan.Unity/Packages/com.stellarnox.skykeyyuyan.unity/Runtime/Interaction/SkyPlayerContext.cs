@@ -118,6 +118,11 @@ namespace SkyKeyYuyan.Unity
         /// <summary>
         /// 在指定目标打开输入，可按次覆盖原框或草稿模式。
         /// </summary>
+        public ServiceResult Open(IUnityTextTarget target, ISkyRuntime runtime, EditingMode? mode, string language)
+        { return Open(target, runtime, mode, language, null); }
+        /// <summary>
+        /// 在指定目标打开输入，并按次选择正文输入类型及最低显示行数。
+        /// </summary>
         public ServiceResult Open(IUnityTextTarget target, ISkyRuntime runtime = null, EditingMode? mode = null, string language = null, SkyTextInputOptions textInput = null)
         {
             if (_disposed || Session != null) return new ServiceResult(false, "session", "玩家已经打开输入或已释放");

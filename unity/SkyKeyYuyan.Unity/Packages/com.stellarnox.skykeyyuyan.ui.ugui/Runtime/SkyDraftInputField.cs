@@ -1,3 +1,4 @@
+using System;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -12,6 +13,13 @@ namespace SkyKeyYuyan.UI.UGUI
         /// 会话活动期间允许多个草稿保持各自光标。
         /// </summary>
         public bool RetainEditing { get; set; }
+        /// <summary>
+        /// 用户通过指针进入正文编辑。
+        /// </summary>
+        public event Action FocusRequested;
+        /// <inheritdoc>
+        /// </inheritdoc>
+        public override void OnPointerDown(PointerEventData eventData) { FocusRequested?.Invoke(); base.OnPointerDown(eventData); }
         /// <inheritdoc>
         /// </inheritdoc>
         public override void OnDeselect(BaseEventData eventData) { if (!RetainEditing) base.OnDeselect(eventData); }
