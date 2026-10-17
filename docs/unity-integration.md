@@ -22,7 +22,7 @@ Unity 主适配包包含 UGUI、TMP、Legacy Input 和 Input System 接入代码
 1. 安装 SKY 核心、Unity 适配、所需语言和表现包，以及宿主所需 UI 依赖。
 2. 配置输入后端、玩家标识、用户标识（单用户游戏可只配置默认用户）、设备分配和各玩家 UI 根节点。
 3. 显式注册语言模块及实现，手动调用同步或异步初始化，处理初始化结果。初始化成功的运行时实例默认成为全局默认实例。
-4. 指定启用设备，默认启用手柄。
+4. 绑定设备并配置键盘输入方式，默认优先使用系统 IME，手柄默认启用。
 5. 配置目标自动发现与编辑态跟随，或通过宿主调用显式打开输入。打开输入默认使用全局默认实例，显式打开时也可以传入其他运行时实例。
 6. 订阅会话结果，在完成后处理宿主业务，并按宿主生命周期释放服务。
 
@@ -34,18 +34,36 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 同一设备事件选择一个接入来源。Unity 同时启用多个输入后端时，SKY 仍按宿主配置路由一次输入操作。
 
-## 设备启用策略
+## 键盘输入与设备策略
 
-| 键盘 | 手柄 | 行为 |
-| --- | --- | --- |
-| 启用 | 启用 | 两类设备均通过 SKY 路由 |
-| 关闭 | 启用 | 手柄通过 SKY，键盘由宿主管理 |
-| 启用 | 关闭 | 键盘通过 SKY，手柄由宿主管理 |
-| 自定义 | 自定义 | 宿主按自己的设备和交互策略发送统一操作 |
+| 键盘模式 | 行为 |
+| --- | --- |
+| Automatic（自动，默认） | 优先由原生控件使用系统 IME；平台不支持时使用 SKY |
+| SystemIme（使用系统 IME） | 保留原生控件和系统输入法的输入路径 |
+| SkyIme（使用 SKY IME） | 由 SKY 处理字符、组字、候选和语言切换 |
 
-表现层或宿主配置策略，平台适配执行实际事件路由。被 SKY 接管的输入同时与目标控件的原有输入路径协调，保证一次按键产生一次编辑。
+`SkyPlayerOptions.KeyboardInput` 配置 `SkyKeyboardInputOptions`。键盘聚焦时默认直接编辑原输入框；系统模式不建立 SKY 会话，SKY 模式使用原框会话及光标旁的候选浮窗。`ForceVirtualKeyboard` 为真时显示完整虚拟键盘，使用玩家的正文与草稿配置。`InitialLanguage` 指定 SKY 的默认语言，例如 `zh-Hans`；系统模式使用操作系统当前输入源。
 
-`SkyNativeInputCoordination` 合并活动玩家的接管状态，在原生 EventSystem 前排空已由 SKY 处理的键盘事件。UGUI 适配保存并暂时关闭 EventSystem 导航，最后一个使用手柄的会话结束后还原原值；Legacy 输入能力启用时同步协调 IME 模式。键盘接管仍由每位玩家的启用设置决定。
+```csharp
+var player = host.AddPlayer(new SkyPlayerOptions
+{
+    PlayerId = "player",
+    KeyboardInput = new SkyKeyboardInputOptions(
+        SkyKeyboardInputMode.Automatic,
+        forceVirtualKeyboard: false,
+        initialLanguage: "zh-Hans")
+}, new UguiTargetDiscovery(playerRoot));
+```
+
+`ConfigureKeyboardInput(options)` 更新后续聚焦使用的默认配置，活动会话保留打开时的配置。单个目标可通过 `SkyTargetBinding.KeyboardInput` 或 `SkyTextTargetSettings` 覆盖模式、强制面板和默认语言；组件的 `UsePlayerKeyboardInput` 默认为真。显式调用 `OpenKeyboard` 使用相同策略，`Open` 始终打开完整输入界面。
+
+自动模式的内置能力判断覆盖 Unity 的桌面 IME 支持：Windows、macOS，以及 Unity 6000.5 及以上的 Linux Player。宿主可通过 `SkyPlayerOptions.SystemImeSupported` 提供实际环境的能力判断。该判断决定自动模式的回退；显式系统模式始终交由原生控件处理。[Unity IME](https://docs.unity3d.com/2022.3/Documentation/Manual/IMEInput.html)，[Linux IME 支持](https://discussions.unity.com/t/ime-input-support-now-available-for-linux-preview/1711291)。
+
+SKY 模式下独立点按 Shift 循环当前会话的语言，Shift 加字母、方向键等组合操作及长按保留原有用途。中文等转换语言组字时，空格或 Enter 确认候选，数字一至九选择当前页，上下键浏览候选。无候选且查询完成时，确认将原始拼写写入正文。多行正文在无组字时使用 Enter 换行、Ctrl+Enter 完成；单行使用 Enter 完成。系统模式的 Shift 和其他快捷键由系统及原生控件处理。
+
+`GamepadEnabled` 控制手柄路由。`KeyboardEnabled` 保留为兼容入口，设为真或假分别显式选择 SKY 或系统模式。设备绑定仍由宿主管理；自定义后端可发送统一操作。被 SKY 接管的输入与目标控件协调，保证一次按键产生一次编辑。
+
+`SkyNativeInputCoordination` 合并活动玩家的接管状态，在原生 EventSystem 前排空已由 SKY 处理的键盘事件。UGUI 适配仅在活动玩家启用且连接手柄时接管 EventSystem 导航，最后一个接管会话结束后还原原值；Legacy 输入能力启用时同步协调 IME 模式。
 
 ## 文本框发现和编辑态
 
@@ -53,9 +71,9 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 `SkyInputHost.Configure` 创建指定后端的 `SkyUnityHost`，由组件推进非缩放时间的主循环。通过 `AddPlayer` 提供玩家配置和 `UguiTargetDiscovery`、`TmpTargetDiscovery` 或 `FairyTargetDiscovery`，再绑定设备并安装相应驱动。宿主持有玩家和发现器的生命周期，显式 `RegisterTarget` 的目标由调用方持有。`SkyTextTargetSettings` 可覆盖单个控件的默认模式与语言。
 
-目标发现限定在传入的 UI 根内，并排除 `SkyInputSurface` 标记的面板内部控件。自动跟随原生编辑态的进入变化；原文被宿主修改而结束输入后，继续保持同一编辑态不会重新打开会话。玩家切换到新的原生目标时，先按当前模式取消旧会话，再打开新目标。应用焦点、应用暂停和宿主组件停用分别保留其暂停条件。
+目标发现限定在传入的 UI 根内，并排除 `SkyInputSurface` 标记的面板内部控件。自动跟随原生编辑态的进入变化；原文被宿主修改而结束输入后，继续保持同一编辑态不会重新打开会话。切换目标时，原框键盘会话完成编辑，完整面板按当前模式取消，再进入新目标。应用焦点、应用暂停和宿主组件停用分别保留其暂停条件。
 
-进入编辑态的交互由宿主决定。默认行为在已启用设备对应的文本框进入编辑态时打开 SKY；关闭此行为后，宿主负责显式打开。
+进入编辑态的交互由宿主决定。默认根据最近设备选择键盘或手柄入口，鼠标点击原框使用键盘策略。从完整面板点回原框时，先保存当前正文与选区，再进入键盘输入。原框键盘会话在失去编辑态时完成；关闭 `FollowEditing` 后，宿主负责显式打开。
 
 虚拟键盘、候选列表和功能按键之间的焦点转移属于面板内部交互。目标销毁、宿主中断和外部正文变化通过相应会话结束原因处理。
 
@@ -81,7 +99,7 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 连续竖向选键保持同一个逻辑列中心，横向选键或指针激活后重新确定该中心。每次摇杆采样只采用主方向，切换正文焦点后先等待摇杆回中，再接纳对应方向动作。
 
-两套默认表现采用同一份六排对齐键盘布局，加宽键帽按逻辑列跨度排版。手柄焦点使用薄荷色填充、双层轮廓和 A 徽标；候选选中单独高亮。禁用功能键保留位置并降低明度，方向导航跳过这些按键。组字在正文光标处预览，候选浮窗随光标定位，面板随玩家区域缩放。尺寸、色彩和布局约定见[默认虚拟键盘](keyboard-design.md)。
+两套默认表现采用同一份六排对齐键盘布局，加宽键帽按逻辑列跨度排版。已连接且启用手柄时，按键焦点使用薄荷色填充、双层轮廓和 A 徽标；断开后隐藏，重新连接后恢复。候选选中单独高亮。禁用功能键保留位置并降低明度，方向导航跳过这些按键。组字在正文光标处预览，候选浮窗随光标定位，面板随玩家区域缩放。尺寸、色彩和布局约定见[默认虚拟键盘](keyboard-design.md)。
 
 ## 多玩家和焦点
 
@@ -91,11 +109,11 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 
 `SkyPlayerOptions.TextInput` 配置默认正文类型，`Open(..., textInput: new SkyTextInputOptions(SkyTextInputType.MultiLine, 3))` 可按次覆盖。`SingleLine` 使用单行视口；`MultiLine` 的最低显示行数默认为三，限制在一至五。`SkyTargetBinding.TextInput` 和原生文本框上的 `SkyTextTargetSettings` 可覆盖单个目标。配置在打开会话前确定，表现层的草稿工厂可以读取当前 `SkyPlayerContext.TextInput`。
 
-`SkyInputRouter` 在构造时固定事件后端。注册玩家后，将设备标识绑定到玩家，使用 `Route` 发送动作；设备不能同时绑定给两位玩家。后端提供递增设备事件序号时，重复事件保持无效。`KeyboardEnabled` 和 `GamepadEnabled` 分别控制路由。设备断开和应用失焦分别占用暂停原因，全部恢复后会话才继续活动。
+`SkyInputRouter` 在构造时固定事件后端。注册玩家后，将设备标识绑定到玩家，使用 `Route` 发送动作；设备不能同时绑定给两位玩家。后端提供递增设备事件序号时，重复事件保持无效。键盘路由由当前输入法模式决定，手柄路由由 `GamepadEnabled` 决定。系统键盘仍计为可用设备；失去最后一个可用设备和应用失焦分别占用暂停原因，全部恢复后会话才继续活动。
 
 宿主支持鼠标或触摸操作时，可绑定 `SkyDeviceKind.Pointer` 维持对应面板的输入可用状态。指针绑定独立于键盘与手柄开关，通过解除绑定停用。
 
-安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 扩展选区，Escape 取消，Tab 切换语言，Ctrl+A 全选。正文焦点中的多行输入使用 Enter 换行、Ctrl+Enter 完成，其余状态使用 Enter 完成。Legacy 键盘使用相同约定。键盘默认仍需显式启用。
+安装并启用 Input System 后，`SkyInputSystemDriver` 位于独立程序集。宿主将具体 Gamepad 或 Keyboard 绑定给玩家，在主循环以非缩放时间调用 `Poll`。手柄采用默认绑定，方向和退格支持可配置的按住重复。SKY 键盘使用系统文本事件保留实际键盘布局和完整代理对，方向键编辑正文，Shift 加方向键扩展选区，Escape 取消，Ctrl+A 全选。完整面板还可用 Tab 切换语言。Legacy 键盘使用相同约定。
 
 启用 Legacy Input 时，`SkyLegacyInputDriver` 按一到八号手柄槽位绑定玩家。`LegacyGamepadProfile` 指定摇杆、方向键、扳机的轴名称和按钮索引，`ILegacyInputSource` 可替换平台采样。开发工程包含 `SkyPad1` 至 `SkyPad8` 的默认轴；其他工程可通过 `Tools/SkyKeyYuyan/添加 Legacy 默认输入轴` 补齐。默认轴采用 Windows 手柄配置，宿主可以在 Input Manager 中调整实际轴映射。菜单保留已有的同名轴设置。键盘由系统文本帧提供字符，同一帧重复采样保持一次输入。
 
@@ -108,6 +126,8 @@ UnityResourceProvider 从 `Resources/SkyKeyYuyan/` 加载语言包的 TextAsset�
 ## 文本框适配
 
 适配器以控件实际正文作为权威状态，并转换选区、行导航、验证结果和长度计数。三个框架使用相同的 SKY 文本编辑契约。
+
+UGUI、TMP 与 FairyGUI 的原生目标实现 `ISkyInlineKeyboardTarget`，提供输入类型、指针聚焦、选区恢复及行内组字和候选显示。原框键盘会话保留目标的单行或多行类型，行内显示随会话释放并恢复原生文字、光标和输入配置。
 
 `UguiTextTarget` 和 `TmpTextTarget` 分别绑定已有的 InputField 和 TMP_InputField。调用 `Poll` 同步原生选区并发现未通知的正文变化；每次执行统一操作前，会话也重新读取当前编辑目标。`SetKeyboardOwned` 保存并临时接管原生输入配置，释放适配器时还原；`EndEditing` 退出原生编辑态。适配器的 `Diagnostic` 单独报告控件验证和通知异常。
 

@@ -17,7 +17,9 @@ namespace SkyKeyYuyan.Samples
     {
         [Range(1, 2)] public int PlayerCount = 1;
         public Font MixedFont;
-        public bool KeyboardEnabled;
+        public SkyKeyboardInputMode KeyboardMode = SkyKeyboardInputMode.Automatic;
+        public bool ForceVirtualKeyboard;
+        public string DefaultInputLanguage = "en";
         public bool EnglishCompletion;
         public EditingMode Mode = EditingMode.Draft;
         public SkyTextInputType InputType = SkyTextInputType.MultiLine;
@@ -64,8 +66,8 @@ namespace SkyKeyYuyan.Samples
                     int number = index;
                     var parent = Rect("Player " + (index + 1), _canvas.transform, 0, 0, 0, 0);
                     parent.anchorMin = new Vector2((float)index / players.Length, 0); parent.anchorMax = new Vector2((float)(index + 1) / players.Length, 1); parent.offsetMin = parent.offsetMax = Vector2.zero;
-                    var player = players[index] = _host.AddPlayer(new SkyPlayerOptions { PlayerId = "玩家" + (index + 1), UserId = "sample-" + (index + 1), InitialLanguage = "en", EditingMode = Mode, TextInput = textInput }, new UguiTargetDiscovery(parent));
-                    player.KeyboardEnabled = KeyboardEnabled && index == 0;
+                    var keyboardInput = new SkyKeyboardInputOptions(index == 0 ? KeyboardMode : SkyKeyboardInputMode.SystemIme, ForceVirtualKeyboard, DefaultInputLanguage);
+                    var player = players[index] = _host.AddPlayer(new SkyPlayerOptions { PlayerId = "玩家" + (index + 1), UserId = "sample-" + (index + 1), InitialLanguage = DefaultInputLanguage, KeyboardInput = keyboardInput, EditingMode = Mode, TextInput = textInput }, new UguiTargetDiscovery(parent));
                     _host.Router.Bind("sample-pointer-" + index, SkyDeviceKind.Pointer, player.PlayerId);
                     Label("Title", parent, 24, 18, 450, 32, "玩家 " + (index + 1) + " · " + Backend);
                     var target = CreateTarget(parent, players.Length == 1 ? 1872 : 912, textInput); _targets.Add(target);
@@ -73,13 +75,23 @@ namespace SkyKeyYuyan.Samples
                     if (index == 0)
                     {
                         Button keyboard = null;
-                        keyboard = Button(parent, 600 / players.Length + 140, 18, 132, "键盘：" + (player.KeyboardEnabled ? "开" : "关"), () => { player.KeyboardEnabled = !player.KeyboardEnabled; keyboard.GetComponentInChildren<Text>().text = "键盘：" + (player.KeyboardEnabled ? "开" : "关"); });
+                        keyboard = Button(parent, 600 / players.Length + 140, 18, 156, "键盘：" + KeyboardLabel(player.KeyboardInput.Mode), () =>
+                        {
+                            var input = player.KeyboardInput;
+                            var next = (SkyKeyboardInputMode)(((int)input.Mode + 1) % 3);
+                            player.ConfigureKeyboardInput(new SkyKeyboardInputOptions(next, input.ForceVirtualKeyboard, input.InitialLanguage));
+                            keyboard.GetComponentInChildren<Text>().text = "键盘：" + KeyboardLabel(next);
+                        });
                     }
                     UguiSkyPanel.Create(parent, player, MixedFont);
                     player.Completed += result => Debug.Log("玩家 " + (number + 1) + " · " + result.Reason + " · " + target.ReadSnapshot().Text);
                 }
                 ConfigureInput(_host, players, _events);
-                for (int index = 0; index < players.Length; index++) players[index].Open(_targets[index], _runtime);
+                for (int index = 0; index < players.Length; index++)
+                {
+                    if (players.Length > 1 || players[index].GamepadConnected) players[index].Open(_targets[index], _runtime);
+                    else if (ForceVirtualKeyboard) players[index].OpenKeyboard(_targets[index], _runtime);
+                }
             }
             catch (Exception ex) { if (!_destroyed) Debug.LogException(ex); }
         }
@@ -95,6 +107,8 @@ namespace SkyKeyYuyan.Samples
             field.selectionAnchorPosition = field.selectionFocusPosition = field.text.Length;
             return new UguiTextTarget(field);
         }
+        private static string KeyboardLabel(SkyKeyboardInputMode mode)
+        { return mode == SkyKeyboardInputMode.Automatic ? "自动" : mode == SkyKeyboardInputMode.SystemIme ? "系统" : "SKY"; }
         private Text Label(string name, Transform parent, float x, float y, float width, float height, string value)
         {
             var label = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Text>(); label.font = MixedFont; label.fontSize = 22; label.color = Color.white;

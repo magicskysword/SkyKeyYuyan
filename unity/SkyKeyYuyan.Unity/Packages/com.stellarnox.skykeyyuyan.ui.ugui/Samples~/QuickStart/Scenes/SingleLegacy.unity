@@ -154,7 +154,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PlayerCount: 1
   MixedFont: {fileID: 0}
-  KeyboardEnabled: 0
+  KeyboardMode: 0
+  ForceVirtualKeyboard: 0
+  DefaultInputLanguage: en
   EnglishCompletion: 0
   Mode: 1
   InputType: 1

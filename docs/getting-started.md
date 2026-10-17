@@ -47,6 +47,8 @@ UGUI、TMP 和 FairyGUI 文本目标可以自动发现，也可显式注册。�
 
 示例场景的 `SkyKeyYuyan Example` 组件提供 `InputType`、`MinimumVisibleLines` 和 `InitialText`。在 Inspector 选择单行或多行，设置一至五行的最低显示行数后进入 Play；单人示例预填三行正文。L3 或 R3 切换正文焦点，左摇杆移动光标、右摇杆框选，再按摇杆返回键盘。X 确认候选，Y 切换语言，Start 保存关闭。组字直接显示在正文光标处，候选浮窗随光标定位。
 
+`KeyboardMode` 可选自动、系统 IME 或 SKY IME，`ForceVirtualKeyboard` 控制键盘聚焦是否显示完整面板，`DefaultInputLanguage` 配置 SKY 默认语言。自动模式优先使用系统 IME；单人无手柄时，点击原框直接输入。示例顶部的键盘按钮循环切换模式，下次点击原框时生效。SKY 模式独立点按 Shift 切换语言；系统模式沿用系统输入法的 Shift 行为。“打开输入”可随时进入完整虚拟键盘。
+
 中文输入 `nihaoshijie` 时预览为 `ni'hao'shi'jie`，可以依次选择“你”“好”“世界”。虚拟键盘的撇号键可手动指定音节边界，例如 `xi'an`；查询完成且无候选时，X 将原始字母写入正文并继续编辑。
 
 ## 打包与发布
