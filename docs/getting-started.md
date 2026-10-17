@@ -47,6 +47,8 @@ UGUI、TMP 和 FairyGUI 文本目标可以自动发现，也可显式注册。�
 
 示例场景的 `SkyKeyYuyan Example` 组件提供 `InputType`、`MinimumVisibleLines` 和 `InitialText`。在 Inspector 选择单行或多行，设置一至五行的最低显示行数后进入 Play；单人示例预填三行正文。L3 或 R3 切换正文焦点，左摇杆移动光标、右摇杆框选，再按摇杆返回键盘。X 确认候选，Y 切换语言，Start 保存关闭。组字直接显示在正文光标处，候选浮窗随光标定位。
 
+中文输入 `nihaoshijie` 时预览为 `ni'hao'shi'jie`，可以依次选择“你”“好”“世界”。虚拟键盘的撇号键可手动指定音节边界，例如 `xi'an`；查询完成且无候选时，X 将原始字母写入正文并继续编辑。
+
 ## 打包与发布
 
 `node scripts/pack-upm.mjs --repository https://github.com/owner/repository` 生成 UPM 包及对应 OpenUPM 元数据；仓库地址使用实际 GitHub 地址。GitHub Actions 构建标签对应版本后创建包含全部包的草稿 Release。发布该 Release 后，OpenUPM 可按 `githubRelease` 模式跟踪对应附件。
