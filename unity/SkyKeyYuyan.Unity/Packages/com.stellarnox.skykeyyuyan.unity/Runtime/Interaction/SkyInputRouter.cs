@@ -90,7 +90,7 @@ namespace SkyKeyYuyan.Unity
             if (!_players.TryGetValue(playerId, out var player)) return;
             foreach (var id in _bindings.Where(pair => ReferenceEquals(pair.Value.Player, player)).Select(pair => pair.Key).ToArray()) _bindings.Remove(id);
             if (_policies.TryGetValue(player, out var callback)) { player.DevicePolicyChanged -= callback; _policies.Remove(player); }
-            player.SetPaused("devices", true); _players.Remove(playerId);
+            player.SetGamepadConnected(false); player.SetPaused("devices", true); _players.Remove(playerId);
         }
         /// <summary>
         /// 注册玩家；设备绑定完成后会话可以恢复活动。
@@ -108,6 +108,11 @@ namespace SkyKeyYuyan.Unity
         /// 绑定宿主给出的稳定设备标识，拒绝同设备同时属于两个玩家。
         /// </summary>
         public void Bind(string deviceId, SkyDeviceKind kind, string playerId)
+        { Bind(deviceId, kind, playerId, true); }
+        /// <summary>
+        /// 绑定设备并提供采样时的初始连接状态。
+        /// </summary>
+        public void Bind(string deviceId, SkyDeviceKind kind, string playerId, bool connected)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(SkyInputRouter));
             if (string.IsNullOrWhiteSpace(deviceId)) throw new ArgumentException("设备身份不能为空", nameof(deviceId));
@@ -115,9 +120,10 @@ namespace SkyKeyYuyan.Unity
             if (_bindings.TryGetValue(deviceId, out var known))
             {
                 if (!ReferenceEquals(known.Player, player) || known.Kind != kind) throw new InvalidOperationException("设备已经绑定到其他玩家或类别");
+                known.Connected = connected; UpdateAvailability(player);
                 return;
             }
-            _bindings.Add(deviceId, new Binding { Player = player, Kind = kind }); UpdateAvailability(player);
+            _bindings.Add(deviceId, new Binding { Player = player, Kind = kind, Connected = connected }); UpdateAvailability(player);
         }
         /// <summary>
         /// 解除设备分配；失去最后一个已启用设备时保留并暂停会话。
@@ -149,14 +155,18 @@ namespace SkyKeyYuyan.Unity
         /// </summary>
         public void SetApplicationFocused(bool focused) { _focused = focused; foreach (var player in _players.Values) player.SetPaused("application-focus", !focused); }
         private static bool Enabled(Binding binding) => binding.Kind == SkyDeviceKind.Pointer || (binding.Kind == SkyDeviceKind.Keyboard ? binding.Player.KeyboardEnabled : binding.Player.GamepadEnabled);
-        private void UpdateAvailability(SkyPlayerContext player) => player.SetPaused("devices", !_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding)));
+        private void UpdateAvailability(SkyPlayerContext player)
+        {
+            player.SetGamepadConnected(_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Kind == SkyDeviceKind.Gamepad && binding.Connected));
+            player.SetPaused("devices", !_bindings.Values.Any(binding => ReferenceEquals(binding.Player, player) && binding.Connected && Enabled(binding)));
+        }
         /// <inheritdoc>
         /// </inheritdoc>
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
-            foreach (var policy in _policies) { policy.Key.DevicePolicyChanged -= policy.Value; policy.Key.SetPaused("devices", true); }
+            foreach (var policy in _policies) { policy.Key.DevicePolicyChanged -= policy.Value; policy.Key.SetGamepadConnected(false); policy.Key.SetPaused("devices", true); }
             _policies.Clear(); _bindings.Clear(); _players.Clear();
         }
     }

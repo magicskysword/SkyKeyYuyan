@@ -49,6 +49,13 @@ namespace SkyKeyYuyan.Unity
         private readonly HashSet<string> _pauses = new HashSet<string>(StringComparer.Ordinal);
         private IUnityTextTarget _target, _draft;
         private bool _keyboardEnabled, _gamepadEnabled = true, _disposed;
+        private bool _gamepadConnected;
+        /// <summary>
+        /// 当前玩家是否绑定了已连接的手柄。
+        /// </summary>
+        public bool GamepadConnected => _gamepadConnected;
+        internal void SetGamepadConnected(bool connected)
+        { _gamepadConnected = connected; Panel?.SetGamepadConnected(connected && _gamepadEnabled); }
         /// <summary>
         /// 固定玩家身份及会话默认值。
         /// </summary>
@@ -100,7 +107,7 @@ namespace SkyKeyYuyan.Unity
         public bool GamepadEnabled
         {
             get => _gamepadEnabled;
-            set { if (_gamepadEnabled == value) return; _gamepadEnabled = value; UpdateNativePolicy(); DevicePolicyChanged?.Invoke(); }
+            set { if (_gamepadEnabled == value) return; _gamepadEnabled = value; Panel?.SetGamepadConnected(_gamepadConnected && value); UpdateNativePolicy(); DevicePolicyChanged?.Invoke(); }
         }
         /// <summary>
         /// 成功打开会话及面板控制器。
@@ -140,6 +147,7 @@ namespace SkyKeyYuyan.Unity
                 if (!opened.Succeeded) { _draft = null; return new ServiceResult(false, "session", opened.Reason); }
                 Session = opened.Session; _target = target; Session.Completed += OnCompleted;
                 Panel = new SkyPanelController(Session, TextInput);
+                Panel.SetGamepadConnected(_gamepadConnected && _gamepadEnabled);
                 _target.SetKeyboardOwned(KeyboardEnabled); _draft?.SetKeyboardOwned(KeyboardEnabled);
                 UpdateNativePolicy();
                 if (_pauses.Count != 0) Session.Process(InputOperation.Pause());

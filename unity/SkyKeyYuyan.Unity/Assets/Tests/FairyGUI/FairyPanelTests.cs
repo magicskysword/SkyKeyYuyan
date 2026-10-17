@@ -72,12 +72,16 @@ public class FairyPanelTests
     {
         using (var runtime = new SkyRuntime())
         using (var player = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "fairy-navigation", InitialLanguage = "en" }))
+        using (var router = new SkyInputRouter(SkyInputBackend.Custom))
         using (var target = Target("", 0))
         {
             runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
             using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest"))
             {
                 player.Open(target, runtime); yield return null;
+                var firstKey = panel.View.GetChild("keyboard").asCom.GetChild("key-0-0").asButton;
+                Assert.That(firstKey.GetChild("focusBadge").visible, Is.False);
+                router.Register(player); router.Bind("pad", SkyDeviceKind.Gamepad, player.PlayerId);
                 for (int step = 0; step < 4; step++) player.Handle(SkyControl.KeyDown);
                 Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("space"));
                 var keys = panel.View.GetChild("keyboard").asCom;
@@ -87,6 +91,8 @@ public class FairyPanelTests
                 player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
                 var selected = keys.GetChild("key-3-0").asButton;
                 Assert.That(selected.GetChild("focusOutline").visible, Is.True); Assert.That(selected.GetChild("focusBadge").visible, Is.True);
+                router.SetConnected("pad", false); Assert.That(selected.GetChild("focusBadge").visible, Is.False);
+                router.SetConnected("pad", true); Assert.That(selected.GetChild("focusBadge").visible, Is.True);
                 player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
                 player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));
             }

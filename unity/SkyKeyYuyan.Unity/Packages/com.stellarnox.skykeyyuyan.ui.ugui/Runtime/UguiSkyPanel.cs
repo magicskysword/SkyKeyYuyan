@@ -152,7 +152,7 @@ namespace SkyKeyYuyan.UI.UGUI
             foreach (var view in _keys)
             {
                 view.Text.font = languageFont;
-                bool focused = !state.TextFocused && view.Key.Id == state.FocusedKey;
+                bool focused = state.GamepadConnected && !state.TextFocused && view.Key.Id == state.FocusedKey;
                 bool enabled = _controller.IsKeyEnabled(view.Key);
                 bool active = enabled && (view.Key.Action == "shift" && state.Shift || view.Key.Action == "completion" && snapshot.CompletionEnabled);
                 view.Text.text = SkyKeyboardStyle.KeyLabel(view.Key, state.Shift, snapshot.CompletionEnabled);

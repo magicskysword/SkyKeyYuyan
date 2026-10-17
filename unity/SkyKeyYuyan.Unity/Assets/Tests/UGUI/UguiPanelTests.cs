@@ -80,11 +80,14 @@ public class UguiPanelTests
     {
         using (var runtime = new SkyRuntime())
         using (var player = new SkyPlayerContext(new SkyPlayerOptions { PlayerId = "keyboard-navigation", InitialLanguage = "en" }))
+        using (var router = new SkyInputRouter(SkyInputBackend.Custom))
         using (var target = Target("", 0))
         {
             runtime.RegisterLanguage(new BasicEnglishModule()); runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
             var panel = UguiSkyPanel.Create(PlayerRoot("One", 0, 1), player, _font);
             player.Open(target, runtime); yield return null; yield return null;
+            Assert.That(panel.GetComponentsInChildren<SkyPanelButton>(true).Any(button => button.transform.Find("FocusBadge")?.gameObject.activeSelf == true), Is.False);
+            router.Register(player); router.Bind("pad", SkyDeviceKind.Gamepad, player.PlayerId);
             for (int step = 0; step < 4; step++) player.Handle(SkyControl.KeyDown);
             Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("space"));
             var buttons = panel.GetComponentsInChildren<SkyPanelButton>();
@@ -94,6 +97,10 @@ public class UguiPanelTests
             var letter = buttons.Single(button => button.name == "key-3-4").GetComponent<RectTransform>();
             Assert.That(space.rect.width, Is.GreaterThan(letter.rect.width * 5));
             player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
+            Assert.That(buttons.Single(button => button.name == "key-3-0").transform.Find("FocusBadge").gameObject.activeSelf, Is.True);
+            router.SetConnected("pad", false);
+            Assert.That(buttons.Single(button => button.name == "key-3-0").transform.Find("FocusBadge").gameObject.activeSelf, Is.False);
+            router.SetConnected("pad", true);
             Assert.That(buttons.Single(button => button.name == "key-3-0").transform.Find("FocusBadge").gameObject.activeSelf, Is.True);
             player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
             player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));

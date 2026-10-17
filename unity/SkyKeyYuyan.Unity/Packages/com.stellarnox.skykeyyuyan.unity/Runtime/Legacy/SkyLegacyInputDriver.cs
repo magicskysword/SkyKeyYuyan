@@ -193,7 +193,8 @@ namespace SkyKeyYuyan.Unity.Legacy
             profile = profile ?? new LegacyGamepadProfile(joystick);
             if (profile.Joystick != joystick) throw new ArgumentException("手柄配置槽位不一致", nameof(profile));
             string id = "legacy/gamepad/" + joystick;
-            _router.Bind(id, SkyDeviceKind.Gamepad, playerId);
+            var names = _source.JoystickNames();
+            _router.Bind(id, SkyDeviceKind.Gamepad, playerId, joystick <= names.Length && !string.IsNullOrEmpty(names[joystick - 1]));
             if (!_pads.ContainsKey(joystick)) _pads.Add(joystick, new Binding { Id = id, Profile = profile });
             return id;
         }

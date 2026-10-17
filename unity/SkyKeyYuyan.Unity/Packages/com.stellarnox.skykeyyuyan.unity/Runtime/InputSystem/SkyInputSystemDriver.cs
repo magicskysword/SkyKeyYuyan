@@ -69,7 +69,7 @@ namespace SkyKeyYuyan.Unity.InputSystem
             if (_disposed) throw new ObjectDisposedException(nameof(SkyInputSystemDriver));
             if (device == null) throw new ArgumentNullException(nameof(device));
             string id = "input-system/" + device.deviceId;
-            _router.Bind(id, kind, playerId);
+            _router.Bind(id, kind, playerId, device.added && device.enabled);
             if (_devices.TryGetValue(device.deviceId, out var existing)) return existing;
             var binding = new Binding { Device = device, Id = id }; _devices.Add(device.deviceId, binding); return binding;
         }

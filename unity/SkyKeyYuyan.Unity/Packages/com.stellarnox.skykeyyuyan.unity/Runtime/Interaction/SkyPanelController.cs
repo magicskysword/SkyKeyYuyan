@@ -140,8 +140,12 @@ namespace SkyKeyYuyan.Unity
     /// </summary>
     public sealed class SkyPanelState
     {
-        internal SkyPanelState(SessionSnapshot session, KeyboardLayout layout, string focusedKey, bool shift, OperationResult result, string problem, bool textFocused)
-        { Session = session; Layout = layout; FocusedKey = focusedKey; Shift = shift; LastResult = result; Problem = problem; TextFocused = textFocused; }
+        internal SkyPanelState(SessionSnapshot session, KeyboardLayout layout, string focusedKey, bool shift, OperationResult result, string problem, bool textFocused, bool gamepadConnected)
+        { Session = session; Layout = layout; FocusedKey = focusedKey; Shift = shift; LastResult = result; Problem = problem; TextFocused = textFocused; GamepadConnected = gamepadConnected; }
+        /// <summary>
+        /// 当前玩家是否具有已连接且启用的手柄。
+        /// </summary>
+        public bool GamepadConnected { get; }
         /// <summary>
         /// 会话的权威快照。
         /// </summary>
@@ -185,6 +189,7 @@ namespace SkyKeyYuyan.Unity
         private string _language, _focus = "", _problem;
         private bool _shift, _disposed, _resolving;
         private bool _textFocused;
+        private bool _gamepadConnected;
         private double? _navigationColumn;
         private long? _confirmationVersion;
         private string _confirmationLanguage;
@@ -269,7 +274,7 @@ namespace SkyKeyYuyan.Unity
         private void OnOperation(OperationResult result) { _lastResult = result; Publish(_session.Snapshot); }
         private void Publish(SessionSnapshot snapshot)
         {
-            State = new SkyPanelState(snapshot, _layout, _focus, _shift, _lastResult, _problem, _textFocused);
+            State = new SkyPanelState(snapshot, _layout, _focus, _shift, _lastResult, _problem, _textFocused, _gamepadConnected);
             if (Changed == null) return;
             foreach (Action<SkyPanelState> handler in Changed.GetInvocationList())
                 try { handler(State); } catch (Exception ex) { Debug.LogWarning("SKY panel: " + ex.Message); }
@@ -319,6 +324,8 @@ namespace SkyKeyYuyan.Unity
             if (_textFocused != focused) { _textFocused = focused; Publish(snapshot); }
             return true;
         }
+        internal void SetGamepadConnected(bool connected)
+        { if (_gamepadConnected == connected || _disposed) return; _gamepadConnected = connected; Publish(_session.Snapshot); }
         /// <summary>
         /// 处理设备动作；正文导航可同时扩展选区。
         /// </summary>

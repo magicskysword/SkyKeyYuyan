@@ -145,7 +145,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
                 bool active = enabled && (key.Key.Action == "shift" && state.Shift || key.Key.Action == "completion" && snapshot.CompletionEnabled);
                 key.Button.title = SkyKeyboardStyle.KeyLabel(key.Key, state.Shift, snapshot.CompletionEnabled);
                 if (key.Key.Action == "completion" && (language == null || (language.Capabilities & LanguageCapabilities.CompletionSwitch) == 0)) key.Button.title = key.Key.Label;
-                Style(key.Button, font, !state.TextFocused && key.Key.Id == state.FocusedKey, enabled, key.Key, active);
+                Style(key.Button, font, state.GamepadConnected && !state.TextFocused && key.Key.Id == state.FocusedKey, enabled, key.Key, active);
             }
             RenderCandidates(snapshot, font);
             var result = state.LastResult;
