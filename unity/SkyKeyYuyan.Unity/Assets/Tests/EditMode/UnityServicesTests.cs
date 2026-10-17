@@ -28,7 +28,9 @@ public class UnityServicesTests
         var layout = KeyboardLayout.Parse(SkyUnityServices.Shared.Resources.Read(directory + "/keyboard.bytes"), language);
         Assert.That(layout.Keys.Count, Is.GreaterThan(50));
         Assert.That(layout["space"].Output, Is.EqualTo(" "));
-        Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("key-2-8"));
+        Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("semicolon"));
+        Assert.That(layout.Navigate("key-1-0", TextNavigation.Down), Is.EqualTo("key-2-0"));
+        Assert.That(layout.Navigate("key-2-0", TextNavigation.Down), Is.EqualTo("key-3-0"));
         Assert.That(layout["key-1-0"].Output, Is.EqualTo(language == "ko" ? "ㅂ" : "q"));
         Assert.That(layout["key-1-0"].Alternate, Is.EqualTo(language == "ko" ? "ㅃ" : "Q"));
     }

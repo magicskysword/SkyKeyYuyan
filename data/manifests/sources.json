@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "dataVersion": "2026.10.2",
+  "dataVersion": "2026.10.3",
   "sources": [
     { "id": "jieba", "revision": "dafc73425e618c1a0d562f84362b46bedf579bdb", "url": "https://raw.githubusercontent.com/fxsjy/jieba/dafc73425e618c1a0d562f84362b46bedf579bdb/jieba/dict.txt", "file": "jieba/dict.txt", "license": "MIT" },
     { "id": "jieba-license", "revision": "dafc73425e618c1a0d562f84362b46bedf579bdb", "url": "https://raw.githubusercontent.com/fxsjy/jieba/dafc73425e618c1a0d562f84362b46bedf579bdb/LICENSE", "file": "jieba/LICENSE", "license": "MIT" },

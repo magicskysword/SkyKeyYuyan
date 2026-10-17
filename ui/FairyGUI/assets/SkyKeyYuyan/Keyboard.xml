@@ -79,73 +79,73 @@
     <component id="n25" name="delete" src="167ta" xy="919,56" size="145,48" pkg="7b0bbb69">
       <Button title="删除"/>
     </component>
-    <component id="n26" name="key-2-0" src="167ta" xy="38,112" size="69,48" pkg="7b0bbb69">
+    <component id="n26" name="key-2-0" src="167ta" xy="0,112" size="69,48" pkg="7b0bbb69">
       <Button title="A"/>
     </component>
-    <component id="n27" name="key-2-1" src="167ta" xy="115,112" size="69,48" pkg="7b0bbb69">
+    <component id="n27" name="key-2-1" src="167ta" xy="77,112" size="69,48" pkg="7b0bbb69">
       <Button title="S"/>
     </component>
-    <component id="n28" name="key-2-2" src="167ta" xy="191,112" size="69,48" pkg="7b0bbb69">
+    <component id="n28" name="key-2-2" src="167ta" xy="153,112" size="69,48" pkg="7b0bbb69">
       <Button title="D"/>
     </component>
-    <component id="n29" name="key-2-3" src="167ta" xy="268,112" size="69,48" pkg="7b0bbb69">
+    <component id="n29" name="key-2-3" src="167ta" xy="230,112" size="69,48" pkg="7b0bbb69">
       <Button title="F"/>
     </component>
-    <component id="n30" name="key-2-4" src="167ta" xy="345,112" size="69,48" pkg="7b0bbb69">
+    <component id="n30" name="key-2-4" src="167ta" xy="306,112" size="69,48" pkg="7b0bbb69">
       <Button title="G"/>
     </component>
-    <component id="n31" name="key-2-5" src="167ta" xy="421,112" size="69,48" pkg="7b0bbb69">
+    <component id="n31" name="key-2-5" src="167ta" xy="383,112" size="69,48" pkg="7b0bbb69">
       <Button title="H"/>
     </component>
-    <component id="n32" name="key-2-6" src="167ta" xy="498,112" size="69,48" pkg="7b0bbb69">
+    <component id="n32" name="key-2-6" src="167ta" xy="459,112" size="69,48" pkg="7b0bbb69">
       <Button title="J"/>
     </component>
-    <component id="n33" name="key-2-7" src="167ta" xy="574,112" size="69,48" pkg="7b0bbb69">
+    <component id="n33" name="key-2-7" src="167ta" xy="536,112" size="69,48" pkg="7b0bbb69">
       <Button title="K"/>
     </component>
-    <component id="n34" name="key-2-8" src="167ta" xy="651,112" size="69,48" pkg="7b0bbb69">
+    <component id="n34" name="key-2-8" src="167ta" xy="613,112" size="69,48" pkg="7b0bbb69">
       <Button title="L"/>
     </component>
-    <component id="n35" name="semicolon" src="167ta" xy="727,112" size="69,48" pkg="7b0bbb69">
+    <component id="n35" name="semicolon" src="167ta" xy="689,112" size="69,48" pkg="7b0bbb69">
       <Button title=";"/>
     </component>
-    <component id="n36" name="quote" src="167ta" xy="804,112" size="69,48" pkg="7b0bbb69">
+    <component id="n36" name="quote" src="167ta" xy="766,112" size="69,48" pkg="7b0bbb69">
       <Button title="&apos;"/>
     </component>
-    <component id="n37" name="newline" src="167ta" xy="881,112" size="183,48" pkg="7b0bbb69">
+    <component id="n37" name="newline" src="167ta" xy="842,112" size="222,48" pkg="7b0bbb69">
       <Button title="换行"/>
     </component>
-    <component id="n38" name="shift" src="167ta" xy="0,168" size="145,48" pkg="7b0bbb69">
+    <component id="n38" name="shift" src="167ta" xy="766,168" size="145,48" pkg="7b0bbb69">
       <Button title="Shift"/>
     </component>
-    <component id="n39" name="key-3-0" src="167ta" xy="153,168" size="69,48" pkg="7b0bbb69">
+    <component id="n39" name="key-3-0" src="167ta" xy="0,168" size="69,48" pkg="7b0bbb69">
       <Button title="Z"/>
     </component>
-    <component id="n40" name="key-3-1" src="167ta" xy="230,168" size="69,48" pkg="7b0bbb69">
+    <component id="n40" name="key-3-1" src="167ta" xy="77,168" size="69,48" pkg="7b0bbb69">
       <Button title="X"/>
     </component>
-    <component id="n41" name="key-3-2" src="167ta" xy="306,168" size="69,48" pkg="7b0bbb69">
+    <component id="n41" name="key-3-2" src="167ta" xy="153,168" size="69,48" pkg="7b0bbb69">
       <Button title="C"/>
     </component>
-    <component id="n42" name="key-3-3" src="167ta" xy="383,168" size="69,48" pkg="7b0bbb69">
+    <component id="n42" name="key-3-3" src="167ta" xy="230,168" size="69,48" pkg="7b0bbb69">
       <Button title="V"/>
     </component>
-    <component id="n43" name="key-3-4" src="167ta" xy="459,168" size="69,48" pkg="7b0bbb69">
+    <component id="n43" name="key-3-4" src="167ta" xy="306,168" size="69,48" pkg="7b0bbb69">
       <Button title="B"/>
     </component>
-    <component id="n44" name="key-3-5" src="167ta" xy="536,168" size="69,48" pkg="7b0bbb69">
+    <component id="n44" name="key-3-5" src="167ta" xy="383,168" size="69,48" pkg="7b0bbb69">
       <Button title="N"/>
     </component>
-    <component id="n45" name="key-3-6" src="167ta" xy="613,168" size="69,48" pkg="7b0bbb69">
+    <component id="n45" name="key-3-6" src="167ta" xy="459,168" size="69,48" pkg="7b0bbb69">
       <Button title="M"/>
     </component>
-    <component id="n46" name="punctuation-0" src="167ta" xy="689,168" size="69,48" pkg="7b0bbb69">
+    <component id="n46" name="punctuation-0" src="167ta" xy="536,168" size="69,48" pkg="7b0bbb69">
       <Button title=","/>
     </component>
-    <component id="n47" name="punctuation-1" src="167ta" xy="766,168" size="69,48" pkg="7b0bbb69">
+    <component id="n47" name="punctuation-1" src="167ta" xy="613,168" size="69,48" pkg="7b0bbb69">
       <Button title="."/>
     </component>
-    <component id="n48" name="punctuation-2" src="167ta" xy="842,168" size="69,48" pkg="7b0bbb69">
+    <component id="n48" name="punctuation-2" src="167ta" xy="689,168" size="69,48" pkg="7b0bbb69">
       <Button title="/"/>
     </component>
     <component id="n49" name="clear" src="167ta" xy="919,168" size="145,48" pkg="7b0bbb69">
@@ -172,16 +172,16 @@
     <component id="n56" name="right" src="167ta" xy="995,224" size="69,48" pkg="7b0bbb69">
       <Button title="→"/>
     </component>
-    <component id="n57" name="selectall" src="167ta" xy="0,280" size="183,48" pkg="7b0bbb69">
+    <component id="n57" name="selectall" src="167ta" xy="0,280" size="222,48" pkg="7b0bbb69">
       <Button title="全选"/>
     </component>
-    <component id="n58" name="retry" src="167ta" xy="191,280" size="222,48" pkg="7b0bbb69">
+    <component id="n58" name="retry" src="167ta" xy="230,280" size="222,48" pkg="7b0bbb69">
       <Button title="重试转换"/>
     </component>
-    <component id="n59" name="cancel" src="167ta" xy="421,280" size="298,48" pkg="7b0bbb69">
+    <component id="n59" name="cancel" src="167ta" xy="459,280" size="298,48" pkg="7b0bbb69">
       <Button title="取消"/>
     </component>
-    <component id="n60" name="finish" src="167ta" xy="727,280" size="337,48" pkg="7b0bbb69">
+    <component id="n60" name="finish" src="167ta" xy="766,280" size="298,48" pkg="7b0bbb69">
       <Button title="完成"/>
     </component>
   </displayList>

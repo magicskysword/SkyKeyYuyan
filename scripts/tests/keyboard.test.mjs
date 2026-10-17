@@ -13,6 +13,10 @@ for (const language of ['en', 'zh-Hans', 'ko']) test(`${language} 键盘保持�
   }
   assert.equal(keys.find(key => key[0] === 'space')[7], 12);
   assert.equal(keys.find(key => key[0] === 'space')[2], ' ');
+  for (let row = 0; row < 4; row++) {
+    for (const key of keys.filter(key => key[4] === row)) assert.equal(key[5] % 2, 0);
+    for (let column = 0; column < 7; column++) assert.equal(keys.find(key => key[0] === `key-${row}-${column}`)[5], column * 2);
+  }
   const characters = keys.filter(key => /^key-[123]-/.test(key[0])).map(key => key[2]).join('');
   assert.equal(characters, language === 'ko' ? 'ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔㅁㄴㅇㄹㅎㅗㅓㅏㅣㅋㅌㅊㅍㅠㅜㅡ' : 'qwertyuiopasdfghjklzxcvbnm');
 });

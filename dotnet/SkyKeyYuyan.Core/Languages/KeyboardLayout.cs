@@ -201,18 +201,18 @@ namespace SkyKeyYuyan.Core
                 {
                     string output = rows[row][column].ToString();
                     string alternate = row == 0 ? "!@#$%^&*()"[column].ToString() : output.ToUpperInvariant();
-                    keys.Add(new KeyboardKey("key-" + row + "-" + column, output.ToUpperInvariant(), output, alternate, row, column * 2 + (row == 2 ? 1 : row == 3 ? 4 : 0), "input", 2));
+                    keys.Add(new KeyboardKey("key-" + row + "-" + column, output.ToUpperInvariant(), output, alternate, row, column * 2, "input", 2));
                 }
             void Input(string id, string output, string alternate, int row, int column) => keys.Add(new KeyboardKey(id, output, output, alternate, row, column, "input", 2));
             void Action(string id, string label, int row, int column, int span) => keys.Add(new KeyboardKey(id, label, id == "space" ? " " : "", id == "space" ? " " : "", row, column, id == "space" ? "input" : id, span));
             Input("minus", "-", "_", 0, 20); Input("equals", "=", "+", 0, 22); Action("backspace", "退格", 0, 24, 4);
             Input("open-bracket", "[", "{", 1, 20); Input("close-bracket", "]", "}", 1, 22); Action("delete", "删除", 1, 24, 4);
-            Input("semicolon", ";", ":", 2, 19); Input("quote", "'", "\"", 2, 21); Action("newline", "换行", 2, 23, 5);
-            Action("shift", "Shift", 3, 0, 4); Input("punctuation-0", ",", "<", 3, 18); Input("punctuation-1", ".", ">", 3, 20); Input("punctuation-2", "/", "?", 3, 22); Action("clear", "清空", 3, 24, 4);
+            Input("semicolon", ";", ":", 2, 18); Input("quote", "'", "\"", 2, 20); Action("newline", "换行", 2, 22, 6);
+            Input("punctuation-0", ",", "<", 3, 14); Input("punctuation-1", ".", ">", 3, 16); Input("punctuation-2", "/", "?", 3, 18); Action("shift", "Shift", 3, 20, 4); Action("clear", "清空", 3, 24, 4);
             Action("language", "语言", 4, 0, 4); Action("completion", "补全", 4, 4, 4); Action("space", "空格", 4, 8, 12);
             Action("left", "←", 4, 20, 2); Action("up", "↑", 4, 22, 2); Action("down", "↓", 4, 24, 2); Action("right", "→", 4, 26, 2);
-            Action("selectall", "全选", 5, 0, 5); Action("retry", "重试转换", 5, 5, 6); Action("cancel", "取消", 5, 11, 8); Action("finish", "完成", 5, 19, 9);
-            return new KeyboardLayout("en", "builtin.2", keys);
+            Action("selectall", "全选", 5, 0, 6); Action("retry", "重试转换", 5, 6, 6); Action("cancel", "取消", 5, 12, 8); Action("finish", "完成", 5, 20, 8);
+            return new KeyboardLayout("en", "builtin.3", keys);
         }
     }
     /// <summary>

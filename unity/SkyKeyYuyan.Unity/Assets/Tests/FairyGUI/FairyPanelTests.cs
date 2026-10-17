@@ -84,8 +84,8 @@ public class FairyPanelTests
                 Assert.That(keys.GetChild("language").touchable, Is.False); Assert.That(keys.GetChild("completion").touchable, Is.False);
                 var letter = keys.GetChild("key-3-4").asButton;
                 Assert.That(keys.GetChild("space").width, Is.GreaterThan(letter.width * 5));
-                player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("shift"));
-                player.Handle(SkyControl.KeyRight); var selected = keys.GetChild("key-3-0").asButton;
+                player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
+                var selected = keys.GetChild("key-3-0").asButton;
                 Assert.That(selected.GetChild("focusOutline").visible, Is.True); Assert.That(selected.GetChild("focusBadge").visible, Is.True);
                 player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
                 player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));

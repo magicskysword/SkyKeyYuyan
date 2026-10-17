@@ -93,8 +93,7 @@ public class UguiPanelTests
             var space = buttons.Single(button => button.name == "space").GetComponent<RectTransform>();
             var letter = buttons.Single(button => button.name == "key-3-4").GetComponent<RectTransform>();
             Assert.That(space.rect.width, Is.GreaterThan(letter.rect.width * 5));
-            player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("shift"));
-            player.Handle(SkyControl.KeyRight); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
+            player.Handle(SkyControl.KeyUp); Assert.That(player.Panel.State.FocusedKey, Is.EqualTo("key-3-0"));
             Assert.That(buttons.Single(button => button.name == "key-3-0").transform.Find("FocusBadge").gameObject.activeSelf, Is.True);
             player.Handle(SkyControl.Activate); Assert.That(panel.DraftField.text, Is.EqualTo("z"));
             player.Handle(SkyControl.Finish); Assert.That(target.ReadSnapshot().Text, Is.EqualTo("z"));

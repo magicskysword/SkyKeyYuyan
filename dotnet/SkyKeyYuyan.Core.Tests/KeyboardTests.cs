@@ -32,16 +32,23 @@ namespace SkyKeyYuyan.Core.Tests
             }));
         }
         [Test]
-        public void UnevenRowsChooseNearestColumnAndWrap()
+        public void AlignedRowsKeepCharacterColumnsAndWrap()
         {
             var layout = KeyboardLayout.BasicEnglish;
-            Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("key-2-8"));
+            for (int column = 0; column < 7; column++)
+                for (int row = 0; row < 3; row++)
+                {
+                    string current = "key-" + row + "-" + column, below = "key-" + (row + 1) + "-" + column;
+                    Assert.That(layout.Navigate(current, TextNavigation.Down), Is.EqualTo(below));
+                    Assert.That(layout.Navigate(below, TextNavigation.Up), Is.EqualTo(current));
+                }
+            Assert.That(layout.Navigate("key-1-9", TextNavigation.Down), Is.EqualTo("semicolon"));
             Assert.That(layout.Navigate("key-1-0", TextNavigation.Left), Is.EqualTo("delete"));
             Assert.That(layout.Navigate("key-0-0", TextNavigation.Up), Is.EqualTo("selectall"));
-            Assert.That(layout.Navigate("space", TextNavigation.Up), Is.EqualTo("key-3-4"));
+            Assert.That(layout.Navigate("space", TextNavigation.Up), Is.EqualTo("key-3-6"));
         }
         [Test]
-        public void VerticalAnchorReturnsToTheSameKeyAcrossStaggeredRows()
+        public void VerticalAnchorReturnsToTheSameKeyAcrossWideKeys()
         {
             var layout = KeyboardLayout.BasicEnglish;
             foreach (var key in layout.Keys)
