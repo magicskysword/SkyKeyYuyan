@@ -95,6 +95,13 @@ public class UguiPanelTests
             Assert.That(player.Session, Is.Null); Assert.That(field.isFocused, Is.True); Assert.That(field.readOnly, Is.False);
             field.DeactivateInputField(); host.Tick(.2); yield return null;
             Assert.That(player.Session, Is.Null); Assert.That(field.readOnly, Is.False); Assert.That(field.textComponent.color.a, Is.EqualTo(1));
+            player.ConfigureKeyboardInput(new SkyKeyboardInputOptions(SkyKeyboardInputMode.SystemIme, true));
+            field.ActivateInputField(); yield return null; yield return null; host.Tick(.3);
+            Assert.That(panel.gameObject.activeSelf, Is.True); Assert.That(panel.DraftField.readOnly, Is.False);
+            panel.DraftField.text = "系统输入"; player.Poll(); services.Context.Drain();
+            Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("系统输入"));
+            player.Handle(SkyControl.Finish); services.Context.Drain();
+            Assert.That(field.text, Is.EqualTo("系统输入")); Assert.That(panel.gameObject.activeSelf, Is.False);
         }
     }
     [UnityTest]
