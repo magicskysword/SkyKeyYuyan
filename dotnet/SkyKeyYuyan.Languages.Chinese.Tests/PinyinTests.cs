@@ -84,7 +84,7 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
             var page = await Query(engine, module);
             engine.Process(CompositionCommand.Choose(page.Candidates.Single(candidate => candidate.Text == "你好")));
             engine.Process(CompositionCommand.Insert("a"));
-            Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.DisplayText, Is.EqualTo("你好shijie"));
+            Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.DisplayText, Is.EqualTo("你好shi'jie"));
             Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.RawText, Is.EqualTo("nihaoshijie"));
             Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.RawText, Is.EqualTo("nihaoshiji"));
         }
@@ -99,6 +99,77 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
             var page = await Query(engine, module);
             Assert.That(page.Candidates[0].Text, Is.EqualTo("绿色"));
             Assert.That(page.Candidates[0].ConsumedLength, Is.EqualTo(spelling.Length));
+        }
+        [Test]
+        public async Task AutomaticPreviewPreservesAmbiguousCandidatePaths()
+        {
+            using var module = Module(); using var engine = module.CreateEngine();
+            engine.Process(CompositionCommand.Insert("xian"));
+            Assert.That(engine.Snapshot.DisplayText, Is.EqualTo("xian"));
+            var page = await Query(engine, module);
+            Assert.That(page.Candidates.Select(candidate => candidate.Text), Does.Contain("先").And.Contain("西安"));
+            Assert.That(page.Candidates.All(candidate => candidate.ConsumedLength == 4), Is.True);
+        }
+        [TestCase("nihaoshijie", "ni'hao'shi'jie")]
+        [TestCase("nihaosh", "ni'hao'sh")]
+        [TestCase("nihaoshij", "ni'hao'shi'j")]
+        [TestCase("xian", "xian")]
+        [TestCase("xi'an", "xi'an")]
+        [TestCase("xi’an", "xi’an")]
+        [TestCase("lu:se", "lu:'se")]
+        [TestCase("lǜsè", "lǜ'sè")]
+        [TestCase("lu\u0308se", "lu\u0308'se")]
+        [TestCase("NIHAO", "NI'HAO")]
+        [TestCase("qqq", "qqq")]
+        [TestCase("niqqq", "ni'qqq")]
+        [TestCase("ni''hao", "ni''hao")]
+        [TestCase("ni'", "ni'")]
+        [TestCase("'ni", "'ni")]
+        public void SyllablePreviewPreservesRawInputAndLiteralCommit(string raw, string preview)
+        {
+            using var module = Module(); using var engine = module.CreateEngine();
+            engine.Process(CompositionCommand.Insert(raw));
+            Assert.That(engine.Snapshot.DisplayText, Is.EqualTo(preview));
+            Assert.That(engine.Snapshot.RawText, Is.EqualTo(raw));
+            Assert.That(engine.Process(CompositionCommand.Commit()).CommitText, Is.EqualTo(raw));
+        }
+        [TestCase("lüsehao")]
+        [TestCase("lu:sehao")]
+        [TestCase("lǜ'sè'hao")]
+        [TestCase("lu\u0308sehao")]
+        public async Task PartialSelectionConsumesOriginalRangeAndRestoresItsPreview(string raw)
+        {
+            using var module = Module(); using var engine = module.CreateEngine();
+            engine.Process(CompositionCommand.Insert(raw));
+            string preview = engine.Snapshot.DisplayText;
+            var page = await Query(engine, module);
+            var green = page.Candidates.Single(candidate => candidate.Text == "绿色");
+            Assert.That(green.ConsumedLength, Is.EqualTo(raw.IndexOf("hao", StringComparison.Ordinal)));
+            var step = engine.Process(CompositionCommand.Choose(green));
+            Assert.That(step.CommitText, Is.Null); Assert.That(step.Snapshot.DisplayText, Is.EqualTo("绿色hao"));
+            var checkpoint = engine.CaptureCheckpoint();
+            Assert.That(engine.Process(CompositionCommand.Backspace()).Snapshot.DisplayText, Is.EqualTo(preview));
+            engine.RestoreCheckpoint(checkpoint);
+            Assert.That(engine.Snapshot.DisplayText, Is.EqualTo("绿色hao"));
+            var remaining = await Query(engine, module);
+            Assert.That(engine.Process(CompositionCommand.Choose(remaining.Candidates.Single(candidate => candidate.Text == "好"))).CommitText, Is.EqualTo("绿色好"));
+        }
+        [TestCase("haoni", "hao'ni")]
+        [TestCase("hao'ni", "hao'ni")]
+        public void EmptyQueryCommitsRawSpellingInsteadOfItsPreview(string raw, string preview)
+        {
+            using var runtime = new SkyRuntime();
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("hello", "你好", "ni hao") }));
+            runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false });
+            var target = new MemoryTextTarget();
+            using var session = runtime.OpenSession(new SessionOptions { InitialLanguage = "zh-Hans" }, target).Session!;
+            session.Process(InputOperation.Insert(raw));
+            WaitFor(() => !session.Snapshot.Querying);
+            Assert.That(session.Snapshot.Candidates!.Candidates, Is.Empty);
+            Assert.That(session.Snapshot.Composition.DisplayText, Is.EqualTo(preview));
+            session.Process(InputOperation.CommitComposition());
+            Assert.That(session.Snapshot.Text.Text, Is.EqualTo(raw));
+            Assert.That(session.Snapshot.Composition.IsEmpty, Is.True); Assert.That(session.Snapshot.Lifecycle, Is.EqualTo(SessionLifecycle.Active));
         }
         [Test]
         public async Task ApostropheForcesSyllableBoundary()

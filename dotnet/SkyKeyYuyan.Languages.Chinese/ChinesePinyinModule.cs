@@ -41,15 +41,17 @@ namespace SkyKeyYuyan.Languages.Chinese
         protected override object BuildIndex(IReadOnlyList<LexiconWord> words) => new Index(words);
         /// <inheritdoc>
         /// </inheritdoc>
-        protected override ILanguageEngine CreateLanguageEngine() => new Engine();
+        protected override ILanguageEngine CreateLanguageEngine() => new Engine(() => ((Index)CaptureData().Index!).Syllables);
 
         private sealed class Index
         {
             internal readonly SpellingIndex Words;
+            internal readonly PinyinSyllables Syllables;
             internal readonly HashSet<string> MultipleReadings = new HashSet<string>(StringComparer.Ordinal);
             internal Index(IReadOnlyList<LexiconWord> words)
             {
                 Words = new SpellingIndex(words, PinyinSpelling.Flatten);
+                Syllables = new PinyinSyllables(words);
                 var texts = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var word in words)
                     if (!texts.Add(word.Text)) MultipleReadings.Add(word.Text);
@@ -116,9 +118,12 @@ namespace SkyKeyYuyan.Languages.Chinese
                 internal readonly double Score;
                 internal ScoredWord(LexiconWord word, double score) { Word = word; Score = score; }
             }
-            internal Engine() : base("zh.full-pinyin") { }
+            private readonly Func<PinyinSyllables> _syllables;
+            internal Engine(Func<PinyinSyllables> syllables) : base("zh.full-pinyin") { _syllables = syllables; }
             protected override bool UsesCandidates => true;
             protected override bool IsCompositionCharacter(char value) => PinyinSpelling.IsInput(value);
+            protected override string Render(string raw) => _syllables().Render(raw);
+            protected override string GetCommitText() => Snapshot.SelectedText + Snapshot.RawText;
             public override Task<CandidatePage> QueryCandidatesAsync(CandidateQuery query, CancellationToken cancellationToken) => Task.Run(() => Query(query, cancellationToken), cancellationToken);
             private static CandidatePage Query(CandidateQuery query, CancellationToken cancellationToken)
             {

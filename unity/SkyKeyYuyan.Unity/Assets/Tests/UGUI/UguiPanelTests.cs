@@ -209,6 +209,7 @@ public class UguiPanelTests
                 while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
                 var snapshot = player.Session.Snapshot;
                 Assert.That(snapshot.Querying, Is.False); Assert.That(snapshot.SelectedCandidate, Is.EqualTo(0));
+                if (choice == "好") CapturePanels("ugui-partial-selection");
                 int index = snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == choice);
                 Assert.That(index, Is.GreaterThanOrEqualTo(0));
                 for (int step = 0; step < index; step++) player.Handle(SkyControl.NextCandidate);
@@ -218,6 +219,9 @@ public class UguiPanelTests
                 if (choice == "世界") break;
                 string raw = choice == "你" ? "haoshijie" : "shijie";
                 Assert.That(player.Session.Snapshot.Composition.RawText, Is.EqualTo(raw));
+                var composition = new SkyCompositionText(player.Session.Snapshot);
+                Assert.That(composition.UnconvertedStart, Is.EqualTo(choice == "你" ? 2 : 3));
+                Assert.That(composition.Caret, Is.EqualTo(1 + player.Session.Snapshot.Composition.DisplayText.Length));
                 Assert.That(panel.DraftField.text, Is.EqualTo("AB"));
                 var preview = panel.GetComponentsInChildren<Text>(true).Single(text => text.name == "CompositionPreview");
                 Assert.That(preview.text, Is.EqualTo("A" + player.Session.Snapshot.Composition.DisplayText + "B"));

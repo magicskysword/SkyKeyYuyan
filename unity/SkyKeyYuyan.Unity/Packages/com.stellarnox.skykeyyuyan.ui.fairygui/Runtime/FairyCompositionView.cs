@@ -50,7 +50,7 @@ namespace SkyKeyYuyan.UI.FairyGUI
             _label.SetSize(_field.width, _field.height); _label.text = composition.Text;
             var text = (TextField)_label.displayObject; text.Redraw();
             if (text.charPositions.Count == 0 || text.lines.Count == 0) return;
-            var first = text.charPositions[Math.Min(ScalarIndex(composition.Text, composition.Start), text.charPositions.Count - 1)];
+            var first = text.charPositions[Math.Min(ScalarIndex(composition.Text, composition.UnconvertedStart), text.charPositions.Count - 1)];
             var last = text.charPositions[Math.Min(ScalarIndex(composition.Text, composition.Caret), text.charPositions.Count - 1)];
             var line = text.lines[last.lineIndex]; LineHeight = line.height > 0 ? line.height : text.textFormat.size;
             float scrollX = _field.singleLine ? Mathf.Max(0, last.offsetX + 2 - _field.width) : 0;

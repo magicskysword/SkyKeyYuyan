@@ -17,6 +17,7 @@ namespace SkyKeyYuyan.Unity
             Active = !snapshot.Composition.IsEmpty;
             Start = Active ? snapshot.Text.SelectionStart : snapshot.Text.Caret;
             Length = Active ? snapshot.Composition.DisplayText.Length : 0;
+            UnconvertedStart = Start + (Active ? Math.Min(snapshot.Composition.SelectedText.Length, Length) : 0);
             Text = Active ? snapshot.Text.Text.Remove(Start, snapshot.Text.SelectionLength).Insert(Start, snapshot.Composition.DisplayText) : snapshot.Text.Text;
         }
         /// <summary>
@@ -35,6 +36,10 @@ namespace SkyKeyYuyan.Unity
         /// 临时组字的 UTF-16 长度。
         /// </summary>
         public int Length { get; }
+        /// <summary>
+        /// 尚未转换片段在显示正文中的 UTF-16 起点。
+        /// </summary>
+        public int UnconvertedStart { get; }
         /// <summary>
         /// 临时显示光标的 UTF-16 偏移。
         /// </summary>

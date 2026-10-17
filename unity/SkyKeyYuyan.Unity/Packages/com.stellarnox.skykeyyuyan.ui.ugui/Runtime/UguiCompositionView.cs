@@ -68,9 +68,9 @@ namespace SkyKeyYuyan.UI.UGUI
             Caret = new Vector2(body.anchoredPosition.x + native.rectTransform.anchoredPosition.x + caret.x - scrollX,
                 -body.anchoredPosition.y - native.rectTransform.anchoredPosition.y + caret.y - scrollY);
             _marks.Rects.Clear();
-            for (int index = LineAt(composition.Start); index <= caretLine; index++)
+            for (int index = LineAt(composition.UnconvertedStart); index <= caretLine; index++)
             {
-                var current = _generator.lines[index]; int first = Math.Max(composition.Start, current.startCharIdx);
+                var current = _generator.lines[index]; int first = Math.Max(composition.UnconvertedStart, current.startCharIdx);
                 int end = Math.Min(composition.Caret, index + 1 < _generator.lines.Count ? _generator.lines[index + 1].startCharIdx : composition.Text.Length);
                 float x = Point(first).x, right = end > first ? RightEdge(end - 1) : x;
                 if (right > x) _marks.Rects.Add(new Rect(x, current.topY / units - current.height / units + 2, right - x, 2));

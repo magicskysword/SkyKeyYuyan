@@ -55,6 +55,7 @@ namespace SkyKeyYuyan.Languages.Chinese
                     if (value == '\u0308' && key.Length > 0 && key[key.Length - 1] == 'u') { key[key.Length - 1] = 'v'; ends[ends.Count - 1] = offset + 1; continue; }
                     if (char.GetUnicodeCategory(value) == UnicodeCategory.NonSpacingMark) { if (ends.Count > 0) ends[ends.Count - 1] = offset + 1; continue; }
                     if ((value == 'u' || value == 'U') && offset + 1 < raw.Length && raw[offset + 1] == ':') { key.Append('v'); ends.Add(offset + 2); offset++; continue; }
+                    if (value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z') { key.Append(char.ToLowerInvariant(value)); ends.Add(offset + 1); continue; }
                     string folded = char.IsSurrogate(value) ? value.ToString() : value.ToString().ToLowerInvariant().Normalize(NormalizationForm.FormD).Replace("u\u0308", "v");
                     foreach (char part in folded.Where(part => char.GetUnicodeCategory(part) != UnicodeCategory.NonSpacingMark)) { key.Append(part); ends.Add(offset + 1); }
                 }

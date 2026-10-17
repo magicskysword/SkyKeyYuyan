@@ -196,6 +196,7 @@ public class FairyPanelTests
                     while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
                     var snapshot = player.Session.Snapshot;
                     Assert.That(snapshot.Querying, Is.False); Assert.That(snapshot.SelectedCandidate, Is.EqualTo(0));
+                    if (choice == "好") yield return CapturePanels("fairygui-partial-selection");
                     int index = snapshot.Candidates.Candidates.ToList().FindIndex(candidate => candidate.Text == choice);
                     Assert.That(index, Is.GreaterThanOrEqualTo(0));
                     for (int step = 0; step < index; step++) player.Handle(SkyControl.NextCandidate);

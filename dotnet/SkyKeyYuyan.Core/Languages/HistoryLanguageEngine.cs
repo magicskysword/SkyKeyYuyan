@@ -85,6 +85,10 @@ namespace SkyKeyYuyan.Core
         /// </summary>
         protected virtual string Render(string raw) => raw;
         /// <summary>
+        /// 生成正文提交内容，允许临时显示使用额外的排版标记。
+        /// </summary>
+        protected virtual string GetCommitText() => Snapshot.DisplayText;
+        /// <summary>
         /// 判断字符是否结束当前词内拼写。
         /// </summary>
         protected virtual bool IsTerminator(char value) => char.IsWhiteSpace(value) || char.IsPunctuation(value);
@@ -103,7 +107,7 @@ namespace SkyKeyYuyan.Core
                         Push(_state.Raw.Append(command.Text.Substring(offset, next - offset)), _state.Selected);
                         offset = next;
                     }
-                    return new EngineStep(Snapshot, DirectInput || (!UsesCandidates && command.Text.Any(IsTerminator)) ? Snapshot.DisplayText : null, UsesCandidates);
+                    return new EngineStep(Snapshot, DirectInput || (!UsesCandidates && command.Text.Any(IsTerminator)) ? GetCommitText() : null, UsesCandidates);
                 case "backspace":
                     if (_state.Previous != null) { _state = _state.Previous; _version++; }
                     else if (_state.Raw.Length > 0) { string raw = _state.Raw.ToString(); _state = new Node(new TextChain(raw.Substring(0, TextBoundary.Previous(raw, raw.Length))), _state.Selected, null); _version++; }
@@ -113,8 +117,8 @@ namespace SkyKeyYuyan.Core
                     var candidate = command.Candidate ?? throw new ArgumentException("候选不能为空");
                     if (candidate.ConsumedLength > _state.Raw.Length) throw new ArgumentException("候选消耗范围超出拼写");
                     Push(new TextChain(_state.Raw.ToString().Substring(candidate.ConsumedLength)), _state.Selected.Append(candidate.Text));
-                    return new EngineStep(Snapshot, _state.Raw.Length == 0 ? Snapshot.DisplayText : null, _state.Raw.Length > 0 && UsesCandidates, candidate.Words);
-                case "commit": return new EngineStep(Snapshot, Snapshot.IsEmpty ? null : Snapshot.DisplayText);
+                    return new EngineStep(Snapshot, _state.Raw.Length == 0 ? GetCommitText() : null, _state.Raw.Length > 0 && UsesCandidates, candidate.Words);
+                case "commit": return new EngineStep(Snapshot, Snapshot.IsEmpty ? null : GetCommitText());
                 case "clear": _state = new Node(new TextChain(""), new TextChain(""), null); _version++; return new EngineStep(Snapshot);
                 case "completion": CompletionEnabled = command.Enabled; _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates && !Snapshot.IsEmpty);
                 case "restore": _state = new Node(new TextChain(command.Text), new TextChain(command.SelectedText), null); _version++; return new EngineStep(Snapshot, queryRequested: UsesCandidates);
