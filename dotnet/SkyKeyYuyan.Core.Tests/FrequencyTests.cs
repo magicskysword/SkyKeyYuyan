@@ -125,10 +125,10 @@ namespace SkyKeyYuyan.Core.Tests
             ChooseProbe(direct);
             Assert.That(FrequencyService.Shared.Capture(user, "probe")["probe.word"], Is.EqualTo(1));
             using var cancelled = second.OpenSession(new SessionOptions { UserId = user }, new MemoryTextTarget()).Session!;
-            ChooseProbe(cancelled); cancelled.Process(InputOperation.Cancel());
+            ChooseProbe(cancelled); ProcessApplied(cancelled, InputOperation.Cancel());
             Assert.That(FrequencyService.Shared.Capture(user, "probe")["probe.word"], Is.EqualTo(1));
             using var saved = second.OpenSession(new SessionOptions { UserId = user }, new MemoryTextTarget()).Session!;
-            ChooseProbe(saved); saved.Process(InputOperation.Finish());
+            ChooseProbe(saved); ProcessApplied(saved, InputOperation.Finish());
             Assert.That(FrequencyService.Shared.Capture(user, "probe")["probe.word"], Is.EqualTo(2));
         }
 
@@ -140,9 +140,28 @@ namespace SkyKeyYuyan.Core.Tests
         }
         private static void ChooseProbe(ISkySession session)
         {
-            session.Process(InputOperation.Insert("a")); RuntimeTests.WaitFor(() => session.Snapshot.Candidates != null);
+            ProcessApplied(session, InputOperation.Insert("a")); RuntimeTests.WaitFor(() => session.Snapshot.Candidates != null);
             var page = session.Snapshot.Candidates!;
-            Assert.That(session.Process(InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[0].Id)).Status, Is.EqualTo(OperationStatus.Applied));
+            ProcessApplied(session, InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[0].Id));
+        }
+        private static void ProcessApplied(ISkySession session, InputOperation operation)
+        {
+            // 接纳回执可能仍在排队，最终状态通过完成事件返回。
+            var completion = new TaskCompletionSource<OperationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void Completed(OperationResult result) => completion.TrySetResult(result);
+            session.OperationCompleted += Completed;
+            try
+            {
+                var receipt = session.Process(operation);
+                Assert.That(completion.Task.Wait(TimeSpan.FromSeconds(5)), Is.True, "操作未在期限内完成");
+                var result = completion.Task.GetAwaiter().GetResult();
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Operation, Is.EqualTo(receipt.Operation));
+                    Assert.That(result.Status, Is.EqualTo(OperationStatus.Applied));
+                });
+            }
+            finally { session.OperationCompleted -= Completed; }
         }
         private static TaskCompletionSource<bool> Gate() => new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         private sealed class Store : IFrequencyStore
