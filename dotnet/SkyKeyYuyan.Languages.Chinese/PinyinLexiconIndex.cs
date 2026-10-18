@@ -137,18 +137,21 @@ namespace SkyKeyYuyan.Languages.Chinese
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input.Boundaries.Contains(start + 1)) limit = start + 1;
-                var matches = new List<Edge>();
+                var matches = new List<Edge>(); int completeEnd = start;
                 for (int count = 1; count <= Math.Min(_maxSyllableLength, limit - start); count++)
                 {
                     string key = input.Key.Substring(start, count);
                     if (!_prefixes.TryGetValue(key, out var prefix)) break;
                     int end = start + count;
-                    if (prefix.Complete >= 0) matches.Add(new Edge(end, prefix.Complete, 1, 0));
-                    bool abbreviation = count == 1 || count == 2 && key[1] == 'h' && (key[0] == 'z' || key[0] == 'c' || key[0] == 's');
+                    if (prefix.Complete >= 0) { matches.Add(new Edge(end, prefix.Complete, 1, 0)); completeEnd = end; }
+                    bool abbreviation = PinyinSpelling.IsAbbreviation(key, 0, count);
                     if (abbreviation) matches.Add(new Edge(end, prefix.First, prefix.Count, AbbreviationPenalty));
                     else if (end == length && !input.Boundaries.Contains(length))
                         matches.Add(new Edge(end, prefix.First, prefix.Count, CompletionPenalty));
                 }
+                // 完整音节覆盖的字母优先保持为完整拼写。
+                for (int index = matches.Count - 1; index >= 0; index--)
+                    if (matches[index].Penalty == AbbreviationPenalty && matches[index].End < completeEnd) matches.RemoveAt(index);
                 edges[start] = matches.ToArray();
             }
             return new Graph(input, edges);

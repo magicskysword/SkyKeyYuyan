@@ -37,6 +37,8 @@ namespace SkyKeyYuyan.Languages.Chinese
             return normalized;
         }
         internal static string Flatten(string spelling) => spelling.Replace(" ", "");
+        internal static bool IsAbbreviation(string spelling, int start, int length) => length == 1
+            || length == 2 && spelling[start + 1] == 'h' && (spelling[start] == 'z' || spelling[start] == 'c' || spelling[start] == 's');
         internal static bool IsInput(char value) => value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' || value == '\'' || value == '’' || value == ':' || "üÜāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜńňǹḿ".IndexOf(value) >= 0 || char.GetUnicodeCategory(value) == UnicodeCategory.NonSpacingMark;
 
         internal sealed class Input

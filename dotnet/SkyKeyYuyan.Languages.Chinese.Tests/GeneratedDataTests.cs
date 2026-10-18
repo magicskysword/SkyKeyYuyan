@@ -20,6 +20,12 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
         [OneTimeTearDown]
         public void ReleaseDictionary() => _module.Dispose();
         [TestCase("nihao", "你好")]
+        [TestCase("nh", "你好")]
+        [TestCase("nhao", "你好")]
+        [TestCase("nhsj", "你好世界")]
+        [TestCase("nihaoshij", "你好世界")]
+        [TestCase("zg", "中国")]
+        [TestCase("zhg", "中国")]
         [TestCase("nihaoshijie", "你好世界")]
         [TestCase("hen", "很")]
         [TestCase("nin", "您")]

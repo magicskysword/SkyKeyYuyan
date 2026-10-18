@@ -10,7 +10,7 @@ using SkyKeyYuyan.Internal;
 namespace SkyKeyYuyan.Languages.Chinese
 {
     /// <summary>
-    /// 简体中文连续全拼、分段选择及基本整句转换模块。
+    /// 简体中文全拼、简拼、混合拼写及基本整句转换模块。
     /// </summary>
     public sealed class ChinesePinyinModule : LexiconModule, IKeyboardLayoutSource
     {
@@ -46,11 +46,13 @@ namespace SkyKeyYuyan.Languages.Chinese
         private sealed class Index
         {
             internal readonly SpellingIndex Words;
+            internal readonly PinyinLexiconIndex Lexicon;
             internal readonly PinyinSyllables Syllables;
             internal readonly HashSet<string> MultipleReadings = new HashSet<string>(StringComparer.Ordinal);
             internal Index(IReadOnlyList<LexiconWord> words)
             {
                 Words = new SpellingIndex(words, PinyinSpelling.Flatten);
+                Lexicon = new PinyinLexiconIndex(words);
                 Syllables = new PinyinSyllables(words);
                 var texts = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var word in words)
@@ -60,7 +62,7 @@ namespace SkyKeyYuyan.Languages.Chinese
             {
                 foreach (int boundary in input.Boundaries)
                 {
-                    if (boundary <= start || boundary >= end) continue;
+                    if (boundary <= start || boundary > end) continue;
                     int wanted = boundary - start, position = 0; bool found = false;
                     foreach (char value in word.Spelling)
                     {
@@ -145,30 +147,42 @@ namespace SkyKeyYuyan.Languages.Chinese
                 }
                 var paths = new List<Path>?[input.Key.Length + 1];
                 paths[0] = new List<Path> { new Path() };
-                var matches = new List<ScoredWord>(BeamWidth);
+                var graph = input.Key.Length > 1 ? index.Lexicon.Parse(input, cancellationToken) : null;
+                var matches = new List<ScoredWord>?[input.Key.Length + 1];
 
                 for (int start = 0; start < input.Key.Length; start++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (paths[start] == null) continue;
-                    for (int length = 1; length <= Math.Min(index.Words.MaxKeyLength, input.Key.Length - start); length++)
+                    Array.Clear(matches, 0, matches.Length);
+                    var wordMatches = graph != null ? index.Lexicon.MatchWords(graph, start, cancellationToken)
+                        : index.Words.Exact(input.Key).Select(word => new PinyinLexiconIndex.WordMatch(word, input.Key.Length, 0));
+                    foreach (var match in wordMatches)
                     {
-                        int end = start + length;
-                        matches.Clear();
-                        foreach (var word in index.Words.Exact(input.Key.Substring(start, length)))
+                        cancellationToken.ThrowIfCancellationRequested();
+                        double score = Score(match.Word, query, index) - match.Penalty;
+                        if (start == 0) Merge(new Match(match.Word, input.Consumed(match.End), score));
+                        var list = matches[match.End] ?? (matches[match.End] = new List<ScoredWord>(BeamWidth));
+                        int duplicate = -1;
+                        for (int indexOfWord = 0; indexOfWord < list.Count; indexOfWord++)
+                            if (list[indexOfWord].Word.Text == match.Word.Text) { duplicate = indexOfWord; break; }
+                        if (duplicate >= 0)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            if (!index.Fits(word, input, start, end)) continue;
-                            double score = Score(word, query, index); int position = 0;
-                            while (position < matches.Count && matches[position].Score >= score) position++;
-                            if (position >= BeamWidth) continue;
-                            matches.Insert(position, new ScoredWord(word, score));
-                            if (matches.Count > BeamWidth) matches.RemoveAt(BeamWidth);
+                            if (list[duplicate].Score >= score) continue;
+                            list.RemoveAt(duplicate);
                         }
-                        foreach (var match in matches)
+                        int position = 0;
+                        while (position < list.Count && list[position].Score >= score) position++;
+                        if (position >= BeamWidth) continue;
+                        list.Insert(position, new ScoredWord(match.Word, score));
+                        if (list.Count > BeamWidth) list.RemoveAt(BeamWidth);
+                    }
+                    for (int end = start + 1; end < matches.Length; end++)
+                    {
+                        if (matches[end] == null) continue;
+                        foreach (var match in matches[end]!)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (start == 0) Merge(new Match(match.Word, input.Consumed(end), match.Score));
                             var next = paths[end] ?? (paths[end] = new List<Path>());
                             foreach (var path in paths[start]!) MergePath(next, new Path(path, match.Word, path.Score + match.Score));
                             TrimPaths(next);
