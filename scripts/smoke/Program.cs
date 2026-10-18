@@ -28,6 +28,27 @@ var initialized = runtime.Initialize(new RuntimeOptions { ReplaceDefault = false
 Require(initialized.Succeeded, initialized.Result.Reason ?? "语言初始化失败");
 Check("zh-Hans", "hen", "很", "很");
 Check("zh-Hans", "nihaoshijie", "你好世界");
+Check("zh-Hans", "nh", "你好", "你好");
+Check("zh-Hans", "nhao", "你好", "你好");
+Check("zh-Hans", "nhsj", "你好世界", "你好世界");
+Check("zh-Hans", "nihaoshij", "你好世界", "你好世界");
+using (var session = runtime.OpenSession(new SessionOptions { InitialLanguage = "zh-Hans" }, new MemoryTextTarget()).Session!)
+{
+    session.Process(InputOperation.Insert("nhsj"));
+    Wait(() => !session.Snapshot.Querying && session.Snapshot.Candidates != null);
+    var page = session.Snapshot.Candidates!;
+    var hello = page.Candidates.Single(value => value.Text == "你好" && value.ConsumedLength == 2);
+    session.Process(InputOperation.ConfirmCandidate(page.Query.Id, hello.Id));
+    Wait(() => !session.Snapshot.Querying && session.Snapshot.Composition.RawText == "sj");
+    session.Process(InputOperation.Backspace());
+    Wait(() => !session.Snapshot.Querying && session.Snapshot.Composition.RawText == "nhsj" && session.Snapshot.Candidates != null);
+    page = session.Snapshot.Candidates!;
+    session.Process(InputOperation.ConfirmCandidate(page.Query.Id, page.Candidates[0].Id));
+    Wait(() => session.Snapshot.Composition.IsEmpty);
+    Require(session.Snapshot.Text.Text == "你好世界", "中文简拼分段回退结果错误");
+    session.Process(InputOperation.Cancel());
+    cases.Add("中文简拼分段选择与回退");
+}
 Check("en", "compu", "computer", "computer");
 using (var session = runtime.OpenSession(new SessionOptions { InitialLanguage = "en" }, new MemoryTextTarget()).Session!)
 {

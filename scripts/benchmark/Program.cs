@@ -17,7 +17,7 @@ using var runtime = CreateRuntime(out var languages);
 initialization.Add(Initialize(runtime, languages, true));
 var chinese = languages.Single(module => module.LanguageId == "zh-Hans");
 var english = languages.Single(module => module.EngineId == "en.completion");
-foreach (string input in new[] { "n", "hen", "nihaoshijie", "zhonghuarenmingongheguo", "nihaoshijiewoshizhongguoren" }) Query(chinese, input);
+foreach (string input in new[] { "n", "hen", "nh", "nhao", "nhsj", "nihaoshij", "zg", "zhg", "zh", "ch", "sh", "ng", "srf", "zhrmghg", "nhsjwszgr", "nihaoshijie", "zhonghuarenmingongheguo", "nihaoshijiewoshizhongguoren" }) Query(chinese, input);
 foreach (string input in new[] { "c", "compu", "trans" }) Query(english, input);
 using (var first = chinese.CreateEngine())
 using (var second = english.CreateEngine())

@@ -35,6 +35,12 @@ namespace SkyKeyYuyan.Languages.Chinese
             internal Graph(PinyinSpelling.Input input, Edge[][] edges) { Input = input; Edges = edges; }
         }
 
+        internal sealed class Workspace
+        {
+            internal readonly Dictionary<int, double>?[] States;
+            internal Workspace(int length) { States = new Dictionary<int, double>?[length + 1]; }
+        }
+
         private struct Prefix
         {
             internal int First, Count, Complete;
@@ -64,7 +70,15 @@ namespace SkyKeyYuyan.Languages.Chinese
         {
             var syllables = new HashSet<string>(StringComparer.Ordinal);
             foreach (var word in words)
-                foreach (var syllable in Split(word.Spelling)) syllables.Add(syllable);
+            {
+                int start = 0;
+                while (start < word.Spelling.Length)
+                {
+                    int end = word.Spelling.IndexOf(' ', start);
+                    if (end < 0) end = word.Spelling.Length;
+                    syllables.Add(word.Spelling.Substring(start, end - start)); start = end + 1;
+                }
+            }
             var ordered = syllables.OrderBy(value => value, StringComparer.Ordinal).ToArray();
             var identities = new Dictionary<string, int>(ordered.Length, StringComparer.Ordinal);
             for (int index = 0; index < ordered.Length; index++)
@@ -83,7 +97,7 @@ namespace SkyKeyYuyan.Languages.Chinese
 
             var encoded = new EncodedWord[words.Count];
             for (int index = 0; index < words.Count; index++)
-                encoded[index] = new EncodedWord(words[index], Split(words[index].Spelling).Select(value => identities[value]).ToArray());
+                encoded[index] = new EncodedWord(words[index], Encode(words[index].Spelling, identities));
             Array.Sort(encoded, (left, right) =>
             {
                 for (int position = 0; position < Math.Min(left.Code.Length, right.Code.Length); position++)
@@ -117,16 +131,18 @@ namespace SkyKeyYuyan.Languages.Chinese
             _words = encoded.Select(value => value.Word).ToArray();
         }
 
-        private static IEnumerable<string> Split(string spelling)
+        private static int[] Encode(string spelling, Dictionary<string, int> identities)
         {
-            int start = 0;
+            int count = 1;
+            foreach (char value in spelling) if (value == ' ') count++;
+            var result = new int[count]; int start = 0, position = 0;
             while (start < spelling.Length)
             {
                 int end = spelling.IndexOf(' ', start);
                 if (end < 0) end = spelling.Length;
-                yield return spelling.Substring(start, end - start);
-                start = end + 1;
+                result[position++] = identities[spelling.Substring(start, end - start)]; start = end + 1;
             }
+            return result;
         }
 
         internal Graph Parse(PinyinSpelling.Input input, CancellationToken cancellationToken)
@@ -157,12 +173,13 @@ namespace SkyKeyYuyan.Languages.Chinese
             return new Graph(input, edges);
         }
 
-        internal IEnumerable<WordMatch> MatchWords(Graph graph, int start, CancellationToken cancellationToken)
+        internal IEnumerable<WordMatch> MatchWords(Graph graph, int start, CancellationToken cancellationToken, Workspace? workspace = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             int length = graph.Input.Key.Length;
-            var states = new Dictionary<int, double>?[length + 1];
-            states[start] = new Dictionary<int, double> { [0] = 0 };
+            var states = workspace?.States ?? new Dictionary<int, double>?[length + 1];
+            for (int position = start; position <= length; position++) states[position]?.Clear();
+            var first = states[start] ?? (states[start] = new Dictionary<int, double>()); first.Add(0, 0);
             // 输入位置只向前移动；处理一个位置时，到达该处的最低代价已确定。
             for (int position = start; position <= length; position++)
             {

@@ -148,6 +148,7 @@ namespace SkyKeyYuyan.Languages.Chinese
                 var paths = new List<Path>?[input.Key.Length + 1];
                 paths[0] = new List<Path> { new Path() };
                 var graph = input.Key.Length > 1 ? index.Lexicon.Parse(input, cancellationToken) : null;
+                var workspace = graph != null ? new PinyinLexiconIndex.Workspace(input.Key.Length) : null;
                 var matches = new List<ScoredWord>?[input.Key.Length + 1];
 
                 for (int start = 0; start < input.Key.Length; start++)
@@ -155,13 +156,13 @@ namespace SkyKeyYuyan.Languages.Chinese
                     cancellationToken.ThrowIfCancellationRequested();
                     if (paths[start] == null) continue;
                     Array.Clear(matches, 0, matches.Length);
-                    var wordMatches = graph != null ? index.Lexicon.MatchWords(graph, start, cancellationToken)
+                    var wordMatches = graph != null ? index.Lexicon.MatchWords(graph, start, cancellationToken, workspace)
                         : index.Words.Exact(input.Key).Select(word => new PinyinLexiconIndex.WordMatch(word, input.Key.Length, 0));
                     foreach (var match in wordMatches)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         double score = Score(match.Word, query, index) - match.Penalty;
-                        if (start == 0) Merge(new Match(match.Word, input.Consumed(match.End), score));
+                        if (start == 0 && match.End == input.Key.Length) Merge(new Match(match.Word, input.Raw.Length, score));
                         var list = matches[match.End] ?? (matches[match.End] = new List<ScoredWord>(BeamWidth));
                         int duplicate = -1;
                         for (int indexOfWord = 0; indexOfWord < list.Count; indexOfWord++)
@@ -183,9 +184,16 @@ namespace SkyKeyYuyan.Languages.Chinese
                         foreach (var match in matches[end]!)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
+                            if (start == 0 && end != input.Key.Length) Merge(new Match(match.Word, input.Consumed(end), match.Score));
                             var next = paths[end] ?? (paths[end] = new List<Path>());
-                            foreach (var path in paths[start]!) MergePath(next, new Path(path, match.Word, path.Score + match.Score));
-                            TrimPaths(next);
+                            foreach (var path in paths[start]!)
+                            {
+                                double score = path.Score + match.Score;
+                                // 只为仍可能进入搜索窗口的路径生成文本和历史节点。
+                                if (next.Count == BeamWidth && score <= next[next.Count - 1].Score) continue;
+                                MergePath(next, new Path(path, match.Word, score));
+                                TrimPaths(next);
+                            }
                         }
                     }
                 }

@@ -26,6 +26,8 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
         [TestCase("nihaoshij", "你好世界")]
         [TestCase("zg", "中国")]
         [TestCase("zhg", "中国")]
+        [TestCase("srf", "输入法")]
+        [TestCase("zhrmghg", "中华人民共和国")]
         [TestCase("nihaoshijie", "你好世界")]
         [TestCase("hen", "很")]
         [TestCase("nin", "您")]
@@ -41,7 +43,8 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
             using var engine = _module.CreateEngine(); engine.Process(CompositionCommand.Insert(spelling));
             var page = await engine.QueryCandidatesAsync(new CandidateQuery(1, 1, engine.Snapshot, _module.CaptureData()), CancellationToken.None);
             Assert.That(page.Candidates.Select(candidate => candidate.Text), Does.Contain(expected));
-            if (spelling == "nihaoshijie") Assert.That(page.Candidates[0].Text, Is.EqualTo(expected));
+            if (spelling == "nihaoshijie" || spelling == "nh" || spelling == "nhao" || spelling == "nhsj")
+                Assert.That(page.Candidates[0].Text, Is.EqualTo(expected));
         }
     }
 }

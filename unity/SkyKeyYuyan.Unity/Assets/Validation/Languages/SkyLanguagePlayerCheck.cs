@@ -29,10 +29,13 @@ namespace SkyKeyYuyan.Validation
                 long retained = GC.GetTotalMemory(true) - before;
                 SkyPlayerValidation.RecordMeasurement("language/init-repeat", chinese.CaptureData().Words.Count + english.CaptureData().Words.Count, new[] { timer.Elapsed.TotalMilliseconds }, retained);
                 await Query(chinese, "n"); await Query(chinese, "nihaoshijie");
+                await Query(chinese, "nh", "你好"); await Query(chinese, "nhao", "你好");
+                await Query(chinese, "nhsj", "你好世界"); await Query(chinese, "nihaoshij", "你好世界");
+                await Query(chinese, "zh"); await Query(chinese, "sh");
                 await Query(english, "c"); await Query(english, "compu");
             }
         }
-        private static async Task Query(ILanguageModule module, string input)
+        private static async Task Query(ILanguageModule module, string input, string expected = null)
         {
             using (var engine = module.CreateEngine())
             {
@@ -50,6 +53,7 @@ namespace SkyKeyYuyan.Validation
                     {
                         var page = completed.GetAwaiter().GetResult();
                         SkyPlayerValidation.Require(page.Candidates.Count > 0, "Player 查询缺少候选");
+                        if (expected != null) SkyPlayerValidation.Require(page.Candidates[0].Text == expected, "Player 首选候选错误：" + input);
                         samples[sample] = (Stopwatch.GetTimestamp() - started) * 1000d / Stopwatch.Frequency;
                     }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }

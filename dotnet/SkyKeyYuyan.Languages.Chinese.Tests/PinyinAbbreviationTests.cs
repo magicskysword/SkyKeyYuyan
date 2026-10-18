@@ -132,6 +132,16 @@ namespace SkyKeyYuyan.Languages.Chinese.Tests
         }
 
         [Test]
+        public async Task ParallelQueriesShareOnlyImmutableDictionaryData()
+        {
+            using var module = Module(); using var first = module.CreateEngine(); using var second = module.CreateEngine();
+            first.Process(CompositionCommand.Insert("nhsj")); second.Process(CompositionCommand.Insert("zhg"));
+            var pages = await Task.WhenAll(Query(first, module), Query(second, module));
+            Assert.That(pages[0].Candidates[0].Text, Is.EqualTo("你好世界"));
+            Assert.That(pages[1].Candidates[0].Text, Is.EqualTo("中国"));
+        }
+
+        [Test]
         public async Task MultipleReadingsKeepDistinctSentencePathsAvailable()
         {
             var words = new[] { "na", "nai", "nan", "nang", "nao", "ne", "nei", "nen", "neng", "ni" }
