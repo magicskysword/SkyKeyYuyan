@@ -61,11 +61,14 @@ if (repository) {
   if (address.protocol !== 'https:' || address.hostname !== 'github.com' || !/^\/[\w.-]+\/[\w.-]+\/?$/.test(address.pathname)) throw new Error('Repository must be a GitHub HTTPS repository URL');
   repository = repository.replace(/\/$/, '').replace(/\.git$/, '');
   const metadata = resolve(artifacts, 'OpenUPM'); await mkdir(metadata, { recursive: true });
+  const hunter = process.env.GITHUB_ACTOR ?? address.pathname.split('/')[1];
+  const createdAt = Date.now();
   for (const manifest of packages) {
     const content = [
-      `name: ${manifest.name}`, `displayName: ${JSON.stringify(manifest.displayName)}`, `description: ${JSON.stringify(manifest.description)}`,
+      `name: ${manifest.name}`, 'aliases: []', `displayName: ${JSON.stringify(manifest.displayName)}`, `description: ${JSON.stringify(manifest.description)}`,
       `repoUrl: ${JSON.stringify(repository)}`, 'licenseSpdxId: MIT', 'licenseName: MIT License', 'topics:', '  - utilities',
-      'trackingMode: githubRelease', `githubReleaseAssetName: ${JSON.stringify(manifest.name + '-')}`, `readme: "main:docs/README.md"`, `minVersion: ${JSON.stringify(version)}`
+      'trackingMode: githubRelease', `githubReleaseAssetName: ${JSON.stringify(manifest.name + '-')}`, `readme: "main:docs/README.md"`, `minVersion: ${JSON.stringify(version)}`,
+      `hunter: ${JSON.stringify(hunter)}`, `createdAt: ${createdAt}`
     ].join('\n');
     await writeFile(resolve(metadata, manifest.name + '.yml'), content + '\n');
   }

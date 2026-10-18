@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-    <SkyPackageVersion Condition="'$(SkyPackageVersion)' == ''">0.2.0</SkyPackageVersion>
+    <SkyPackageVersion Condition="'$(SkyPackageVersion)' == ''">0.1.0</SkyPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SkyKeyYuyan.Core" Version="$(SkyPackageVersion)" />
