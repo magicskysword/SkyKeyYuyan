@@ -1,6 +1,6 @@
 {
   "name": "com.stellarnox.skykeyyuyan.fairygui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "SkyKeyYuyan FairyGUI",
   "description": "FairyGUI GTextInput 接入；FairyGUI SDK 由宿主提供。",
   "unity": "2020.3",
@@ -9,6 +9,6 @@
     "name": "MagicSkySword"
   },
   "dependencies": {
-    "com.stellarnox.skykeyyuyan.unity": "0.1.0"
+    "com.stellarnox.skykeyyuyan.unity": "0.2.0"
   }
 }
