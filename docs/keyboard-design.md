@@ -1,8 +1,8 @@
 # 默认虚拟键盘
 
-默认键盘采用中性深色面板、圆角键帽和薄荷色焦点，保留熟悉的 QWERTY 顺序。键位参考为 `ui/Design/virtual-keyboard-aligned.png`。
+默认键盘采用中性深色面板、圆角键帽和薄荷色焦点，保留熟悉的 QWERTY 顺序。当前默认面板截图见 [UGUI](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Screenshots/ugui-composition.png) 和 [FairyGUI](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Screenshots/fairygui-composition.png)。
 
-正文光标处显示带下划线的临时组字，候选词以紧凑横向浮窗跟随该行显示。浮窗优先出现在光标下方，空间不足时翻到上方，水平位置限制在玩家面板内。外观参考为 `ui/Design/inline-composition.png`。
+正文光标处显示带下划线的临时组字，候选词以紧凑横向浮窗跟随该行显示。浮窗优先出现在光标下方，空间不足时翻到上方，水平位置限制在玩家面板内。
 
 ## 布局
 

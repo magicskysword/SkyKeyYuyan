@@ -8,9 +8,9 @@
 
 SkyKeyYuyan（简称 SKY）是一个纯 C# 的游戏内输入法框架。它自己完成拼音组字、候选排序和文本编辑，不依赖操作系统 IME，安装语言包后即可离线运行。玩家可以只用手柄，在 UGUI、TextMeshPro 或 FairyGUI 文本框里输入简体中文、英文和韩文。
 
-![默认虚拟键盘](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Design/virtual-keyboard-aligned.png)
+![UGUI 默认面板的拼音组字与候选](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Screenshots/ugui-composition.png)
 
-*默认虚拟键盘设计稿：拼音组字、候选栏、六排对齐键盘与手柄按键提示。*
+*UGUI 默认面板：已确认“你好”，`shi'jie` 待转换，首选候选为“世界”。*
 
 ## 为什么选择 SKY
 

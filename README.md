@@ -8,9 +8,9 @@
 
 SkyKeyYuyan (SKY) is an in-game input method framework written in pure C#. It handles pinyin composition, candidate ranking and text editing itself, without relying on the operating system's IME, and runs fully offline once a language package is installed. Players can type Simplified Chinese, English and Korean into UGUI, TextMeshPro or FairyGUI text fields using only a gamepad.
 
-![Default virtual keyboard](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Design/virtual-keyboard-aligned.png)
+![UGUI pinyin composition and candidates](https://media.githubusercontent.com/media/magicskysword/SkyKeyYuyan/main/ui/Screenshots/ugui-composition.png)
 
-*Default virtual keyboard design: pinyin composition, candidate bar, six-row aligned layout and gamepad hints.*
+*UGUI default panel: “你好” has been converted, `shi'jie` is still being composed, and “世界” is the first candidate.*
 
 ## Why SKY
 
