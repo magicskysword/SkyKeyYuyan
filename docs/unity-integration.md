@@ -163,6 +163,30 @@ UGUI 草稿控件为每位玩家保留独立编辑态，虚拟按钮不会改变
 
 `FairySkyPanel.Create(parent, player, mixedFont)` 从包内 Resources 加载默认界面，为每位玩家绑定独立的 GComponent 父节点。`View` 和 `DraftField` 暴露原生组件，`SetLanguageFont` 使用 FairyGUI 字体名称配置语言展示区。释放宿主时调用面板的 `Dispose`。非全局焦点草稿仍按自身 TextField 排版绘制光标和双向选区。
 
+带第四个参数的 `Create(parent, player, mixedFont, options)` 接受 `FairySkyPanelOptions`，每个面板独立配置：
+
+- `Theme`：`SkyKeyboardTheme` 同时控制面板、键帽、候选、焦点徽标、组字下划线、光标和选区。
+- `Title`：宿主提供的输入标题，后面显示当前输入语言。
+- `Localize(id, fallback)`：按稳定标识返回界面文案；返回 `null` 时使用默认文案，空字符串可以隐藏对应文案。功能键使用 `key.<action>`，Shift 激活态使用 `key.shift.on`，补全开关使用 `key.completion.on/off`；语言名使用 `language.<languageId>`，状态使用 `state.paused/literal`，提示使用 `hint.*` 和 `status.*`。
+- `ControlLabel(control)`、`ControlIcon(control)`：当前绑定的按键名称和 FairyGUI 图标 URL。图标为空时使用按键名称，名称为 `null` 时使用默认名称；面板通过 GLoader 显示图标。
+- `ConfigureDraft(field)`：每次会话创建草稿时配置 `maxLength`、`restrict`、`displayAsPassword` 和其他原生属性。单行或多行类型由会话的 `SkyTextInputOptions` 指定。密码组字预览按字符数显示掩码。
+- `ShowNavigationHelp`：控制正常编辑时的操作说明，查询、写入确认和校验结果仍按状态显示。
+
+修改主题、语言或按键绑定后调用 `RefreshAppearance()`，会话正文、组字和选区继续保留。宿主已加载同 ID 的原生包时，面板直接复用该包；由宿主统一管理卸载与重新创建。
+
+```csharp
+var options = new FairySkyPanelOptions
+{
+    Title = "角色名",
+    Theme = new SkyKeyboardTheme { Accent = new Color32(208, 173, 113, 255) },
+    Localize = (id, fallback) => id == "key.finish" ? "确定" : null,
+    ConfigureDraft = field => { field.maxLength = 12; field.restrict = null; }
+};
+var panel = FairySkyPanel.Create(playerRoot, player, mixedFont, options);
+```
+
+完整面板的提示标识包括 `hint.keys/caret/activate/backspace/candidates/selection/body/keyboard/confirm/finish`；状态标识包括 `status.resolve/querying/unavailable/truncated/rejected/text/keyboard`。按键图标提示使用 `Activate`、`Backspace`、`ConfirmCandidate`、`Language`、`Finish`、`ToggleTextFocus`，方向提示在键盘模式使用 `KeyRight`、`NextCandidate`，正文模式使用 `TextRight`、`SelectRight`。
+
 FairyGUI 原生源工程位于 `ui/FairyGUI/SkyKeyYuyan.fairy`，包含 Panel、Keyboard、Candidates 和 Key 四个组件。导出的 `SkyKeyYuyan_fui.bytes` 位于表现包的 `Runtime/Resources/SkyKeyYuyan/UI/FairyGUI/`。调整源工程后将发布目录指向此位置，保持资源与原生组件同步。
 
 ## 字体

@@ -1,6 +1,7 @@
 using System;
 using FairyGUI;
 using SkyKeyYuyan.Core;
+using SkyKeyYuyan.Unity;
 using UnityEngine;
 
 namespace SkyKeyYuyan.UI.FairyGUI
@@ -15,6 +16,11 @@ namespace SkyKeyYuyan.UI.FairyGUI
         {
             _field = field; _caret.DrawRect(0, Color.clear, new Color32(102, 222, 212, 255));
             field.inputTextField.AddChildAt(_selection, 0); field.inputTextField.AddChild(_caret);
+        }
+        public void ApplyTheme(SkyKeyboardTheme theme)
+        {
+            _caret.DrawRect(0, Color.clear, theme.Accent);
+            _selection.color = theme.Selection;
         }
         internal void Render(TextSnapshot snapshot, bool focused)
         {

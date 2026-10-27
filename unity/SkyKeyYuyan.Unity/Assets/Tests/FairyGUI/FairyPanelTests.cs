@@ -37,6 +37,81 @@ public class FairyPanelTests
         return new FairyTextTarget(field, caret, caret);
     }
     [UnityTest]
+    public IEnumerator CustomAppearanceSurvivesEditingAndRefreshesBindings()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions()))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new BasicEnglishModule());
+            Assert.That(runtime.Initialize(new RuntimeOptions { ReplaceDefault = false, AutoSaveFrequencies = false }).Succeeded, Is.True);
+            string activate = "OK";
+            var theme = new SkyKeyboardTheme
+            {
+                Panel = new Color32(25, 22, 17, 255), Inset = new Color32(41, 38, 31, 255),
+                Key = new Color32(65, 54, 43, 255), Function = new Color32(50, 42, 33, 255),
+                Accent = new Color32(208, 173, 113, 255), Border = new Color32(139, 114, 82, 255),
+                Primary = new Color32(188, 154, 99, 255), Text = new Color32(224, 208, 176, 255)
+            };
+            var options = new FairySkyPanelOptions
+            {
+                Theme = theme, Title = "Name", ShowNavigationHelp = false,
+                Localize = (id, fallback) => id == "key.finish" ? "Done" : id == "key.space" ? "Space" : null,
+                ControlLabel = control => control == SkyControl.Activate ? activate : null
+            };
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest", options))
+            {
+                Assert.That(player.Open(target, runtime).Succeeded, Is.True);
+                player.Handle(SkyControl.Text, text: "Sky");
+                var finish = panel.View.GetChild("keyboard").asCom.GetChild("finish").asButton;
+                Assert.That(finish.title, Is.EqualTo("Done"));
+                Assert.That(panel.View.GetChild("keyboard").asCom.GetChild("space").asButton.title, Is.EqualTo("Space"));
+                Assert.That(finish.GetTextField().color, Is.EqualTo(theme.DarkText));
+                Assert.That(panel.DraftField.color, Is.EqualTo(theme.Text));
+                Assert.That(panel.View.GetChild("title").text, Does.StartWith("Name"));
+                Assert.That(panel.View.GetChild("status").text, Is.Empty);
+                Assert.That(panel.View.GetChild("hintGlyph1").text, Is.EqualTo("OK"));
+                activate = "Use"; panel.RefreshAppearance();
+                Assert.That(panel.View.GetChild("hintGlyph1").text, Is.EqualTo("Use"));
+                Assert.That(player.Session.Snapshot.Text.Text, Is.EqualTo("Sky"));
+                yield return CapturePanels("fairygui-custom-theme");
+                player.Handle(SkyControl.Finish);
+                Assert.That(target.ReadSnapshot().Text, Is.EqualTo("Sky"));
+            }
+        }
+    }
+    [UnityTest]
+    public IEnumerator ConfiguredDraftEnforcesLimitsAndMasksComposition()
+    {
+        using (var runtime = new SkyRuntime())
+        using (var player = new SkyPlayerContext(new SkyPlayerOptions { InitialLanguage = "zh-Hans" }))
+        using (var target = Target("", 0))
+        {
+            runtime.RegisterLanguage(new ChinesePinyinModule(new[] { new LexiconWord("hello", "你好", "ni hao") }));
+            var services = SkyUnityServices.Shared;
+            runtime.Initialize(new RuntimeOptions { Resources = services.Resources, ExecutionContext = services.Context, ReplaceDefault = false, AutoSaveFrequencies = false });
+            var options = new FairySkyPanelOptions
+            {
+                ConfigureDraft = field => { field.maxLength = 1; field.restrict = "[你好]"; field.displayAsPassword = true; }
+            };
+            using (var panel = FairySkyPanel.Create(PlayerRoot(0), player, "SkyPanelTest", options))
+            {
+                Assert.That(player.Open(target, runtime).Succeeded, Is.True);
+                player.Handle(SkyControl.Text, text: "nihao");
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (player.Session.Snapshot.Querying && Time.realtimeSinceStartup < deadline) { services.Context.Drain(); yield return null; }
+                var preview = panel.View.GetChild("compositionViewport").asCom.GetChild("compositionPreview").asTextField;
+                Assert.That(preview.text, Does.Not.Contain("ni"));
+                Assert.That(preview.text, Does.Contain("●"));
+                player.Handle(SkyControl.ConfirmCandidate); services.Context.Drain();
+                Assert.That(panel.DraftField.text, Is.EqualTo("你"));
+                Assert.That(panel.DraftField.displayAsPassword, Is.True);
+                player.Handle(SkyControl.Finish); services.Context.Drain();
+                Assert.That(target.ReadSnapshot().Text, Is.EqualTo("你"));
+            }
+        }
+    }
+    [UnityTest]
     public IEnumerator KeyboardInputUsesNativeFieldAndCandidatePopupWithoutTheVirtualPanel()
     {
         using (var runtime = new SkyRuntime())

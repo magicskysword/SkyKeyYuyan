@@ -5,7 +5,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.core": "0.2.0"
+        "com.stellarnox.skykeyyuyan.core": "0.3.0"
       }
     },
     "com.stellarnox.skykeyyuyan.core": {
@@ -19,7 +19,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.core": "0.2.0"
+        "com.stellarnox.skykeyyuyan.core": "0.3.0"
       }
     },
     "com.stellarnox.skykeyyuyan.fairygui": {
@@ -27,7 +27,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.unity": "0.2.0"
+        "com.stellarnox.skykeyyuyan.unity": "0.3.0"
       }
     },
     "com.stellarnox.skykeyyuyan.korean": {
@@ -35,7 +35,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.core": "0.2.0"
+        "com.stellarnox.skykeyyuyan.core": "0.3.0"
       }
     },
     "com.stellarnox.skykeyyuyan.ui.fairygui": {
@@ -43,7 +43,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.fairygui": "0.2.0"
+        "com.stellarnox.skykeyyuyan.fairygui": "0.3.0"
       }
     },
     "com.stellarnox.skykeyyuyan.ui.ugui": {
@@ -51,7 +51,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.unity": "0.2.0",
+        "com.stellarnox.skykeyyuyan.unity": "0.3.0",
         "com.unity.ugui": "1.0.0"
       }
     },
@@ -60,7 +60,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.stellarnox.skykeyyuyan.core": "0.2.0",
+        "com.stellarnox.skykeyyuyan.core": "0.3.0",
         "com.unity.modules.imgui": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
       }

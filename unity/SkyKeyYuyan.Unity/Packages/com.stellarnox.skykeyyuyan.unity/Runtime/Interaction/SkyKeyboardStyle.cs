@@ -5,6 +5,37 @@ using UnityEngine;
 namespace SkyKeyYuyan.Unity
 {
     /// <summary>
+    /// 一套面板独立持有的键盘配色，可在刷新外观前调整。
+    /// </summary>
+    public sealed class SkyKeyboardTheme
+    {
+        /// <summary>
+        /// 面板、内嵌正文、普通键和功能键的背景。
+        /// </summary>
+        public Color Panel = SkyKeyboardStyle.Panel, Inset = SkyKeyboardStyle.Inset,
+            Key = SkyKeyboardStyle.Key, Function = SkyKeyboardStyle.Function;
+        /// <summary>
+        /// 普通边框、焦点、主要操作和切换状态的颜色。
+        /// </summary>
+        public Color Border = SkyKeyboardStyle.Border, Accent = SkyKeyboardStyle.Accent,
+            Primary = SkyKeyboardStyle.Primary, Active = SkyKeyboardStyle.Active;
+        /// <summary>
+        /// 正文、次要提示、强调键文字及正文选区的颜色。
+        /// </summary>
+        public Color Text = SkyKeyboardStyle.Text, Muted = SkyKeyboardStyle.Muted,
+            DarkText = SkyKeyboardStyle.DarkText, Selection = new Color(0.2f, 0.65f, 0.8f, 0.4f);
+
+        /// <summary>
+        /// 按当前主题取得普通、功能、激活或焦点键的填色。
+        /// </summary>
+        public Color KeyColor(KeyboardKey key, bool focused, bool active)
+        {
+            return focused ? Accent : key.Action == "finish" ? Primary : active ? Active
+                : key.Action == "input" && key.Output != " " ? Key : Function;
+        }
+    }
+
+    /// <summary>
     /// 两套默认表现共用的尺寸、色彩与键帽几何。
     /// </summary>
     public static class SkyKeyboardStyle

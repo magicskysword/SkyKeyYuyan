@@ -20,6 +20,10 @@ namespace SkyKeyYuyan.FairyGUI
         private float _nativeAlpha;
         private bool _active;
         /// <summary>
+        /// 组字下划线和光标使用的主题。
+        /// </summary>
+        public SkyKeyboardTheme Theme { get; set; } = new SkyKeyboardTheme();
+        /// <summary>
         /// 光标在正文父级内的位置。
         /// </summary>
         public Vector2 Caret { get; private set; }
@@ -50,7 +54,7 @@ namespace SkyKeyYuyan.FairyGUI
         {
             _label.textFormat = _field.textFormat; _label.singleLine = _field.singleLine;
             _label.autoSize = _field.singleLine ? AutoSizeType.Both : AutoSizeType.Height;
-            _label.SetSize(_field.width, _field.height); _label.text = text; return _label.textHeight;
+            _label.SetSize(_field.width, _field.height); _label.text = DisplayText(text); return _label.textHeight;
         }
         /// <summary>
         /// 更新组字与滚动位置。
@@ -69,7 +73,7 @@ namespace SkyKeyYuyan.FairyGUI
             _viewport.container.clipRect = new Rect(0, 0, _field.width, _field.height);
             _label.textFormat = _field.textFormat; _label.singleLine = _field.singleLine;
             _label.autoSize = _field.singleLine ? AutoSizeType.Both : AutoSizeType.Height;
-            _label.SetSize(_field.width, _field.height); _label.text = composition.Text;
+            _label.SetSize(_field.width, _field.height); _label.text = DisplayText(composition.Text);
             var text = (TextField)_label.displayObject; text.Redraw();
             if (text.charPositions.Count == 0 || text.lines.Count == 0) return;
             var first = text.charPositions[Math.Min(ScalarIndex(composition.Text, composition.UnconvertedStart), text.charPositions.Count - 1)];
@@ -87,10 +91,12 @@ namespace SkyKeyYuyan.FairyGUI
                 var mark = _marks[index]; mark.visible = index < _rects.Count;
                 if (!mark.visible) continue;
                 var rect = _rects[index]; mark.SetXY(rect.x - scrollX, rect.y + rect.height - scrollY - 2);
-                mark.SetSize(rect.width, 2); mark.shape.DrawRect(0, Color.clear, SkyKeyboardStyle.Accent);
+                mark.SetSize(rect.width, 2); mark.shape.DrawRect(0, Color.clear, Theme.Accent);
             }
-            _caret.SetXY(last.offsetX - scrollX, line.y - scrollY); _caret.SetSize(2, LineHeight); _caret.shape.DrawRect(0, Color.clear, SkyKeyboardStyle.Accent);
+            _caret.SetXY(last.offsetX - scrollX, line.y - scrollY); _caret.SetSize(2, LineHeight); _caret.shape.DrawRect(0, Color.clear, Theme.Accent);
         }
+        private string DisplayText(string text) => _field.displayAsPassword
+            ? new string('●', ScalarIndex(text, text.Length)) : text;
         private static int ScalarIndex(string text, int offset)
         {
             int result = 0;
